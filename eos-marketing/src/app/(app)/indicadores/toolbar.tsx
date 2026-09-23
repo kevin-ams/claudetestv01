@@ -104,7 +104,7 @@ export function Toolbar({
             setPanel(null);
             router.refresh();
           }}
-          className="card grid gap-2 p-4 sm:grid-cols-4 lg:grid-cols-8"
+          className="card grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6"
         >
           <input name="program" list="new-career-programs" required className="input" placeholder="Programa (ej. FISICC)" />
           <datalist id="new-career-programs">
@@ -127,9 +127,7 @@ export function Toolbar({
               </option>
             ))}
           </select>
-          <input name="leadsGoal" type="number" min={0} className="input" placeholder="Meta leads/sem" />
-          <input name="budgetGoal" type="number" min={0} step="0.01" className="input" placeholder="Presupuesto/sem" />
-          <div className="flex gap-2 sm:col-span-4 lg:col-span-8">
+          <div className="flex gap-2 sm:col-span-3 lg:col-span-6">
             <button type="submit" className="btn btn-primary">
               Agregar carrera
             </button>

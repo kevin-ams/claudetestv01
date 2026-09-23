@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { listTodos } from "@/lib/domain/todos";
 import { listTeamMembers } from "@/lib/domain/users";
+import { isClickUpConfigured } from "@/lib/integrations/clickup";
 import { TodoList } from "./todo-list";
 
 export default async function TodosPage() {
@@ -20,7 +21,7 @@ export default async function TodosPage() {
           Tareas de una semana que salen de la Reunión Level 10 o del día a día.
         </p>
       </div>
-      <TodoList todos={todos} members={members} />
+      <TodoList todos={todos} members={members} clickupConfigured={isClickUpConfigured()} />
     </div>
   );
 }

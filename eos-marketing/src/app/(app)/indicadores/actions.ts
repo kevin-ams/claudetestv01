@@ -8,7 +8,6 @@ import {
   createCareer,
   updateCareer,
   archiveCareer,
-  setCareerGoal,
   setCareerOwner,
   setWeeklyLeads,
   setWeeklyBudget,
@@ -29,6 +28,7 @@ export type ActionResult = { ok: boolean; message: string };
 
 function refresh() {
   revalidatePath("/indicadores");
+  revalidatePath("/metas");
   revalidatePath("/meeting", "layout");
 }
 
@@ -89,12 +89,6 @@ export async function setBudgetAction(careerId: number, week: string, value: num
   refresh();
 }
 
-export async function setGoalAction(careerId: number, field: "leads" | "budget", value: number) {
-  await requireTeamCareer(careerId);
-  await setCareerGoal(careerId, field, cleanNumber(value) ?? 0);
-  refresh();
-}
-
 export async function setOwnerAction(careerId: number, ownerId: number | null) {
   const { session } = await requireTeamCareer(careerId);
   if (ownerId !== null && !(await isUserInTeam(ownerId, session.teamId))) return;
@@ -116,8 +110,6 @@ export async function createCareerAction(formData: FormData) {
     name,
     level: levelFrom(formData.get("level")),
     ownerId: await ownerFrom(formData.get("ownerId"), session.teamId),
-    leadsGoal: Math.max(0, Number(formData.get("leadsGoal")) || 0),
-    budgetGoal: Math.max(0, Number(formData.get("budgetGoal")) || 0),
   });
   refresh();
 }

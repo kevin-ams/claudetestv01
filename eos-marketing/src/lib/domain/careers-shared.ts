@@ -1,4 +1,5 @@
-import type { Career, CareerLevel, CareerWeekly } from "./types";
+import { addDays, format, getDaysInMonth, parseISO } from "date-fns";
+import type { Career, CareerLevel, CareerMonthlyGoal, CareerWeekly } from "./types";
 
 export const CAREER_LEVELS: CareerLevel[] = ["Pregrado", "Postgrado", "Técnico", "Diplomado"];
 
@@ -58,19 +59,72 @@ export function costPerLead(spent: number | null, leads: number | null): string 
   return money(spent / leads);
 }
 
+export type WeeklyGoal = { leads: number; budget: number };
+
+/** "2026-09-14" → "2026-09-01" */
+export function monthKey(date: string): string {
+  return `${date.slice(0, 7)}-01`;
+}
+
+/**
+ * Meta de una semana a partir de las metas mensuales: cada día de la semana
+ * aporta (meta del mes / días del mes). Así, una semana que cruza dos meses
+ * toma la parte proporcional de cada uno.
+ */
+export function prorateWeeklyGoals(
+  weekStart: string,
+  goals: CareerMonthlyGoal[]
+): Record<number, WeeklyGoal> {
+  const byKey = new Map(goals.map((g) => [`${g.career_id}:${g.month}`, g]));
+  const careerIds = new Set(goals.map((g) => g.career_id));
+  const result: Record<number, WeeklyGoal> = {};
+  const start = parseISO(weekStart);
+  for (const careerId of careerIds) {
+    let leads = 0;
+    let budget = 0;
+    for (let i = 0; i < 7; i++) {
+      const day = addDays(start, i);
+      const g = byKey.get(`${careerId}:${format(day, "yyyy-MM")}-01`);
+      if (!g) continue;
+      const days = getDaysInMonth(day);
+      leads += g.leads_goal / days;
+      budget += g.budget_goal / days;
+    }
+    result[careerId] = {
+      leads: Math.round(leads * 10) / 10,
+      budget: Math.round(budget * 100) / 100,
+    };
+  }
+  return result;
+}
+
+/** Meses (yyyy-mm-01) que toca una semana. */
+export function monthsOfWeek(weekStart: string): string[] {
+  const start = parseISO(weekStart);
+  return [...new Set([monthKey(weekStart), monthKey(format(addDays(start, 6), "yyyy-MM-dd"))])];
+}
+
 export type CareerRow = Career & {
+  leads_goal: number;
+  budget_goal: number;
   leads: number | null;
   leads_source: CareerWeekly["leads_source"];
   budget_spent: number | null;
   budget_source: CareerWeekly["budget_source"];
 };
 
-export function mergeWeekly(careers: Career[], weekly: CareerWeekly[]): CareerRow[] {
+export function mergeWeekly(
+  careers: Career[],
+  weekly: CareerWeekly[],
+  goals: Record<number, WeeklyGoal>
+): CareerRow[] {
   const byCareer = new Map(weekly.map((w) => [w.career_id, w]));
   return careers.map((c) => {
     const w = byCareer.get(c.id);
     return {
       ...c,
+      leads_goal: goals[c.id]?.leads ?? 0,
+      budget_goal: goals[c.id]?.budget ?? 0,
       leads: w?.leads ?? null,
       leads_source: w?.leads_source ?? null,
       budget_spent: w?.budget_spent ?? null,

@@ -114,3 +114,17 @@ export async function markIssueDiscussed(meetingId: number, issueId: number) {
     UPDATE meeting_issues SET discussed = TRUE WHERE meeting_id = ${meetingId} AND issue_id = ${issueId}
   `;
 }
+
+/** Últimas noticias de las reuniones del equipo, para el Dashboard. */
+export async function listRecentHeadlines(teamId: number, limit = 10) {
+  const rows = await db().sql`
+    SELECT h.*, u.name AS author_name
+    FROM meeting_headlines h
+    JOIN meetings m ON m.id = h.meeting_id
+    LEFT JOIN users u ON u.id = h.created_by
+    WHERE m.team_id = ${teamId}
+    ORDER BY h.created_at DESC, h.id DESC
+    LIMIT ${limit}
+  `;
+  return rows as (MeetingHeadline & { author_name: string | null })[];
+}

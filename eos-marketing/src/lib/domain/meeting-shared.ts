@@ -17,7 +17,7 @@ export type SegmentDef = {
 export const L10_AGENDA: SegmentDef[] = [
   {
     key: "segue",
-    label: "Segue",
+    label: "Buenas noticias",
     minutes: 5,
     description: "Buenas noticias, personales y del negocio.",
   },
@@ -35,9 +35,9 @@ export const L10_AGENDA: SegmentDef[] = [
   },
   {
     key: "headlines",
-    label: "Titulares",
+    label: "Noticias",
     minutes: 5,
-    description: "Titulares de clientes y empleados. Solo informativo, no se discute aquí.",
+    description: "Noticias externas y del equipo. Solo informativo, no se discute aquí; se publican en el Dashboard.",
   },
   {
     key: "todos",

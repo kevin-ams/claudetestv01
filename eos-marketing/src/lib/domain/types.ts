@@ -148,6 +148,10 @@ export type Issue = {
   sort_order: number;
   created_at: string;
   solved_at: string | null;
+  due_date: string | null;
+  clickup_task_id: string | null;
+  clickup_url: string | null;
+  clickup_sent_at: string | null;
 };
 
 export type TodoStatus = "open" | "done";
@@ -162,6 +166,10 @@ export type Todo = {
   meeting_id: number | null;
   created_at: string;
   done_at: string | null;
+  description: string;
+  clickup_task_id: string | null;
+  clickup_url: string | null;
+  clickup_sent_at: string | null;
 };
 
 export type MeetingStatus = "scheduled" | "in_progress" | "completed";
@@ -199,8 +207,6 @@ export type Career = {
   name: string;
   level: CareerLevel;
   owner_id: number | null;
-  leads_goal: number;
-  budget_goal: number;
   archived: boolean;
   sort_order: number;
   created_at: string;
@@ -230,4 +236,11 @@ export type CareerImport = {
   total: number;
   created_by: number | null;
   created_at: string;
+};
+
+export type CareerMonthlyGoal = {
+  career_id: number;
+  month: string; // yyyy-mm-01
+  leads_goal: number;
+  budget_goal: number;
 };

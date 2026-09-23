@@ -1,5 +1,5 @@
 import { getSession } from "@/lib/auth/session";
-import { listAliases, listCareers, listRecentImports, listWeekly } from "@/lib/domain/careers";
+import { listAliases, listCareers, listRecentImports, listWeekly, weeklyGoals } from "@/lib/domain/careers";
 import { mergeWeekly, money, num } from "@/lib/domain/careers-shared";
 import { listTeamMembers } from "@/lib/domain/users";
 import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
@@ -18,14 +18,15 @@ export default async function IndicadoresPage({
   const sp = await searchParams;
   const week = sp.semana && /^\d{4}-\d{2}-\d{2}$/.test(sp.semana) ? shiftWeek(sp.semana, 0) : lastClosedWeek();
 
-  const [careers, weekly, members, aliases, imports] = await Promise.all([
+  const [careers, weekly, goals, members, aliases, imports] = await Promise.all([
     listCareers(session.teamId),
     listWeekly(session.teamId, week),
+    weeklyGoals(session.teamId, week),
     listTeamMembers(session.teamId),
     listAliases(session.teamId),
     listRecentImports(session.teamId),
   ]);
-  const rows = mergeWeekly(careers, weekly);
+  const rows = mergeWeekly(careers, weekly, goals);
   const programs = [...new Set(careers.map((c) => c.program))].sort((a, b) => a.localeCompare(b, "es"));
 
   return (

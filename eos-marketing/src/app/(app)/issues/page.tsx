@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { listIssues } from "@/lib/domain/issues";
 import { listTeamMembers } from "@/lib/domain/users";
+import { isClickUpConfigured } from "@/lib/integrations/clickup";
 import { IssueList } from "./issue-list";
 import { AddIssueForm } from "./add-issue-form";
 
@@ -25,7 +26,12 @@ export default async function IssuesPage() {
       <div className="mb-6">
         <AddIssueForm members={members} />
       </div>
-      <IssueList openIssues={openIssues} solvedIssues={solvedIssues} members={members} />
+      <IssueList
+        openIssues={openIssues}
+        solvedIssues={solvedIssues}
+        members={members}
+        clickupConfigured={isClickUpConfigured()}
+      />
     </div>
   );
 }

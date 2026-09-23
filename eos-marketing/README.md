@@ -30,7 +30,7 @@ de administrador. Al terminar el setup se cargan automáticamente:
   con un correo provisional `nombre@marketing.local` y sin acceso: asígnales
   correo y contraseña desde **Equipo → Editar acceso**.
 - Las 117 carreras con su programa, nivel y responsable (`src/lib/domain/careers-catalog.ts`),
-  con metas en 0.
+  sin metas (se cargan en **Metas de carrera**).
 - El Rock de Kevin "Dashboard de Active" (Q4 2026) con sus hitos y fechas.
 
 **Volver a cero:** detén la app y borra la carpeta `.data/`.
@@ -41,6 +41,7 @@ de administrador. Al terminar el setup se cargan automáticamente:
 | -------------- | ---------------------------------------------------------------- |
 | `AUTH_SECRET`  | Secreto para firmar las cookies de sesión. Si falta, usa uno de desarrollo. |
 | `EOS_DATA_DIR` | Carpeta de la base de datos local (por defecto `.data/pglite`). |
+| `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Para activar la sincronización de leads (la consulta está preparada en `src/lib/integrations/activecampaign.ts`, falta implementarla). |
 
 ## Estructura
@@ -56,8 +57,11 @@ de administrador. Al terminar el setup se cargan automáticamente:
 - **V/TO** (`/vto`): Vision/Traction Organizer editable por secciones.
 - **Organigrama** (`/accountability`): árbol de asientos con roles/responsabilidades.
 - **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos y fecha por hito.
-- **Indicadores de carrera** (`/indicadores`): meta semanal de leads y de consumo de
-  presupuesto por carrera, con semáforo, costo por lead y totales. Filtros por
+- **Metas de carrera** (`/metas`): meta mensual de leads y de presupuesto por carrera,
+  en una tabla de 12 meses editable, con filtros y opción de copiar un mes a otro.
+- **Indicadores de carrera** (`/indicadores`): leads y consumo de presupuesto de la
+  semana contra la meta (prorrateada desde la meta mensual según los días de la semana
+  en cada mes), con semáforo, costo por lead y totales. Filtros por
   programa, carrera, nivel y responsable; vistas por responsable y por programa.
   Los números se editan a mano en la tabla; el consumo se importa desde el CSV del
   reporte de Meta (la carrera se reconoce por su código en el nombre de la campaña y
@@ -65,6 +69,10 @@ de administrador. Al terminar el setup se cargan automáticamente:
   conectarse. En la reunión L10 se muestran en modo resumen dentro del Scorecard
   (última semana cerrada).
 - **Scorecard** (`/scorecard`): indicadores semanales por dueño, con meta, semáforo y un dueño "rollup" calculado automáticamente (suma o promedio de los demás).
-- **Issues** (`/issues`): lista IDS priorizable, con conversión a To-Do al resolver.
-- **To-Dos** (`/todos`): pendientes semanales con dueño y fecha límite.
-- **Reunión Level 10** (`/meeting`): agenda de 90 minutos con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+- **Issues** (`/issues`): lista IDS priorizable, con fecha específica, conversión a To-Do
+  al resolver y botón "Enviar a ClickUp".
+- **To-Dos** (`/todos`): pendientes semanales con descripción, dueño, fecha límite y botón
+  "Enviar a ClickUp".
+- **Dashboard** (`/`): muestra las Noticias compartidas en la reunión.
+- **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
+  Noticias, To-Dos, IDS, Conclusión) con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.

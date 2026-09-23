@@ -55,7 +55,7 @@ export function SummaryTiles({ rows }: { rows: CareerRow[] }) {
         detail={`${t.careers} carreras`}
       />
       <Tile
-        label="Carreras en rojo"
+        label="Carreras a revisar"
         value={String(t.leadsRed)}
         detail={`en leads · ${t.budgetRed} en presupuesto`}
         tone={t.leadsRed > 0 ? "red" : "none"}
@@ -101,7 +101,7 @@ export function GroupTable({
             <th className="px-2 text-right">%</th>
             <th className="px-2 text-right">Consumo / Plan</th>
             <th className="px-2 text-right">%</th>
-            <th className="px-2 text-right">En rojo</th>
+            <th className="px-2 text-right">A revisar</th>
           </tr>
         </thead>
         <tbody>

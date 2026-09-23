@@ -1,6 +1,15 @@
 import "server-only";
 import { db } from "@/lib/db";
-import type { Career, CareerImport, CareerLevel, CareerWeekly, LeadsSource, BudgetSource } from "./types";
+import type {
+  Career,
+  CareerImport,
+  CareerLevel,
+  CareerMonthlyGoal,
+  CareerWeekly,
+  LeadsSource,
+  BudgetSource,
+} from "./types";
+import { monthsOfWeek, prorateWeeklyGoals, type WeeklyGoal } from "./careers-shared";
 
 export async function listCareers(teamId: number): Promise<Career[]> {
   const rows = await db().sql`
@@ -23,17 +32,15 @@ export async function createCareer(input: {
   name: string;
   level: CareerLevel;
   ownerId: number | null;
-  leadsGoal?: number;
-  budgetGoal?: number;
 }): Promise<Career> {
   const rows = await db().sql`
     SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM careers WHERE team_id = ${input.teamId}
   `;
   const next = (rows[0] as { next: number }).next;
   const inserted = await db().sql`
-    INSERT INTO careers (team_id, program, code, name, level, owner_id, leads_goal, budget_goal, sort_order)
+    INSERT INTO careers (team_id, program, code, name, level, owner_id, sort_order)
     VALUES (${input.teamId}, ${input.program}, ${input.code}, ${input.name}, ${input.level},
-            ${input.ownerId}, ${input.leadsGoal ?? 0}, ${input.budgetGoal ?? 0}, ${next})
+            ${input.ownerId}, ${next})
     RETURNING *
   `;
   return inserted[0] as Career;
@@ -56,14 +63,6 @@ export async function updateCareer(
 
 export async function setCareerOwner(careerId: number, ownerId: number | null) {
   await db().sql`UPDATE careers SET owner_id = ${ownerId} WHERE id = ${careerId}`;
-}
-
-export async function setCareerGoal(careerId: number, field: "leads" | "budget", value: number) {
-  if (field === "leads") {
-    await db().sql`UPDATE careers SET leads_goal = ${value} WHERE id = ${careerId}`;
-  } else {
-    await db().sql`UPDATE careers SET budget_goal = ${value} WHERE id = ${careerId}`;
-  }
 }
 
 export async function archiveCareer(careerId: number) {
@@ -171,4 +170,75 @@ export async function listRecentImports(teamId: number, limit = 5) {
     LIMIT ${limit}
   `;
   return rows as (CareerImport & { user_name: string | null })[];
+}
+
+// --- Metas mensuales --------------------------------------------------------
+
+export async function listMonthlyGoals(
+  teamId: number,
+  months: string[]
+): Promise<CareerMonthlyGoal[]> {
+  if (months.length === 0) return [];
+  const rows = await db().sql`
+    SELECT g.career_id, g.month, g.leads_goal, g.budget_goal
+    FROM career_monthly_goals g
+    JOIN careers c ON c.id = g.career_id
+    WHERE c.team_id = ${teamId} AND g.month = ANY(${months}::date[])
+  `;
+  return rows as CareerMonthlyGoal[];
+}
+
+export async function setMonthlyGoal(input: {
+  careerId: number;
+  month: string;
+  field: "leads" | "budget";
+  value: number;
+  userId: number;
+}) {
+  if (input.field === "leads") {
+    await db().sql`
+      INSERT INTO career_monthly_goals (career_id, month, leads_goal, updated_by)
+      VALUES (${input.careerId}, ${input.month}, ${input.value}, ${input.userId})
+      ON CONFLICT (career_id, month) DO UPDATE SET
+        leads_goal = ${input.value}, updated_by = ${input.userId}, updated_at = NOW()
+    `;
+  } else {
+    await db().sql`
+      INSERT INTO career_monthly_goals (career_id, month, budget_goal, updated_by)
+      VALUES (${input.careerId}, ${input.month}, ${input.value}, ${input.userId})
+      ON CONFLICT (career_id, month) DO UPDATE SET
+        budget_goal = ${input.value}, updated_by = ${input.userId}, updated_at = NOW()
+    `;
+  }
+}
+
+/** Copia las metas de un mes a otro para todas las carreras del equipo. */
+export async function copyMonthlyGoals(input: {
+  teamId: number;
+  from: string;
+  to: string;
+  field: "leads" | "budget" | "both";
+  userId: number;
+}): Promise<number> {
+  const rows = (await db().sql`
+    SELECT g.career_id, g.leads_goal, g.budget_goal
+    FROM career_monthly_goals g
+    JOIN careers c ON c.id = g.career_id
+    WHERE c.team_id = ${input.teamId} AND c.archived = FALSE AND g.month = ${input.from}
+  `) as { career_id: number; leads_goal: number; budget_goal: number }[];
+  for (const r of rows) {
+    if (input.field !== "budget") {
+      await setMonthlyGoal({ careerId: r.career_id, month: input.to, field: "leads", value: r.leads_goal, userId: input.userId });
+    }
+    if (input.field !== "leads") {
+      await setMonthlyGoal({ careerId: r.career_id, month: input.to, field: "budget", value: r.budget_goal, userId: input.userId });
+    }
+  }
+  return rows.length;
+}
+
+/** Metas de la semana por carrera, prorrateadas desde las metas mensuales. */
+export async function weeklyGoals(teamId: number, weekStart: string): Promise<Record<number, WeeklyGoal>> {
+  const goals = await listMonthlyGoals(teamId, monthsOfWeek(weekStart));
+  return prorateWeeklyGoals(weekStart, goals);
 }

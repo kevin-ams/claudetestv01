@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
-import { getActiveMeeting, listMeetings } from "@/lib/domain/meetings";
+import { getActiveMeeting, listMeetings, listRecentHeadlines } from "@/lib/domain/meetings";
 import { countOpenIssues } from "@/lib/domain/issues";
 import { countOpenTodos, countOverdueTodos } from "@/lib/domain/todos";
 import { listRocks } from "@/lib/domain/rocks";
@@ -65,6 +65,7 @@ export default async function DashboardPage() {
     listTargets(session.teamId),
     listEntries(session.teamId, [week]),
   ]);
+  const news = await listRecentHeadlines(session.teamId);
 
   const offTrackRocks = rocks.filter((r) => r.status === "off_track").length;
 
@@ -99,6 +100,35 @@ export default async function DashboardPage() {
           <span className="btn btn-primary">Continuar →</span>
         </Link>
       )}
+
+      <section className="card mb-6 p-5">
+        <div className="mb-3 flex items-baseline justify-between gap-2">
+          <h2 className="font-semibold">📣 Noticias</h2>
+          <span className="text-xs text-muted">Compartidas en la Reunión L10</span>
+        </div>
+        {news.length === 0 ? (
+          <p className="text-sm text-muted">
+            Todavía no hay noticias. Se agregan en el paso &quot;Noticias&quot; de la Reunión L10.
+          </p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-border">
+            {news.map((n) => (
+              <li key={n.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
+                <span
+                  className={`badge ${n.type === "customer" ? "bg-primary/10 text-primary" : "bg-green-bg text-green"}`}
+                >
+                  {n.type === "customer" ? "Externa" : "Equipo"}
+                </span>
+                <span className="min-w-0 flex-1">{n.content}</span>
+                <span className="text-xs text-muted">
+                  {n.author_name ?? "—"} ·{" "}
+                  {new Date(n.created_at).toLocaleDateString("es-GT", { day: "numeric", month: "short" })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Issues abiertos" value={openIssues} href="/issues" />

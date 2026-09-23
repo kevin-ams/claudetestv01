@@ -23,16 +23,36 @@ export async function listTodos(
 export async function createTodo(input: {
   teamId: number;
   title: string;
+  description?: string;
   ownerId: number | null;
   dueDate: string | null;
   meetingId: number | null;
 }): Promise<Todo> {
   const rows = await db().sql`
-    INSERT INTO todos (team_id, title, owner_id, due_date, meeting_id)
-    VALUES (${input.teamId}, ${input.title}, ${input.ownerId}, ${input.dueDate}, ${input.meetingId})
+    INSERT INTO todos (team_id, title, description, owner_id, due_date, meeting_id)
+    VALUES (${input.teamId}, ${input.title}, ${input.description ?? ""}, ${input.ownerId}, ${input.dueDate}, ${input.meetingId})
     RETURNING *
   `;
   return rows[0] as Todo;
+}
+
+export async function getTodo(todoId: number): Promise<Todo | null> {
+  const rows = await db().sql`SELECT * FROM todos WHERE id = ${todoId}`;
+  return (rows[0] as Todo) ?? null;
+}
+
+export async function updateTodo(
+  todoId: number,
+  input: { title: string; description: string; ownerId: number | null; dueDate: string | null }
+) {
+  await db().sql`
+    UPDATE todos SET
+      title = ${input.title},
+      description = ${input.description},
+      owner_id = ${input.ownerId},
+      due_date = ${input.dueDate}
+    WHERE id = ${todoId}
+  `;
 }
 
 export async function completeTodo(todoId: number, done: boolean) {

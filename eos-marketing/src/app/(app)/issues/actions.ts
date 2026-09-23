@@ -9,7 +9,10 @@ import {
   solveIssue,
   reopenIssue,
   deleteIssue,
+  getIssue,
+  setIssueDueDate,
 } from "@/lib/domain/issues";
+import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 import { createTodo } from "@/lib/domain/todos";
 import type { IssueTerm } from "@/lib/domain/types";
 
@@ -28,8 +31,31 @@ export async function createIssueAction(formData: FormData) {
     raisedBy: session.userId,
     ownerId: ownerId(formData),
     term: (formData.get("term") as IssueTerm) || "short_term",
+    dueDate: (formData.get("dueDate") as string) || null,
   });
   revalidatePath("/issues");
+  revalidatePath("/meeting", "layout");
+}
+
+export async function setIssueDueDateAction(issueId: number, dueDate: string | null) {
+  const session = await requireSession();
+  const issue = await getIssue(issueId);
+  if (!issue || issue.team_id !== session.teamId) return;
+  await setIssueDueDate(issueId, dueDate || null);
+  revalidatePath("/issues");
+  revalidatePath("/meeting", "layout");
+}
+
+export async function sendIssueToClickUpAction(issueId: number): Promise<SendResult> {
+  const session = await requireSession();
+  const issue = await getIssue(issueId);
+  if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
+  const result = await sendToClickUp("issue", issue);
+  if (result.ok) {
+    revalidatePath("/issues");
+    revalidatePath("/meeting", "layout");
+  }
+  return result;
 }
 
 export async function moveIssueAction(issueId: number, direction: "up" | "down") {

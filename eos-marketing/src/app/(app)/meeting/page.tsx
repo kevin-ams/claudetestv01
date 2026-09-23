@@ -24,7 +24,7 @@ export default async function MeetingListPage() {
         <div>
           <h1 className="text-2xl font-bold">Reunión Level 10</h1>
           <p className="text-sm text-muted">
-            La agenda semanal de 90 minutos: Segue, Scorecard, Rocks, Titulares,
+            La agenda semanal de 90 minutos: Buenas noticias, Scorecard, Rocks, Noticias,
             To-Dos, IDS y Conclusión.
           </p>
         </div>

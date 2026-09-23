@@ -21,14 +21,15 @@ export async function createIssue(input: {
   raisedBy: number;
   ownerId: number | null;
   term: IssueTerm;
+  dueDate?: string | null;
 }): Promise<Issue> {
   const rows = await db().sql`
     SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM issues WHERE team_id = ${input.teamId} AND status = 'open'
   `;
   const next = (rows[0] as { next: number }).next;
   const inserted = await db().sql`
-    INSERT INTO issues (team_id, title, description, raised_by, owner_id, term, sort_order)
-    VALUES (${input.teamId}, ${input.title}, ${input.description}, ${input.raisedBy}, ${input.ownerId}, ${input.term}, ${next})
+    INSERT INTO issues (team_id, title, description, raised_by, owner_id, term, due_date, sort_order)
+    VALUES (${input.teamId}, ${input.title}, ${input.description}, ${input.raisedBy}, ${input.ownerId}, ${input.term}, ${input.dueDate ?? null}, ${next})
     RETURNING *
   `;
   return inserted[0] as Issue;
@@ -48,6 +49,10 @@ export async function reopenIssue(issueId: number) {
   await db().sql`
     UPDATE issues SET status = 'open', solved_at = NULL WHERE id = ${issueId}
   `;
+}
+
+export async function setIssueDueDate(issueId: number, dueDate: string | null) {
+  await db().sql`UPDATE issues SET due_date = ${dueDate} WHERE id = ${issueId}`;
 }
 
 export async function deleteIssue(issueId: number) {

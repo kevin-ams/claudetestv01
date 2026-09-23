@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { Issue, PublicUser } from "@/lib/domain/types";
+import { ClickUpButton } from "@/components/clickup-button";
 import {
   moveIssueAction,
   solveIssueAction,
   reopenIssueAction,
   deleteIssueAction,
+  setIssueDueDateAction,
+  sendIssueToClickUpAction,
 } from "./actions";
 
 function ResolveRow({ issue }: { issue: Issue }) {
@@ -51,12 +54,16 @@ export function IssueList({
   openIssues,
   solvedIssues,
   members,
+  clickupConfigured,
 }: {
   openIssues: Issue[];
   solvedIssues: Issue[];
   members: PublicUser[];
+  clickupConfigured: boolean;
 }) {
   const [showSolved, setShowSolved] = useState(false);
+  const [, startTransition] = useTransition();
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,10 +101,31 @@ export function IssueList({
                   {issue.description && (
                     <p className="text-xs text-muted">{issue.description}</p>
                   )}
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {members.find((m) => m.id === issue.owner_id)?.name ?? "Sin dueño"} ·{" "}
-                    {TERM_LABEL[issue.term]}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
+                    <span>
+                      {members.find((m) => m.id === issue.owner_id)?.name ?? "Sin dueño"} ·{" "}
+                      {TERM_LABEL[issue.term]}
+                    </span>
+                    <label className="inline-flex items-center gap-1">
+                      Fecha:
+                      <input
+                        type="date"
+                        aria-label={`Fecha de ${issue.title}`}
+                        className={`rounded border border-transparent bg-transparent px-1 hover:border-border focus:border-primary ${
+                          issue.due_date && issue.due_date < today ? "font-semibold text-red" : ""
+                        }`}
+                        defaultValue={issue.due_date ?? ""}
+                        onChange={(e) =>
+                          startTransition(() => setIssueDueDateAction(issue.id, e.target.value || null))
+                        }
+                      />
+                    </label>
+                    <ClickUpButton
+                      sentUrl={issue.clickup_url}
+                      configured={clickupConfigured}
+                      onSend={() => sendIssueToClickUpAction(issue.id)}
+                    />
+                  </div>
                 </div>
                 <ResolveRow issue={issue} />
                 <button

@@ -19,7 +19,6 @@ import {
 import {
   archiveCareerAction,
   setBudgetAction,
-  setGoalAction,
   setLeadsAction,
   setOwnerAction,
   updateCareerAction,
@@ -280,7 +279,7 @@ export function CareerBoard({
         <div className="flex flex-wrap items-center gap-3 text-sm sm:col-span-2 lg:col-span-6">
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={onlyRed} onChange={(e) => setParam("rojo", e.target.checked ? "1" : "")} />
-            Solo en rojo
+            Solo a revisar
           </label>
           <span className="text-muted">
             {filtered.length} de {rows.length} carreras
@@ -383,12 +382,9 @@ export function CareerBoard({
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <NumberCell
-                        value={r.leads_goal}
-                        title="Meta semanal de leads"
-                        className="font-semibold text-muted"
-                        onSave={(v) => setGoalAction(r.id, "leads", v ?? 0)}
-                      />
+                      <span className="px-1 text-sm font-semibold tabular-nums text-muted" title="Meta de la semana (desde Metas de carrera)">
+                        {num(r.leads_goal)}
+                      </span>
                     </td>
                     <td className="px-2 text-right">
                       <span className={`badge ${TONE_CLASS[leadsTone(r.leads, r.leads_goal)]}`}>{pct(r.leads, r.leads_goal)}</span>
@@ -404,12 +400,9 @@ export function CareerBoard({
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <NumberCell
-                        value={r.budget_goal}
-                        title="Presupuesto semanal"
-                        className="font-semibold text-muted"
-                        onSave={(v) => setGoalAction(r.id, "budget", v ?? 0)}
-                      />
+                      <span className="px-1 text-sm font-semibold tabular-nums text-muted" title="Presupuesto de la semana (desde Metas de carrera)">
+                        {num(r.budget_goal)}
+                      </span>
                     </td>
                     <td className="px-2 text-right">
                       <span className={`badge ${TONE_CLASS[budgetTone(r.budget_spent, r.budget_goal)]}`}>
@@ -458,7 +451,9 @@ export function CareerBoard({
       <p className="text-xs text-muted">
         Semáforo — Leads: verde ≥100% de la meta, amarillo ≥80%, rojo menor. Presupuesto: verde si
         se consumió entre 90% y 110% del plan, amarillo entre 75–90% o 110–125%, rojo fuera de ese
-        rango. Haz clic en cualquier número para editarlo; <b>AC</b> = dato de ActiveCampaign,{" "}
+        rango. La meta y el presupuesto de la semana se calculan desde{" "}
+        <a href="/metas" className="text-primary underline">Metas de carrera</a> (proporcional a los
+        días de la semana en cada mes). Haz clic en leads o consumo para editarlos; <b>AC</b> = dato de ActiveCampaign,{" "}
         <b>CSV</b> = dato importado.
       </p>
     </div>

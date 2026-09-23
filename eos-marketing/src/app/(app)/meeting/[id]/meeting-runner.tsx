@@ -62,7 +62,7 @@ function HeadlinesPanel({
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div>
-        <h4 className="mb-2 text-sm font-semibold">Titulares de clientes</h4>
+        <h4 className="mb-2 text-sm font-semibold">Noticias externas</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "customer").map((h) => (
             <li key={h.id} className="card p-2">
@@ -81,7 +81,7 @@ function HeadlinesPanel({
             className="input"
             value={customer}
             onChange={(e) => setCustomer(e.target.value)}
-            placeholder="Nuevo titular de cliente"
+            placeholder="Nueva noticia externa (estudiantes, mercado, universidad)"
           />
           <button type="submit" className="btn btn-secondary">
             +
@@ -89,7 +89,7 @@ function HeadlinesPanel({
         </form>
       </div>
       <div>
-        <h4 className="mb-2 text-sm font-semibold">Titulares de empleados</h4>
+        <h4 className="mb-2 text-sm font-semibold">Noticias del equipo</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "employee").map((h) => (
             <li key={h.id} className="card p-2">
@@ -108,7 +108,7 @@ function HeadlinesPanel({
             className="input"
             value={employee}
             onChange={(e) => setEmployee(e.target.value)}
-            placeholder="Nuevo titular de empleado"
+            placeholder="Nueva noticia del equipo"
           />
           <button type="submit" className="btn btn-secondary">
             +
@@ -171,6 +171,7 @@ export function MeetingRunner({
   todos,
   headlines,
   ratings,
+  clickupConfigured,
 }: {
   meeting: Meeting;
   session: SessionPayload;
@@ -189,6 +190,7 @@ export function MeetingRunner({
   todos: Todo[];
   headlines: MeetingHeadline[];
   ratings: { user_id: number; rating: number; user_name: string }[];
+  clickupConfigured: boolean;
 }) {
   const router = useRouter();
   const idx = segmentIndex(meeting.current_segment);
@@ -285,7 +287,7 @@ export function MeetingRunner({
         {segment.key === "segue" && (
           <div className="card p-6 text-sm text-muted">
             Cada persona comparte una buena noticia personal y una del negocio.
-            No hay datos que revisar en este segmento — cuando terminen, avancen
+            No hay datos que revisar en este segmento. Cuando terminen, avancen
             al Scorecard.
           </div>
         )}
@@ -330,12 +332,17 @@ export function MeetingRunner({
           <HeadlinesPanel meetingId={meeting.id} headlines={headlines} />
         )}
 
-        {segment.key === "todos" && <TodoList todos={todos} members={members} />}
+        {segment.key === "todos" && <TodoList todos={todos} members={members} clickupConfigured={clickupConfigured} />}
 
         {segment.key === "ids" && (
           <div className="flex flex-col gap-4">
             <AddIssueForm members={members} />
-            <IssueList openIssues={openIssues} solvedIssues={[]} members={members} />
+            <IssueList
+              openIssues={openIssues}
+              solvedIssues={[]}
+              members={members}
+              clickupConfigured={clickupConfigured}
+            />
           </div>
         )}
 

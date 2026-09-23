@@ -38,6 +38,7 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
           <option value="short_term">Corto plazo</option>
           <option value="long_term">Largo plazo</option>
         </select>
+        <input type="date" name="dueDate" className="input" aria-label="Fecha" title="Fecha específica (opcional)" />
       </div>
       <div className="flex gap-2">
         <button type="submit" className="btn btn-primary">

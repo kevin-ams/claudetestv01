@@ -1,8 +1,15 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { Todo, PublicUser } from "@/lib/domain/types";
-import { completeTodoAction, deleteTodoAction, createTodoAction } from "./actions";
+import { ClickUpButton } from "@/components/clickup-button";
+import {
+  completeTodoAction,
+  deleteTodoAction,
+  createTodoAction,
+  updateTodoAction,
+  sendTodoToClickUpAction,
+} from "./actions";
 
 function isOverdue(todo: Todo) {
   return (
@@ -12,12 +19,143 @@ function isOverdue(todo: Todo) {
   );
 }
 
+function OwnerSelect({ members, defaultValue }: { members: PublicUser[]; defaultValue: number | null }) {
+  return (
+    <select name="ownerId" defaultValue={defaultValue ?? "none"} className="input !w-auto">
+      <option value="none">Sin dueño</option>
+      {members.map((m) => (
+        <option key={m.id} value={m.id}>
+          {m.name}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function AddTodoForm({ members }: { members: PublicUser[] }) {
+  const [showDescription, setShowDescription] = useState(false);
+  return (
+    <form
+      action={async (fd) => {
+        await createTodoAction(fd);
+        setShowDescription(false);
+      }}
+      className="card flex flex-col gap-2 p-4"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <input name="title" required className="input min-w-[200px] flex-1" placeholder="Nuevo to-do" />
+        <OwnerSelect members={members} defaultValue={null} />
+        <input type="date" name="dueDate" className="input !w-auto" aria-label="Fecha límite" />
+        <button type="submit" className="btn btn-primary">
+          Agregar
+        </button>
+      </div>
+      {showDescription ? (
+        <textarea name="description" className="input min-h-16" placeholder="Descripción del to-do" autoFocus />
+      ) : (
+        <button
+          type="button"
+          className="self-start text-xs font-medium text-primary underline"
+          onClick={() => setShowDescription(true)}
+        >
+          + Agregar descripción
+        </button>
+      )}
+    </form>
+  );
+}
+
+function TodoItem({
+  todo,
+  members,
+  clickupConfigured,
+}: {
+  todo: Todo;
+  members: PublicUser[];
+  clickupConfigured: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [, startTransition] = useTransition();
+
+  if (editing) {
+    return (
+      <li className="card p-3">
+        <form
+          action={async (fd) => {
+            await updateTodoAction(todo.id, fd);
+            setEditing(false);
+          }}
+          className="flex flex-col gap-2"
+        >
+          <input name="title" required className="input" defaultValue={todo.title} />
+          <textarea
+            name="description"
+            className="input min-h-20"
+            defaultValue={todo.description}
+            placeholder="Descripción del to-do"
+          />
+          <div className="flex flex-wrap gap-2">
+            <OwnerSelect members={members} defaultValue={todo.owner_id} />
+            <input type="date" name="dueDate" className="input !w-auto" defaultValue={todo.due_date ?? ""} />
+            <button type="submit" className="btn btn-primary">
+              Guardar
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </li>
+    );
+  }
+
+  return (
+    <li className="card flex items-start gap-3 p-3">
+      <input
+        type="checkbox"
+        className="mt-1"
+        onChange={(e) => startTransition(() => completeTodoAction(todo.id, e.target.checked))}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium">{todo.title}</p>
+        {todo.description && (
+          <p className="mt-0.5 whitespace-pre-line text-sm text-muted">{todo.description}</p>
+        )}
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+          <span>
+            {members.find((m) => m.id === todo.owner_id)?.name ?? "Sin dueño"}
+            {todo.due_date && ` · Vence ${todo.due_date}`}
+          </span>
+          <ClickUpButton
+            sentUrl={todo.clickup_url}
+            configured={clickupConfigured}
+            onSend={() => sendTodoToClickUpAction(todo.id)}
+          />
+          <button className="font-medium text-primary underline" onClick={() => setEditing(true)}>
+            Editar
+          </button>
+        </div>
+      </div>
+      {isOverdue(todo) && <span className="badge bg-red-bg text-red">Vencido</span>}
+      <button
+        className="text-xs text-red"
+        aria-label={`Eliminar ${todo.title}`}
+        onClick={() => startTransition(() => deleteTodoAction(todo.id))}
+      >
+        ✕
+      </button>
+    </li>
+  );
+}
+
 export function TodoList({
   todos,
   members,
+  clickupConfigured,
 }: {
   todos: Todo[];
   members: PublicUser[];
+  clickupConfigured: boolean;
 }) {
   const [, startTransition] = useTransition();
   const open = todos.filter((t) => t.status === "open");
@@ -25,21 +163,7 @@ export function TodoList({
 
   return (
     <div className="flex flex-col gap-6">
-      <form action={createTodoAction} className="card flex flex-wrap items-center gap-2 p-4">
-        <input name="title" required className="input flex-1 min-w-[200px]" placeholder="Nuevo to-do" />
-        <select name="ownerId" defaultValue="none" className="input !w-auto">
-          <option value="none">Sin dueño</option>
-          {members.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name}
-            </option>
-          ))}
-        </select>
-        <input type="date" name="dueDate" className="input !w-auto" />
-        <button type="submit" className="btn btn-primary">
-          Agregar
-        </button>
-      </form>
+      <AddTodoForm members={members} />
 
       <div>
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
@@ -50,25 +174,7 @@ export function TodoList({
         ) : (
           <ul className="flex flex-col gap-2">
             {open.map((t) => (
-              <li key={t.id} className="card flex items-center gap-3 p-3">
-                <input
-                  type="checkbox"
-                  onChange={(e) =>
-                    startTransition(() => completeTodoAction(t.id, e.target.checked))
-                  }
-                />
-                <div className="flex-1">
-                  <p className="font-medium">{t.title}</p>
-                  <p className="text-xs text-muted">
-                    {members.find((m) => m.id === t.owner_id)?.name ?? "Sin dueño"}
-                    {t.due_date && ` · Vence ${t.due_date}`}
-                  </p>
-                </div>
-                {isOverdue(t) && <span className="badge bg-red-bg text-red">Vencido</span>}
-                <button className="text-xs text-red" onClick={() => deleteTodoAction(t.id)}>
-                  ✕
-                </button>
-              </li>
+              <TodoItem key={t.id} todo={t} members={members} clickupConfigured={clickupConfigured} />
             ))}
           </ul>
         )}
@@ -84,9 +190,7 @@ export function TodoList({
               <input
                 type="checkbox"
                 defaultChecked
-                onChange={(e) =>
-                  startTransition(() => completeTodoAction(t.id, e.target.checked))
-                }
+                onChange={(e) => startTransition(() => completeTodoAction(t.id, e.target.checked))}
               />
               <p className="flex-1 font-medium line-through">{t.title}</p>
             </li>
