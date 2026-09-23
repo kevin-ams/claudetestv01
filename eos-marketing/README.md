@@ -85,4 +85,4 @@ de administrador. Al terminar el setup se cargan automáticamente:
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
   Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
   todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,
-  Rocks, Noticias y To-Dos; "+ To-Do" desde cada Issue en IDS con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+  Rocks, Noticias y To-Dos; "+ To-Do" desde cada Issue en IDS. Timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
