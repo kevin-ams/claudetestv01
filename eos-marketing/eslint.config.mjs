@@ -12,8 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Copia independiente para marketing (tiene su propio lint).
-    "eos-marketing/**",
   ]),
 ]);
 
