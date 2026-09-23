@@ -56,7 +56,7 @@ export async function setupAdminAction(
     role: "admin",
   });
   await addTeamMember(team.id, user.id, "Líder de equipo");
-  await seedMarketingTeam(team.id, user);
+  await seedMarketingTeam(team.id);
 
   await createSessionCookie({
     userId: user.id,

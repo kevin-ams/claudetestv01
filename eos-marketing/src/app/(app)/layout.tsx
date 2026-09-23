@@ -1,13 +1,16 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getTeam } from "@/lib/domain/teams";
-import { getUserTeams } from "@/lib/domain/users";
+import { getUserTeams, isUserInTeam } from "@/lib/domain/users";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await getSession();
   if (!session) redirect("/login");
+  // La sesión puede venir de una base de datos anterior (otra copia de la app
+  // o una base reiniciada): si el usuario ya no está en ese equipo, se cierra.
+  if (!(await isUserInTeam(session.userId, session.teamId))) redirect("/salir");
 
   const [team, teams] = await Promise.all([
     getTeam(session.teamId),

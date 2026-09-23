@@ -17,6 +17,7 @@ import {
 } from "@/lib/domain/careers";
 import { aliasKey, CAREER_LEVELS } from "@/lib/domain/careers-shared";
 import { isUserInTeam } from "@/lib/domain/users";
+import { seedMarketingTeam } from "@/lib/domain/marketing-seed";
 import {
   fetchWeeklyLeadsByCareer,
   ActiveCampaignNotConfiguredError,
@@ -133,6 +134,17 @@ export async function archiveCareerAction(careerId: number) {
   await requireTeamCareer(careerId);
   await archiveCareer(careerId);
   refresh();
+}
+
+export async function loadCareerCatalogAction(): Promise<ActionResult> {
+  const session = await requireSession();
+  const { careers } = await seedMarketingTeam(session.teamId);
+  refresh();
+  revalidatePath("/rocks");
+  revalidatePath("/settings/team");
+  return careers > 0
+    ? { ok: true, message: `Se cargaron ${careers} carreras con su responsable.` }
+    : { ok: false, message: "El equipo ya tenía carreras; no se cargó nada." };
 }
 
 // --- Importador de consumo (CSV de Meta) -----------------------------------

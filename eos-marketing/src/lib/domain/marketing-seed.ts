@@ -1,11 +1,10 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
-import { createUser, addTeamMember, getUserByEmail } from "./users";
+import { createUser, addTeamMember, getUserByEmail, listTeamMembers } from "./users";
 import { createCareer } from "./careers";
 import { createRock, addMilestone } from "./rocks";
 import { CAREER_CATALOG, MARKETING_ROSTER, type RosterName } from "./careers-catalog";
-import type { PublicUser } from "./types";
 
 /** Correo provisional para las personas del equipo que aún no tienen acceso. */
 export function placeholderEmail(name: string) {
@@ -13,17 +12,17 @@ export function placeholderEmail(name: string) {
 }
 
 /**
- * Carga el equipo de marketing en un equipo recién creado: las personas del
- * roster (el administrador ocupa su lugar si su nombre coincide), las carreras
- * con su responsable y los Rocks iniciales de Kevin.
+ * Asegura que las personas del roster estén en el equipo. Si ya hay un
+ * miembro con ese primer nombre (por ejemplo, el administrador), se usa.
  */
-export async function seedMarketingTeam(teamId: number, admin: PublicUser) {
-  const adminFirstName = admin.name.trim().split(/\s+/)[0]?.toLowerCase();
+async function ensureRoster(teamId: number): Promise<Map<RosterName, number>> {
+  const members = await listTeamMembers(teamId);
   const userIdByName = new Map<RosterName, number>();
 
   for (const name of MARKETING_ROSTER) {
-    if (name.toLowerCase() === adminFirstName) {
-      userIdByName.set(name, admin.id);
+    const member = members.find((m) => m.name.trim().split(/\s+/)[0]?.toLowerCase() === name.toLowerCase());
+    if (member) {
+      userIdByName.set(name, member.id);
       continue;
     }
     const email = placeholderEmail(name);
@@ -40,19 +39,35 @@ export async function seedMarketingTeam(teamId: number, admin: PublicUser) {
     await addTeamMember(teamId, user.id);
     userIdByName.set(name, user.id);
   }
+  return userIdByName;
+}
 
-  for (const [program, code, name, level, owner] of CAREER_CATALOG) {
-    await createCareer({
-      teamId,
-      program,
-      code,
-      name,
-      level,
-      ownerId: userIdByName.get(owner) ?? null,
-    });
+/**
+ * Carga el equipo de marketing: las personas del roster, las carreras con su
+ * responsable (solo si el equipo aún no tiene carreras) y los Rocks iniciales
+ * de Kevin. Se puede volver a correr sin duplicar nada.
+ */
+export async function seedMarketingTeam(teamId: number): Promise<{ careers: number }> {
+  const userIdByName = await ensureRoster(teamId);
+
+  const existing = await db().sql`SELECT 1 FROM careers WHERE team_id = ${teamId} LIMIT 1`;
+  let created = 0;
+  if (existing.length === 0) {
+    for (const [program, code, name, level, owner] of CAREER_CATALOG) {
+      await createCareer({
+        teamId,
+        program,
+        code,
+        name,
+        level,
+        ownerId: userIdByName.get(owner) ?? null,
+      });
+      created++;
+    }
   }
 
   await seedKevinRocks(teamId, userIdByName.get("Kevin") ?? null);
+  return { careers: created };
 }
 
 async function seedKevinRocks(teamId: number, kevinId: number | null) {

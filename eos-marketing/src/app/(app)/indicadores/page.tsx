@@ -6,6 +6,7 @@ import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { formatWeekRange, lastClosedWeek, shiftWeek } from "@/lib/utils/dates";
 import { CareerBoard } from "./career-board";
 import { Toolbar } from "./toolbar";
+import { LoadCatalogButton } from "./load-catalog-button";
 
 export default async function IndicadoresPage({
   searchParams,
@@ -50,9 +51,13 @@ export default async function IndicadoresPage({
       />
 
       {careers.length === 0 ? (
-        <p className="card p-6 text-sm text-muted">
-          Todavía no hay carreras. Agrégalas con el botón &quot;+ Carrera&quot;.
-        </p>
+        <div className="card flex flex-col gap-3 p-6">
+          <p className="text-sm text-muted">
+            Este equipo todavía no tiene carreras. Carga el catálogo del equipo de marketing
+            (carreras, responsables y el Rock de Kevin) o agrégalas una por una con &quot;+ Carrera&quot;.
+          </p>
+          <LoadCatalogButton />
+        </div>
       ) : (
         <CareerBoard rows={rows} members={members} week={week} />
       )}

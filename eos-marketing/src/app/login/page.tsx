@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { countUsers } from "@/lib/domain/users";
+import { countUsers, isUserInTeam } from "@/lib/domain/users";
 import { getSession } from "@/lib/auth/session";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {
   const session = await getSession();
-  if (session) redirect("/");
+  if (session && (await isUserInTeam(session.userId, session.teamId))) redirect("/");
 
   const existing = await countUsers();
   if (existing === 0) {
