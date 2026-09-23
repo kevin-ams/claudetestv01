@@ -244,3 +244,14 @@ export type CareerMonthlyGoal = {
   leads_goal: number;
   budget_goal: number;
 };
+
+export type TrackStatus = "on_track" | "off_track";
+
+export type CareerTrack = {
+  career_id: number;
+  start_date: string;
+  status: TrackStatus;
+  labels: string[];
+  notes: string;
+  updated_at: string;
+};

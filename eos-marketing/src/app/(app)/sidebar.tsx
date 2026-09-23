@@ -12,6 +12,7 @@ const NAV = [
   { href: "/scorecard", label: "Scorecard", icon: "📊" },
   { href: "/indicadores", label: "Indicadores de carrera", icon: "🎓" },
   { href: "/metas", label: "Metas de carrera", icon: "🎯" },
+  { href: "/control", label: "Control de carrera", icon: "🗺️" },
   { href: "/issues", label: "Issues", icon: "⚠️" },
   { href: "/todos", label: "To-Dos", icon: "✅" },
   { href: "/meeting", label: "Reunión L10", icon: "⏱️" },

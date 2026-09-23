@@ -59,6 +59,12 @@ de administrador. Al terminar el setup se cargan automáticamente:
 - **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos y fecha por hito.
 - **Metas de carrera** (`/metas`): meta mensual de leads y de presupuesto por carrera,
   en una tabla de 12 meses editable, con filtros y opción de copiar un mes a otro.
+- **Control de carrera** (`/control`): visualización de los 12 hitos del lanzamiento de cada
+  carrera (Definición, Producción, Activación, Mejora continua) y tablero Kanban: las
+  tarjetas se arrastran entre hitos, llevan etiquetas, responsable y estado on/off track.
+  Ruta crítica (CPM) con duraciones y dependencias por hito: fechas planeadas, holgura,
+  hitos atrasados y fecha de lanzamiento prevista. Hitos y duraciones en
+  `src/lib/domain/career-control.ts`.
 - **Indicadores de carrera** (`/indicadores`): leads y consumo de presupuesto de la
   semana contra la meta (prorrateada desde la meta mensual según los días de la semana
   en cada mes), con semáforo, costo por lead y totales. Filtros por
