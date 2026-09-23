@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import type { PublicUser } from "@/lib/domain/types";
 import type { TrackRow } from "@/lib/domain/career-tracks";
 import {
-  CONTROL_MILESTONES,
   CONTROL_STAGES,
   shortDate,
   startForLaunch,
   SUGGESTED_LABELS,
+  type ControlPlan,
   type TrackSummary,
 } from "@/lib/domain/career-control";
 import {
@@ -87,12 +87,14 @@ function LabelEditor({ track, allLabels }: { track: TrackRow; allLabels: string[
 }
 
 export function TrackDrawer({
+  plan,
   track,
   summary,
   owner,
   allLabels,
   onClose,
 }: {
+  plan: ControlPlan;
   track: TrackRow;
   summary: TrackSummary;
   owner: PublicUser | undefined;
@@ -169,7 +171,7 @@ export function TrackDrawer({
               <input
                 type="date"
                 className="input text-sm normal-case"
-                onChange={(e) => e.target.value && setStartDate(startForLaunch(e.target.value))}
+                onChange={(e) => e.target.value && setStartDate(startForLaunch(plan, e.target.value))}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold uppercase text-muted sm:col-span-2">
@@ -199,17 +201,17 @@ export function TrackDrawer({
 
           <section className="flex flex-col gap-3">
             <p className="text-xs font-semibold uppercase text-muted">
-              Hitos ({summary.doneCount}/{CONTROL_MILESTONES.length}) · ◆ = ruta crítica
+              Hitos ({summary.doneCount}/{plan.milestones.length}) · ◆ = ruta crítica
             </p>
-            {CONTROL_STAGES.map((stage) => (
+            {CONTROL_STAGES.filter((stage) => plan.milestones.some((m) => m.stage === stage.key)).map((stage) => (
               <div key={stage.key} className="overflow-hidden rounded-lg border border-border bg-card">
                 <p className="px-3 py-1.5 text-xs font-bold text-white" style={{ background: stage.color }}>
                   {stage.label}
                 </p>
                 <ul className="divide-y divide-border">
-                  {CONTROL_MILESTONES.filter((m) => m.stage === stage.key).map((m) => {
-                    const plan = summary.plans[m.key];
-                    const n = CONTROL_MILESTONES.indexOf(m) + 1;
+                  {plan.milestones.filter((m) => m.stage === stage.key).map((m) => {
+                    const mp = summary.plans[m.key];
+                    const n = plan.milestones.indexOf(m) + 1;
                     const isCurrent = summary.current?.key === m.key;
                     return (
                       <li key={m.key} className={`p-3 ${isCurrent ? "bg-primary/5" : ""}`}>
@@ -217,7 +219,7 @@ export function TrackDrawer({
                           <input
                             type="checkbox"
                             className="mt-1"
-                            checked={Boolean(plan.doneOn)}
+                            checked={Boolean(mp.doneOn)}
                             aria-label={`Completar ${m.label}`}
                             onChange={(e) =>
                               run(() =>
@@ -226,9 +228,9 @@ export function TrackDrawer({
                             }
                           />
                           <div className="min-w-0 flex-1">
-                            <p className={`text-sm font-semibold ${plan.doneOn ? "text-muted line-through" : ""}`}>
+                            <p className={`text-sm font-semibold ${mp.doneOn ? "text-muted line-through" : ""}`}>
                               {n}. {m.label}
-                              {plan.critical && (
+                              {mp.critical && (
                                 <span className="ml-1 text-xs" title="Ruta crítica: sin holgura" style={{ color: stage.color }}>
                                   ◆
                                 </span>
@@ -242,23 +244,23 @@ export function TrackDrawer({
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
                               <span>
-                                Plan: {shortDate(plan.plannedStart)} → {shortDate(plan.plannedEnd)} ({m.days} d
-                                {plan.float > 0 ? `, holgura ${plan.float} d` : ""})
+                                Plan: {shortDate(mp.plannedStart)} → {shortDate(mp.plannedEnd)} ({m.days} d
+                                {mp.float > 0 ? `, holgura ${mp.float} d` : ""})
                               </span>
-                              {plan.doneOn ? (
+                              {mp.doneOn ? (
                                 <label className="inline-flex items-center gap-1 text-green">
                                   Completado
                                   <input
                                     type="date"
                                     className="rounded border border-transparent bg-transparent hover:border-border"
-                                    value={plan.doneOn}
+                                    value={mp.doneOn}
                                     onChange={(e) =>
                                       e.target.value &&
                                       run(() => setMilestoneDoneAction(track.career_id, m.key, e.target.value))
                                     }
                                   />
                                 </label>
-                              ) : plan.late ? (
+                              ) : mp.late ? (
                                 <span className="font-semibold text-red">Atrasado</span>
                               ) : null}
                             </div>

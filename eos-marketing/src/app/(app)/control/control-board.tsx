@@ -5,16 +5,12 @@ import { useRouter } from "next/navigation";
 import type { PublicUser } from "@/lib/domain/types";
 import type { TrackRow } from "@/lib/domain/career-tracks";
 import {
-  CONTROL_MILESTONES,
+  buildPlan,
   CONTROL_STAGES,
-  CRITICAL_KEYS,
   DONE_COLUMN,
-  LAUNCH_OFFSET_DAYS,
-  MILESTONE_KEYS,
-  PLAN_TOTAL_DAYS,
   summarizeTrack,
   type ColumnKey,
-  type MilestoneKey,
+  type MilestoneDef,
 } from "@/lib/domain/career-control";
 import { normalizeText } from "@/lib/domain/careers-shared";
 import { addTracksAction, moveTrackAction, setTrackStatusAction } from "./actions";
@@ -25,10 +21,12 @@ import { TrackDrawer } from "./track-drawer";
 type Available = { id: number; code: string; name: string; program: string; owner_id: number | null };
 
 function AddTracksPanel({
+  launchOffset,
   available,
   members,
   onClose,
 }: {
+  launchOffset: number;
   available: Available[];
   members: PublicUser[];
   onClose: () => void;
@@ -57,7 +55,7 @@ function AddTracksPanel({
           <h2 className="font-bold">Agregar carreras al tablero</h2>
           <p className="text-sm text-muted">
             Entran en el hito 1. Con la fecha de inicio se calcula el plan de cada hito (el
-            lanzamiento queda a {LAUNCH_OFFSET_DAYS} días según la ruta crítica).
+            lanzamiento queda a {launchOffset} días según la ruta crítica).
           </p>
         </div>
         <button className="text-muted" onClick={onClose} aria-label="Cerrar">
@@ -147,10 +145,12 @@ function AddTracksPanel({
 }
 
 export function ControlBoard({
+  milestones,
   tracks,
   members,
   available,
 }: {
+  milestones: MilestoneDef[];
   tracks: TrackRow[];
   members: PublicUser[];
   available: Available[];
@@ -174,9 +174,10 @@ export function ControlBoard({
     setOverrides({});
   }
 
+  const plan = useMemo(() => buildPlan(milestones), [milestones]);
   const summaries = useMemo(
-    () => new Map(tracks.map((t) => [t.career_id, summarizeTrack(t.start_date, t.done)])),
-    [tracks]
+    () => new Map(tracks.map((t) => [t.career_id, summarizeTrack(plan, t.start_date, t.done)])),
+    [plan, tracks]
   );
   const columnOf = (t: TrackRow): ColumnKey => overrides[t.career_id] ?? summaries.get(t.career_id)!.column;
 
@@ -193,7 +194,7 @@ export function ControlBoard({
   );
 
   const counts = Object.fromEntries(
-    [...MILESTONE_KEYS, DONE_COLUMN].map((k) => [k, filtered.filter((t) => columnOf(t) === k).length])
+    [...plan.keys, DONE_COLUMN].map((k) => [k, filtered.filter((t) => columnOf(t) === k).length])
   ) as Record<ColumnKey, number>;
   const offTrack = filtered.filter((t) => t.status === "off_track").length;
   const late = filtered.filter((t) => summaries.get(t.career_id)!.current?.late).length;
@@ -207,7 +208,7 @@ export function ControlBoard({
   }
 
   function step(t: TrackRow, delta: -1 | 1) {
-    const cols: ColumnKey[] = [...MILESTONE_KEYS, DONE_COLUMN];
+    const cols: ColumnKey[] = [...plan.keys, DONE_COLUMN];
     const idx = cols.indexOf(columnOf(t));
     const next = cols[Math.min(cols.length - 1, Math.max(0, idx + delta))];
     if (next !== columnOf(t)) move(t.career_id, next);
@@ -221,7 +222,7 @@ export function ControlBoard({
 
   const columnView = (key: ColumnKey, title: string, n: number | null, color: string, soft: string) => {
     const items = filtered.filter((t) => columnOf(t) === key);
-    const critical = key !== DONE_COLUMN && CRITICAL_KEYS.has(key as MilestoneKey);
+    const critical = key !== DONE_COLUMN && plan.critical.has(key);
     return (
       <div
         key={key}
@@ -265,6 +266,7 @@ export function ControlBoard({
           {items.map((t) => (
             <TrackCard
               key={t.career_id}
+              plan={plan}
               track={t}
               summary={summaries.get(t.career_id)!}
               owner={members.find((m) => m.id === t.owner_id)}
@@ -293,7 +295,7 @@ export function ControlBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      <MilestoneTimeline counts={counts} onSelect={scrollTo} />
+      <MilestoneTimeline plan={plan} counts={counts} onSelect={scrollTo} />
 
       <div className="card flex flex-wrap items-center gap-2 p-3">
         <select className="input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
@@ -339,7 +341,7 @@ export function ControlBoard({
         </button>
       </div>
 
-      {adding && <AddTracksPanel available={available} members={members} onClose={() => setAdding(false)} />}
+      {adding && <AddTracksPanel launchOffset={plan.launchOffset} available={available} members={members} onClose={() => setAdding(false)} />}
 
       {tracks.length === 0 ? (
         <div className="card p-6 text-sm text-muted">
@@ -348,14 +350,14 @@ export function ControlBoard({
       ) : (
         <div className="overflow-x-auto pb-2">
           <div className="flex gap-4">
-            {CONTROL_STAGES.map((stage) => (
+            {CONTROL_STAGES.filter((stage) => plan.milestones.some((m) => m.stage === stage.key)).map((stage) => (
               <div key={stage.key} className="flex flex-col gap-2">
                 <div className="rounded-md px-3 py-1.5 text-sm font-bold text-white" style={{ background: stage.color }}>
                   {stage.label}
                 </div>
                 <div className="flex gap-2">
-                  {CONTROL_MILESTONES.filter((m) => m.stage === stage.key).map((m) =>
-                    columnView(m.key, m.label, CONTROL_MILESTONES.indexOf(m) + 1, stage.color, stage.soft)
+                  {plan.milestones.filter((m) => m.stage === stage.key).map((m) =>
+                    columnView(m.key, m.label, plan.milestones.indexOf(m) + 1, stage.color, stage.soft)
                   )}
                 </div>
               </div>
@@ -371,12 +373,13 @@ export function ControlBoard({
       <p className="text-xs text-muted">
         Arrastra las tarjetas entre columnas o usa las flechas ◀ ▶. Ruta crítica (PMI/CPM): cada hito tiene una duración estimada y depende de los anteriores; los
         marcados con ◆ no tienen holgura, así que un atraso en ellos mueve la fecha de lanzamiento. El
-        plan completo dura {PLAN_TOTAL_DAYS} días desde la fecha de inicio. Al mover una tarjeta, los
+        plan completo dura {plan.totalDays} días desde la fecha de inicio (duraciones y dependencias en Ajustes). Al mover una tarjeta, los
         hitos anteriores quedan completados con la fecha de hoy.
       </p>
 
       {openTrack && (
         <TrackDrawer
+          plan={plan}
           track={openTrack}
           summary={summaries.get(openTrack.career_id)!}
           owner={members.find((m) => m.id === openTrack.owner_id)}

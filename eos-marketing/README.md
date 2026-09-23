@@ -63,8 +63,10 @@ de administrador. Al terminar el setup se cargan automáticamente:
   carrera (Definición, Producción, Activación, Mejora continua) y tablero Kanban: las
   tarjetas se arrastran entre hitos, llevan etiquetas, responsable y estado on/off track.
   Ruta crítica (CPM) con duraciones y dependencias por hito: fechas planeadas, holgura,
-  hitos atrasados y fecha de lanzamiento prevista. Hitos y duraciones en
-  `src/lib/domain/career-control.ts`.
+  hitos atrasados y fecha de lanzamiento prevista.
+- **Ajustes** (`/ajustes`, solo administradores): editar, renombrar, eliminar, agregar y
+  reordenar los hitos de Control de carrera; cambiar su etapa, duración, dependencias y
+  cuál marca el lanzamiento. Opción de restaurar los 12 hitos predeterminados.
 - **Indicadores de carrera** (`/indicadores`): leads y consumo de presupuesto de la
   semana contra la meta (prorrateada desde la meta mensual según los días de la semana
   en cada mes), con semáforo, costo por lead y totales. Filtros por
@@ -81,4 +83,6 @@ de administrador. Al terminar el setup se cargan automáticamente:
   "Enviar a ClickUp".
 - **Dashboard** (`/`): muestra las Noticias compartidas en la reunión.
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
-  Noticias, To-Dos, IDS, Conclusión) con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+  Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
+  todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,
+  Rocks, Noticias y To-Dos; "+ To-Do" desde cada Issue en IDS con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.

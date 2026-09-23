@@ -147,11 +147,14 @@ export function CareerSummary({
   members,
   weekLabel,
   week,
+  onRaiseIssue,
 }: {
   rows: CareerRow[];
   members: PublicUser[];
   weekLabel: string;
   week: string;
+  /** En la reunión L10: levanta un Issue por una carrera a revisar. */
+  onRaiseIssue?: (row: CareerRow) => void;
 }) {
   if (rows.length === 0) return null;
 
@@ -188,8 +191,15 @@ export function CareerSummary({
                     · {members.find((m) => m.id === r.owner_id)?.name ?? "Sin responsable"}
                   </span>
                 </span>
-                <span className="tabular-nums text-red">
-                  {num(r.leads ?? 0)} / {num(r.leads_goal)}
+                <span className="flex items-center gap-2">
+                  <span className="tabular-nums text-red">
+                    {num(r.leads ?? 0)} / {num(r.leads_goal)}
+                  </span>
+                  {onRaiseIssue && (
+                    <button type="button" className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg" onClick={() => onRaiseIssue(r)}>
+                      → Issue
+                    </button>
+                  )}
                 </span>
               </li>
             ))}

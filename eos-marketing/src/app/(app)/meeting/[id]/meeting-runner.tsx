@@ -23,7 +23,8 @@ import { IssueList } from "../../issues/issue-list";
 import { AddIssueForm } from "../../issues/add-issue-form";
 import { TodoList } from "../../todos/todo-list";
 import { CareerSummary } from "../../indicadores/career-summary";
-import type { CareerRow } from "@/lib/domain/careers-shared";
+import { careerLabel, num, type CareerRow } from "@/lib/domain/careers-shared";
+import { QuickCreateBar, QuickCreateModal, type QuickDraft } from "./quick-create";
 import {
   advanceSegmentAction,
   addHeadlineAction,
@@ -52,9 +53,11 @@ function formatClock(totalSeconds: number) {
 function HeadlinesPanel({
   meetingId,
   headlines,
+  onRaiseIssue,
 }: {
   meetingId: number;
   headlines: MeetingHeadline[];
+  onRaiseIssue: (headline: MeetingHeadline) => void;
 }) {
   const [customer, setCustomer] = useState("");
   const [employee, setEmployee] = useState("");
@@ -65,8 +68,15 @@ function HeadlinesPanel({
         <h4 className="mb-2 text-sm font-semibold">Noticias externas</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "customer").map((h) => (
-            <li key={h.id} className="card p-2">
-              {h.content}
+            <li key={h.id} className="card flex items-start justify-between gap-2 p-2">
+              <span>{h.content}</span>
+              <button
+                type="button"
+                className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
+                onClick={() => onRaiseIssue(h)}
+              >
+                → Issue
+              </button>
             </li>
           ))}
         </ul>
@@ -92,8 +102,15 @@ function HeadlinesPanel({
         <h4 className="mb-2 text-sm font-semibold">Noticias del equipo</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "employee").map((h) => (
-            <li key={h.id} className="card p-2">
-              {h.content}
+            <li key={h.id} className="card flex items-start justify-between gap-2 p-2">
+              <span>{h.content}</span>
+              <button
+                type="button"
+                className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
+                onClick={() => onRaiseIssue(h)}
+              >
+                → Issue
+              </button>
             </li>
           ))}
         </ul>
@@ -199,6 +216,9 @@ export function MeetingRunner({
   const elapsed = useElapsed(meeting.segment_started_at);
   const totalElapsed = useElapsed(meeting.started_at);
   const remaining = segment.minutes * 60 - elapsed;
+  const [draft, setDraft] = useState<QuickDraft | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
 
   useEffect(() => {
     const t = setInterval(() => router.refresh(), 15000);
@@ -283,6 +303,29 @@ export function MeetingRunner({
         </div>
       </div>
 
+      <QuickCreateBar onCreate={setDraft} />
+      {toast && (
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-lg bg-green-bg px-3 py-2 text-sm text-green">
+          <span>✓ {toast}</span>
+          <button className="underline" onClick={() => setToast(null)}>
+            Cerrar
+          </button>
+        </div>
+      )}
+      {draft && (
+        <QuickCreateModal
+          key={JSON.stringify(draft)}
+          meetingId={meeting.id}
+          draft={draft}
+          members={members}
+          onClose={() => setDraft(null)}
+          onCreated={(message) => {
+            setDraft(null);
+            setToast(message);
+          }}
+        />
+      )}
+
       <div className="mb-10">
         {segment.key === "segue" && (
           <div className="card p-6 text-sm text-muted">
@@ -301,6 +344,14 @@ export function MeetingRunner({
                 targets={scorecard.targets}
                 grid={scorecard.grid}
                 weeks={scorecard.weeks}
+                onRaiseIssue={(metric, ownerName) =>
+                  setDraft({
+                    kind: "issue",
+                    title: `Indicador fuera de meta: ${metric.name} (${ownerName})`,
+                    description: metric.predicts ? `Predice: ${metric.predicts}` : "",
+                    source: "Scorecard",
+                  })
+                }
               />
             )}
             <CareerSummary
@@ -308,6 +359,15 @@ export function MeetingRunner({
               members={members}
               week={careerIndicators.week}
               weekLabel={careerIndicators.weekLabel}
+              onRaiseIssue={(r) =>
+                setDraft({
+                  kind: "issue",
+                  title: `Leads bajo meta: ${careerLabel(r)}`,
+                  description: `Semana ${careerIndicators.weekLabel}: ${num(r.leads ?? 0)} leads de una meta de ${num(r.leads_goal)}.`,
+                  ownerId: r.owner_id,
+                  source: "Indicadores de carrera",
+                })
+              }
             />
           </div>
         )}
@@ -323,25 +383,66 @@ export function MeetingRunner({
                 rock={r}
                 milestones={milestonesByRock[r.id] ?? []}
                 members={members}
+                onRaiseIssue={() =>
+                  setDraft({
+                    kind: "issue",
+                    title: `Rock ${r.status === "off_track" ? "off track" : "a revisar"}: ${r.title}`,
+                    description: r.description,
+                    ownerId: r.owner_id,
+                    source: "Rocks",
+                  })
+                }
               />
             ))}
           </div>
         )}
 
         {segment.key === "headlines" && (
-          <HeadlinesPanel meetingId={meeting.id} headlines={headlines} />
+          <HeadlinesPanel
+            meetingId={meeting.id}
+            headlines={headlines}
+            onRaiseIssue={(h) => setDraft({ kind: "issue", title: h.content, source: "Noticias" })}
+          />
         )}
 
-        {segment.key === "todos" && <TodoList todos={todos} members={members} clickupConfigured={clickupConfigured} />}
+        {segment.key === "todos" && (
+          <TodoList
+            todos={todos}
+            members={members}
+            clickupConfigured={clickupConfigured}
+            onRaiseIssue={(t) =>
+              setDraft({
+                kind: "issue",
+                title: `To-Do no cumplido: ${t.title}`,
+                description: t.description,
+                ownerId: t.owner_id,
+                source: "To-Do List",
+              })
+            }
+          />
+        )}
 
         {segment.key === "ids" && (
           <div className="flex flex-col gap-4">
-            <AddIssueForm members={members} />
+            <div>
+              <AddIssueForm members={members} />
+            </div>
             <IssueList
               openIssues={openIssues}
               solvedIssues={[]}
               members={members}
               clickupConfigured={clickupConfigured}
+              onCreateTodo={(issue) =>
+                setDraft({
+                  kind: "todo",
+                  title: issue.title,
+                  description: issue.description
+                    ? `${issue.description}\n\nSale del Issue: ${issue.title}`
+                    : `Sale del Issue: ${issue.title}`,
+                  ownerId: issue.owner_id,
+                  source: `IDS · dueño del issue: ${memberName(issue.owner_id)}`,
+                })
+              }
             />
           </div>
         )}

@@ -55,11 +55,14 @@ export function IssueList({
   solvedIssues,
   members,
   clickupConfigured,
+  onCreateTodo,
 }: {
   openIssues: Issue[];
   solvedIssues: Issue[];
   members: PublicUser[];
   clickupConfigured: boolean;
+  /** En la reunión L10: saca un To-Do de este Issue. */
+  onCreateTodo?: (issue: Issue) => void;
 }) {
   const [showSolved, setShowSolved] = useState(false);
   const [, startTransition] = useTransition();
@@ -120,6 +123,15 @@ export function IssueList({
                         }
                       />
                     </label>
+                    {onCreateTodo && (
+                      <button
+                        type="button"
+                        className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-green hover:bg-green-bg"
+                        onClick={() => onCreateTodo(issue)}
+                      >
+                        + To-Do
+                      </button>
+                    )}
                     <ClickUpButton
                       sentUrl={issue.clickup_url}
                       configured={clickupConfigured}

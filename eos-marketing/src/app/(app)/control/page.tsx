@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth/session";
 import { listCareers } from "@/lib/domain/careers";
 import { listTracks } from "@/lib/domain/career-tracks";
+import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { listTeamMembers } from "@/lib/domain/users";
 import { ControlBoard } from "./control-board";
 
@@ -8,7 +9,8 @@ export default async function ControlPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [tracks, careers, members] = await Promise.all([
+  const [milestones, tracks, careers, members] = await Promise.all([
+    listControlMilestones(session.teamId),
     listTracks(session.teamId),
     listCareers(session.teamId),
     listTeamMembers(session.teamId),
@@ -25,6 +27,7 @@ export default async function ControlPage() {
         </p>
       </div>
       <ControlBoard
+        milestones={milestones}
         tracks={tracks}
         members={members}
         available={careers

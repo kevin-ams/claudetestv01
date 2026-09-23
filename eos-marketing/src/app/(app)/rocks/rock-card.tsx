@@ -28,10 +28,13 @@ export function RockCard({
   rock,
   milestones,
   members,
+  onRaiseIssue,
 }: {
   rock: Rock;
   milestones: RockMilestone[];
   members: PublicUser[];
+  /** En la reunión L10: convierte el Rock (p. ej. off track) en Issue. */
+  onRaiseIssue?: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [milestoneInput, setMilestoneInput] = useState("");
@@ -203,8 +206,13 @@ export function RockCard({
                 {STATUS_LABEL[s]}
               </button>
             ))}
+            {onRaiseIssue && (
+              <button type="button" className="ml-auto rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg" onClick={onRaiseIssue}>
+                → Issue
+              </button>
+            )}
             <button
-              className="ml-auto font-medium text-primary underline"
+              className={`${onRaiseIssue ? "" : "ml-auto "}font-medium text-primary underline`}
               onClick={() => setEditing(true)}
             >
               Editar

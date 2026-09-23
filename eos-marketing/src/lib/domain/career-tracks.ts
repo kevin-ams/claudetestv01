@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { CareerTrack, TrackStatus } from "./types";
-import { MILESTONE_KEYS, milestoneIndex, type MilestoneKey } from "./career-control";
+import type { MilestoneKey } from "./career-control";
 
 export type TrackRow = CareerTrack & {
   program: string;
@@ -62,12 +62,18 @@ async function touch(careerId: number, userId: number) {
 /**
  * Mueve la tarjeta a una columna del tablero: los hitos anteriores quedan
  * completados (conservando su fecha si ya lo estaban) y el hito destino y
- * los siguientes quedan pendientes. `null` = todos completados.
+ * los siguientes quedan pendientes. `null` = todos completados. `keys` es el
+ * orden de los hitos del equipo.
  */
-export async function moveTrack(careerId: number, column: MilestoneKey | null, userId: number) {
-  const upTo = column === null ? MILESTONE_KEYS.length : milestoneIndex(column);
-  const complete = MILESTONE_KEYS.slice(0, upTo);
-  const pending = MILESTONE_KEYS.slice(upTo);
+export async function moveTrack(
+  careerId: number,
+  keys: MilestoneKey[],
+  column: MilestoneKey | null,
+  userId: number
+) {
+  const upTo = column === null ? keys.length : keys.indexOf(column);
+  const complete = keys.slice(0, upTo);
+  const pending = keys.slice(upTo);
   for (const key of complete) {
     await db().sql`
       INSERT INTO career_track_milestones (career_id, milestone, done_on, done_by)

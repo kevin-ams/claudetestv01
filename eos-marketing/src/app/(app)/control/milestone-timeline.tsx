@@ -1,9 +1,4 @@
-import {
-  CONTROL_MILESTONES,
-  CONTROL_STAGES,
-  CRITICAL_KEYS,
-  type ColumnKey,
-} from "@/lib/domain/career-control";
+import { CONTROL_STAGES, type ColumnKey, type ControlPlan } from "@/lib/domain/career-control";
 
 /**
  * "Visualización de los hitos": un rombo numerado por hito, escalonado dentro
@@ -11,9 +6,11 @@ import {
  * carreras están en ese hito.
  */
 export function MilestoneTimeline({
+  plan,
   counts,
   onSelect,
 }: {
+  plan: ControlPlan;
   counts: Record<ColumnKey, number>;
   onSelect: (key: ColumnKey) => void;
 }) {
@@ -28,7 +25,8 @@ export function MilestoneTimeline({
       <div className="mb-4 border-b-2 border-foreground/80" />
       <div className="flex min-w-[1300px] gap-4">
         {CONTROL_STAGES.map((stage) => {
-          const items = CONTROL_MILESTONES.filter((m) => m.stage === stage.key);
+          const items = plan.milestones.filter((m) => m.stage === stage.key);
+          if (items.length === 0) return null;
           return (
             <div key={stage.key} className="flex flex-1 flex-col" style={{ flexGrow: items.length }}>
               <p className="mb-2 text-xs font-bold uppercase tracking-wide" style={{ color: stage.color }}>
@@ -36,8 +34,8 @@ export function MilestoneTimeline({
               </p>
               <div className="flex flex-1 items-end gap-2">
                 {items.map((m, i) => {
-                  const n = CONTROL_MILESTONES.indexOf(m) + 1;
-                  const critical = CRITICAL_KEYS.has(m.key);
+                  const n = plan.milestones.indexOf(m) + 1;
+                  const critical = plan.critical.has(m.key);
                   // Escalonado ascendente dentro de la etapa, como en la referencia.
                   const lift = i * 34;
                   return (

@@ -69,10 +69,12 @@ function TodoItem({
   todo,
   members,
   clickupConfigured,
+  onRaiseIssue,
 }: {
   todo: Todo;
   members: PublicUser[];
   clickupConfigured: boolean;
+  onRaiseIssue?: (todo: Todo) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [, startTransition] = useTransition();
@@ -131,6 +133,15 @@ function TodoItem({
             configured={clickupConfigured}
             onSend={() => sendTodoToClickUpAction(todo.id)}
           />
+          {onRaiseIssue && (
+            <button
+              type="button"
+              className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
+              onClick={() => onRaiseIssue(todo)}
+            >
+              → Issue
+            </button>
+          )}
           <button className="font-medium text-primary underline" onClick={() => setEditing(true)}>
             Editar
           </button>
@@ -152,10 +163,13 @@ export function TodoList({
   todos,
   members,
   clickupConfigured,
+  onRaiseIssue,
 }: {
   todos: Todo[];
   members: PublicUser[];
   clickupConfigured: boolean;
+  /** En la reunión L10: un To-Do no cumplido puede pasar a IDS. */
+  onRaiseIssue?: (todo: Todo) => void;
 }) {
   const [, startTransition] = useTransition();
   const open = todos.filter((t) => t.status === "open");
@@ -174,7 +188,13 @@ export function TodoList({
         ) : (
           <ul className="flex flex-col gap-2">
             {open.map((t) => (
-              <TodoItem key={t.id} todo={t} members={members} clickupConfigured={clickupConfigured} />
+              <TodoItem
+                key={t.id}
+                todo={t}
+                members={members}
+                clickupConfigured={clickupConfigured}
+                onRaiseIssue={onRaiseIssue}
+              />
             ))}
           </ul>
         )}

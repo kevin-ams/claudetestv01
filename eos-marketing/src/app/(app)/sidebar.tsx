@@ -17,6 +17,7 @@ const NAV = [
   { href: "/todos", label: "To-Dos", icon: "✅" },
   { href: "/meeting", label: "Reunión L10", icon: "⏱️" },
   { href: "/settings/team", label: "Equipo", icon: "👥" },
+  { href: "/ajustes", label: "Ajustes", icon: "⚙️" },
 ];
 
 function isActive(pathname: string, href: string) {

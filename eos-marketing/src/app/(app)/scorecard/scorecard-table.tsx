@@ -97,12 +97,15 @@ export function ScorecardTable({
   targets,
   grid,
   weeks,
+  onRaiseIssue,
 }: {
   owners: ScorecardOwner[];
   metrics: ScorecardMetric[];
   targets: ScorecardTarget[];
   grid: Grid;
   weeks: string[];
+  /** En la reunión L10: levanta un Issue a partir de un indicador. */
+  onRaiseIssue?: (metric: ScorecardMetric, ownerName: string) => void;
 }) {
   const [activeOwnerId, setActiveOwnerId] = useState(owners[0]?.id);
   const activeOwner = owners.find((o) => o.id === activeOwnerId) ?? owners[0];
@@ -168,6 +171,15 @@ export function ScorecardTable({
                     <p className="mt-0.5 text-[11px] text-muted">
                       {m.direction === "higher_better" ? "Mayor mejor" : "Menor mejor"}
                     </p>
+                    {onRaiseIssue && (
+                      <button
+                        type="button"
+                        className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
+                        onClick={() => onRaiseIssue(m, activeOwner.name)}
+                      >
+                        → Issue
+                      </button>
+                    )}
                   </td>
                   <td className="px-2 py-2 text-center">
                     <TargetCell metricId={m.id} ownerId={activeOwner.id} value={target} />

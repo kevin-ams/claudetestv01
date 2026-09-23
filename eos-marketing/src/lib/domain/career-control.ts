@@ -13,19 +13,7 @@ export const CONTROL_STAGES: { key: StageKey; label: string; color: string; soft
   { key: "mejora", label: "4. Mejora continua", color: "#2f9e8f", soft: "#e4f4f1" },
 ];
 
-export type MilestoneKey =
-  | "brief"
-  | "estrategia"
-  | "embudo"
-  | "bot"
-  | "matriz"
-  | "piezas"
-  | "automatizaciones"
-  | "medicion"
-  | "lanzamiento"
-  | "nurturing"
-  | "aprendizaje"
-  | "optimizacion";
+export type MilestoneKey = string;
 
 export type MilestoneDef = {
   key: MilestoneKey;
@@ -37,9 +25,12 @@ export type MilestoneDef = {
   days: number;
   /** Hitos que deben terminar antes de iniciar este (red de la ruta crítica). */
   dependsOn: MilestoneKey[];
+  /** Marca el hito cuyo fin es la fecha de lanzamiento. */
+  isLaunch?: boolean;
 };
 
-export const CONTROL_MILESTONES: MilestoneDef[] = [
+/** Hitos con los que arranca cada equipo; se editan en Ajustes. */
+export const DEFAULT_MILESTONES: MilestoneDef[] = [
   {
     key: "brief",
     stage: "definicion",
@@ -128,6 +119,7 @@ export const CONTROL_MILESTONES: MilestoneDef[] = [
     doneWhen: "La carrera está publicada y recibe contactos sin fallas detectadas.",
     days: 2,
     dependsOn: ["bot", "automatizaciones", "medicion"],
+    isLaunch: true,
   },
   {
     key: "nurturing",
@@ -160,20 +152,28 @@ export const CONTROL_MILESTONES: MilestoneDef[] = [
   },
 ];
 
-export const MILESTONE_KEYS = CONTROL_MILESTONES.map((m) => m.key);
-
-export function milestoneIndex(key: MilestoneKey): number {
-  return MILESTONE_KEYS.indexOf(key);
+export function stageInfo(stage: StageKey) {
+  return CONTROL_STAGES.find((s) => s.key === stage) ?? CONTROL_STAGES[0];
 }
 
-export function stageOf(key: MilestoneKey) {
-  const stage = CONTROL_MILESTONES[milestoneIndex(key)].stage;
-  return CONTROL_STAGES.find((s) => s.key === stage)!;
+/** Ordena por etapa y deja solo dependencias hacia hitos anteriores (red sin ciclos). */
+export function normalizeMilestones(list: MilestoneDef[]): MilestoneDef[] {
+  const stageIdx = (k: StageKey) => CONTROL_STAGES.findIndex((s) => s.key === k);
+  const ordered = list
+    .map((m, i) => ({ m, i }))
+    .sort((a, b) => stageIdx(a.m.stage) - stageIdx(b.m.stage) || a.i - b.i)
+    .map(({ m }) => m);
+  const seen = new Set<string>();
+  return ordered.map((m) => {
+    const clean = { ...m, days: Math.max(0, Math.round(m.days)), dependsOn: m.dependsOn.filter((d) => seen.has(d)) };
+    seen.add(m.key);
+    return clean;
+  });
 }
 
 /** Columna "terminado": todos los hitos completos. */
 export const DONE_COLUMN = "completado" as const;
-export type ColumnKey = MilestoneKey | typeof DONE_COLUMN;
+export type ColumnKey = MilestoneKey;
 
 // ---------------------------------------------------------------------------
 // Ruta crítica (CPM): inicio/fin temprano y tardío, holgura y hitos críticos
@@ -181,17 +181,29 @@ export type ColumnKey = MilestoneKey | typeof DONE_COLUMN;
 
 export type CpmNode = { es: number; ef: number; ls: number; lf: number; float: number; critical: boolean };
 
-export function criticalPath(): { nodes: Record<MilestoneKey, CpmNode>; totalDays: number } {
-  const nodes = {} as Record<MilestoneKey, CpmNode>;
+export type ControlPlan = {
+  milestones: MilestoneDef[];
+  keys: MilestoneKey[];
+  nodes: Record<MilestoneKey, CpmNode>;
+  critical: Set<MilestoneKey>;
+  totalDays: number;
+  /** Hito cuyo fin es el lanzamiento (marcado en Ajustes o, si no hay, el último de Activación). */
+  launchKey: MilestoneKey | null;
+  launchOffset: number;
+};
+
+export function buildPlan(input: MilestoneDef[]): ControlPlan {
+  const milestones = normalizeMilestones(input);
+  const nodes: Record<MilestoneKey, CpmNode> = {};
   // Pasada hacia adelante (la lista ya está en orden topológico).
-  for (const m of CONTROL_MILESTONES) {
+  for (const m of milestones) {
     const es = Math.max(0, ...m.dependsOn.map((d) => nodes[d].ef));
     nodes[m.key] = { es, ef: es + m.days, ls: 0, lf: 0, float: 0, critical: false };
   }
-  const totalDays = Math.max(...Object.values(nodes).map((n) => n.ef));
+  const totalDays = milestones.length ? Math.max(...Object.values(nodes).map((n) => n.ef)) : 0;
   // Pasada hacia atrás.
-  for (const m of [...CONTROL_MILESTONES].reverse()) {
-    const successors = CONTROL_MILESTONES.filter((s) => s.dependsOn.includes(m.key));
+  for (const m of [...milestones].reverse()) {
+    const successors = milestones.filter((s) => s.dependsOn.includes(m.key));
     const lf = successors.length ? Math.min(...successors.map((s) => nodes[s.key].ls)) : totalDays;
     const node = nodes[m.key];
     node.lf = lf;
@@ -199,13 +211,20 @@ export function criticalPath(): { nodes: Record<MilestoneKey, CpmNode>; totalDay
     node.float = node.ls - node.es;
     node.critical = node.float === 0;
   }
-  return { nodes, totalDays };
+  const launch =
+    milestones.find((m) => m.isLaunch) ??
+    [...milestones].reverse().find((m) => m.stage === "activacion") ??
+    null;
+  return {
+    milestones,
+    keys: milestones.map((m) => m.key),
+    nodes,
+    critical: new Set(milestones.filter((m) => nodes[m.key].critical).map((m) => m.key)),
+    totalDays,
+    launchKey: launch?.key ?? null,
+    launchOffset: launch ? nodes[launch.key].ef : totalDays,
+  };
 }
-
-const CPM = criticalPath();
-export const CRITICAL_KEYS = new Set(MILESTONE_KEYS.filter((k) => CPM.nodes[k].critical));
-export const PLAN_TOTAL_DAYS = CPM.totalDays;
-export const LAUNCH_OFFSET_DAYS = CPM.nodes.lanzamiento.ef;
 
 // ---------------------------------------------------------------------------
 // Estado de una carrera en el tablero
@@ -240,17 +259,18 @@ export type TrackSummary = {
  * antes de hoy ni antes de que terminen sus dependencias.
  */
 export function summarizeTrack(
+  plan: ControlPlan,
   startDate: string,
   done: Partial<Record<MilestoneKey, string>>,
   today: string = iso(new Date())
 ): TrackSummary {
   const start = parseISO(startDate);
   const todayDate = parseISO(today);
-  const plans = {} as Record<MilestoneKey, MilestonePlan>;
-  const forecastEnd = {} as Record<MilestoneKey, Date>;
+  const plans: Record<MilestoneKey, MilestonePlan> = {};
+  const forecastEnd: Record<MilestoneKey, Date> = {};
 
-  for (const m of CONTROL_MILESTONES) {
-    const node = CPM.nodes[m.key];
+  for (const m of plan.milestones) {
+    const node = plan.nodes[m.key];
     const plannedStart = addDays(start, node.es);
     const plannedEnd = addDays(start, node.ef);
     const doneOn = done[m.key] ?? null;
@@ -277,12 +297,12 @@ export function summarizeTrack(
     };
   }
 
-  const firstPending = CONTROL_MILESTONES.find((m) => !done[m.key]);
-  const plannedLaunch = plans.lanzamiento.plannedEnd;
-  const forecastLaunch = plans.lanzamiento.forecastEnd;
+  const firstPending = plan.milestones.find((m) => !done[m.key]);
+  const plannedLaunch = plan.launchKey ? plans[plan.launchKey].plannedEnd : iso(addDays(start, plan.totalDays));
+  const forecastLaunch = plan.launchKey ? plans[plan.launchKey].forecastEnd : plannedLaunch;
   return {
     column: firstPending ? firstPending.key : DONE_COLUMN,
-    doneCount: CONTROL_MILESTONES.filter((m) => done[m.key]).length,
+    doneCount: plan.milestones.filter((m) => done[m.key]).length,
     plans,
     plannedLaunch,
     forecastLaunch,
@@ -292,8 +312,8 @@ export function summarizeTrack(
 }
 
 /** Fecha de inicio para que el lanzamiento caiga en la fecha indicada. */
-export function startForLaunch(launchDate: string): string {
-  return iso(addDays(parseISO(launchDate), -LAUNCH_OFFSET_DAYS));
+export function startForLaunch(plan: ControlPlan, launchDate: string): string {
+  return iso(addDays(parseISO(launchDate), -plan.launchOffset));
 }
 
 export function shortDate(date: string): string {

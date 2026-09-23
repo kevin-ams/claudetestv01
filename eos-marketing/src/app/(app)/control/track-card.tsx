@@ -2,13 +2,7 @@
 
 import type { PublicUser } from "@/lib/domain/types";
 import type { TrackRow } from "@/lib/domain/career-tracks";
-import {
-  CONTROL_MILESTONES,
-  milestoneIndex,
-  shortDate,
-  stageOf,
-  type TrackSummary,
-} from "@/lib/domain/career-control";
+import { shortDate, stageInfo, type ControlPlan, type TrackSummary } from "@/lib/domain/career-control";
 
 export function initials(name: string) {
   return name
@@ -50,6 +44,7 @@ export function StatusToggle({
 }
 
 export function TrackCard({
+  plan,
   track,
   summary,
   owner,
@@ -60,6 +55,7 @@ export function TrackCard({
   onDragStart,
   onDragEnd,
 }: {
+  plan: ControlPlan;
   track: TrackRow;
   summary: TrackSummary;
   owner: PublicUser | undefined;
@@ -71,8 +67,9 @@ export function TrackCard({
   onDragEnd: () => void;
 }) {
   const current = summary.current;
-  const stage = current ? stageOf(current.key) : null;
-  const total = CONTROL_MILESTONES.length;
+  const currentIdx = current ? plan.keys.indexOf(current.key) : -1;
+  const stage = current ? stageInfo(plan.milestones[currentIdx].stage) : null;
+  const total = plan.milestones.length;
 
   return (
     <div
@@ -166,7 +163,7 @@ export function TrackCard({
             ◀
           </button>
           <span className="text-[10px] text-muted">
-            {current ? `Hito ${milestoneIndex(current.key) + 1}: ${CONTROL_MILESTONES[milestoneIndex(current.key)].label}` : "Completado"}
+            {current ? `Hito ${currentIdx + 1}: ${plan.milestones[currentIdx].label}` : "Completado"}
           </span>
           <button
             type="button"

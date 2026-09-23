@@ -11,7 +11,8 @@ import {
   trackTeam,
   updateTrack,
 } from "@/lib/domain/career-tracks";
-import { MILESTONE_KEYS, type ColumnKey, type MilestoneKey } from "@/lib/domain/career-control";
+import { DONE_COLUMN, type ColumnKey, type MilestoneKey } from "@/lib/domain/career-control";
+import { listControlMilestones } from "@/lib/domain/control-milestones";
 import type { TrackStatus } from "@/lib/domain/types";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -34,17 +35,22 @@ export async function addTracksAction(careerIds: number[], startDate: string) {
   refresh();
 }
 
+async function teamKeys(teamId: number) {
+  return (await listControlMilestones(teamId)).map((m) => m.key);
+}
+
 export async function moveTrackAction(careerId: number, column: ColumnKey) {
   const session = await requireTrack(careerId);
-  const target = column === "completado" ? null : column;
-  if (target !== null && !MILESTONE_KEYS.includes(target)) throw new Error("Hito inválido");
-  await moveTrack(careerId, target, session.userId);
+  const keys = await teamKeys(session.teamId);
+  const target = column === DONE_COLUMN ? null : column;
+  if (target !== null && !keys.includes(target)) throw new Error("Hito inválido");
+  await moveTrack(careerId, keys, target, session.userId);
   refresh();
 }
 
 export async function setMilestoneDoneAction(careerId: number, milestone: MilestoneKey, doneOn: string | null) {
   const session = await requireTrack(careerId);
-  if (!MILESTONE_KEYS.includes(milestone)) throw new Error("Hito inválido");
+  if (!(await teamKeys(session.teamId)).includes(milestone)) throw new Error("Hito inválido");
   if (doneOn !== null && !DATE.test(doneOn)) throw new Error("Fecha inválida");
   await setMilestoneDone(careerId, milestone, doneOn, session.userId);
   refresh();
