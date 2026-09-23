@@ -10,6 +10,7 @@ const NAV = [
   { href: "/accountability", label: "Organigrama", icon: "🗂️" },
   { href: "/rocks", label: "Rocks", icon: "🪨" },
   { href: "/scorecard", label: "Scorecard", icon: "📊" },
+  { href: "/indicadores", label: "Indicadores de carrera", icon: "🎓" },
   { href: "/issues", label: "Issues", icon: "⚠️" },
   { href: "/todos", label: "To-Dos", icon: "✅" },
   { href: "/meeting", label: "Reunión L10", icon: "⏱️" },
@@ -48,7 +49,7 @@ export function Sidebar() {
         }`}
       >
         <div className="flex h-16 items-center gap-2 px-5">
-          <span className="text-lg font-bold tracking-tight">EOS · Nivel 10</span>
+          <span className="text-lg font-bold tracking-tight">EOS · Marketing</span>
         </div>
         <nav className="flex flex-col gap-1 px-3">
           {NAV.map((item) => {

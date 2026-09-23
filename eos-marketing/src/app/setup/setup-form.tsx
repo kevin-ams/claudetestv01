@@ -22,14 +22,18 @@ export function SetupForm() {
           name="teamName"
           required
           className="input mt-1"
-          placeholder="Ej. Universidad Galileo"
+          placeholder="Ej. Marketing"
         />
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="name">
           Tu nombre
         </label>
-        <input id="name" name="name" required className="input mt-1" />
+        <input id="name" name="name" required className="input mt-1" placeholder="Ej. Kevin" />
+        <p className="mt-1 text-xs text-muted">
+          Si tu nombre es uno del equipo (Kevin, Lucero, Luis, Andrea, Patty o
+          Miguel), tu cuenta tomará ese lugar y sus carreras.
+        </p>
       </div>
       <div>
         <label className="text-sm font-medium" htmlFor="email">

@@ -74,7 +74,8 @@ export async function deleteRock(rockId: number) {
 
 export async function listMilestones(rockId: number): Promise<RockMilestone[]> {
   const rows = await db().sql`
-    SELECT * FROM rock_milestones WHERE rock_id = ${rockId} ORDER BY sort_order ASC, id ASC
+    SELECT * FROM rock_milestones WHERE rock_id = ${rockId}
+    ORDER BY due_date ASC NULLS LAST, sort_order ASC, id ASC
   `;
   return rows as RockMilestone[];
 }
@@ -84,7 +85,8 @@ export async function listMilestonesForRocks(
 ): Promise<RockMilestone[]> {
   if (rockIds.length === 0) return [];
   const rows = await db().sql`
-    SELECT * FROM rock_milestones WHERE rock_id = ANY(${rockIds}) ORDER BY sort_order ASC, id ASC
+    SELECT * FROM rock_milestones WHERE rock_id = ANY(${rockIds})
+    ORDER BY due_date ASC NULLS LAST, sort_order ASC, id ASC
   `;
   return rows as RockMilestone[];
 }
@@ -105,6 +107,10 @@ export async function addMilestone(input: {
 
 export async function toggleMilestone(milestoneId: number, done: boolean) {
   await db().sql`UPDATE rock_milestones SET done = ${done} WHERE id = ${milestoneId}`;
+}
+
+export async function setMilestoneDueDate(milestoneId: number, dueDate: string | null) {
+  await db().sql`UPDATE rock_milestones SET due_date = ${dueDate} WHERE id = ${milestoneId}`;
 }
 
 export async function deleteMilestone(milestoneId: number) {

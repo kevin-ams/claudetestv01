@@ -13,6 +13,8 @@
   --green-bg: #e7f6ec;
   --red: #c02b2b;
   --red-bg: #fbeaea;
+  --yellow: #a16207;
+  --yellow-bg: #fef6dc;
 }
 
 @theme inline {
@@ -28,6 +30,8 @@
   --color-green-bg: var(--green-bg);
   --color-red: var(--red);
   --color-red-bg: var(--red-bg);
+  --color-yellow: var(--yellow);
+  --color-yellow-bg: var(--yellow-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

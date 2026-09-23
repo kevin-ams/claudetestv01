@@ -3,6 +3,7 @@ import { listTeamMembersDetailed } from "@/lib/domain/users";
 import { getTeam } from "@/lib/domain/teams";
 import { AddTeammateForm } from "./add-teammate-form";
 import { renameTeamAction } from "./actions";
+import { EditAccessForm } from "./edit-access-form";
 
 export default async function TeamSettingsPage() {
   const session = await getSession();
@@ -42,17 +43,25 @@ export default async function TeamSettingsPage() {
         </h2>
         <ul className="flex flex-col gap-2">
           {members.map((m) => (
-            <li key={m.id} className="flex items-center justify-between text-sm">
+            <li key={m.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
               <div>
                 <p className="font-medium">{m.name}</p>
                 <p className="text-xs text-muted">
                   {m.email}
                   {m.seat_title && ` · ${m.seat_title}`}
                 </p>
+                {m.email.endsWith("@marketing.local") && (
+                  <p className="text-xs text-yellow">Sin acceso todavía: asigna su correo y contraseña.</p>
+                )}
               </div>
-              <span className="badge bg-background text-muted">
-                {m.role === "admin" ? "Admin" : "Miembro"}
-              </span>
+              <div className="flex items-center gap-3">
+                {session.role === "admin" && m.id !== session.userId && (
+                  <EditAccessForm userId={m.id} name={m.name} email={m.email} />
+                )}
+                <span className="badge bg-background text-muted">
+                  {m.role === "admin" ? "Admin" : "Miembro"}
+                </span>
+              </div>
             </li>
           ))}
         </ul>

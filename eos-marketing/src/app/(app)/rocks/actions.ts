@@ -10,6 +10,7 @@ import {
   addMilestone,
   toggleMilestone,
   deleteMilestone,
+  setMilestoneDueDate,
 } from "@/lib/domain/rocks";
 import type { RockStatus } from "@/lib/domain/types";
 
@@ -58,15 +59,21 @@ export async function deleteRockAction(rockId: number) {
   revalidatePath("/rocks");
 }
 
-export async function addMilestoneAction(rockId: number, title: string) {
+export async function addMilestoneAction(rockId: number, title: string, dueDate: string | null) {
   await requireSession();
-  await addMilestone({ rockId, title, dueDate: null, sortOrder: 0 });
+  await addMilestone({ rockId, title, dueDate: dueDate || null, sortOrder: 0 });
   revalidatePath("/rocks");
 }
 
 export async function toggleMilestoneAction(milestoneId: number, done: boolean) {
   await requireSession();
   await toggleMilestone(milestoneId, done);
+  revalidatePath("/rocks");
+}
+
+export async function setMilestoneDueDateAction(milestoneId: number, dueDate: string | null) {
+  await requireSession();
+  await setMilestoneDueDate(milestoneId, dueDate || null);
   revalidatePath("/rocks");
 }
 

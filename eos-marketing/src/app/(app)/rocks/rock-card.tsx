@@ -9,6 +9,7 @@ import {
   addMilestoneAction,
   toggleMilestoneAction,
   deleteMilestoneAction,
+  setMilestoneDueDateAction,
 } from "./actions";
 
 const STATUS_LABEL: Record<RockStatus, string> = {
@@ -34,8 +35,10 @@ export function RockCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [milestoneInput, setMilestoneInput] = useState("");
+  const [milestoneDate, setMilestoneDate] = useState("");
   const [, startTransition] = useTransition();
   const doneCount = milestones.filter((m) => m.done).length;
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="card p-4">
@@ -130,8 +133,24 @@ export function RockCard({
                   <span className={m.done ? "text-muted line-through" : ""}>
                     {m.title}
                   </span>
+                  <input
+                    type="date"
+                    aria-label={`Fecha del hito ${m.title}`}
+                    title="Fecha del hito"
+                    className={`ml-auto rounded border border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-primary ${
+                      !m.done && m.due_date && m.due_date < today
+                        ? "font-semibold text-red"
+                        : "text-muted"
+                    }`}
+                    defaultValue={m.due_date ?? ""}
+                    onChange={(e) =>
+                      startTransition(() =>
+                        setMilestoneDueDateAction(m.id, e.target.value || null)
+                      )
+                    }
+                  />
                   <button
-                    className="ml-auto text-xs text-red"
+                    className="text-xs text-red"
                     onClick={() => startTransition(() => deleteMilestoneAction(m.id))}
                   >
                     ✕
@@ -145,15 +164,26 @@ export function RockCard({
             className="mt-2 flex gap-2"
             action={() => {
               if (!milestoneInput.trim()) return;
-              startTransition(() => addMilestoneAction(rock.id, milestoneInput.trim()));
+              const title = milestoneInput.trim();
+              const dueDate = milestoneDate || null;
+              startTransition(() => addMilestoneAction(rock.id, title, dueDate));
               setMilestoneInput("");
+              setMilestoneDate("");
             }}
           >
             <input
-              className="input text-sm"
+              className="input min-w-0 flex-1 text-sm"
               placeholder="+ Agregar hito"
               value={milestoneInput}
               onChange={(e) => setMilestoneInput(e.target.value)}
+            />
+            <input
+              type="date"
+              aria-label="Fecha del nuevo hito"
+              className="input shrink-0 text-sm"
+              style={{ width: "9.5rem" }}
+              value={milestoneDate}
+              onChange={(e) => setMilestoneDate(e.target.value)}
             />
             <button type="submit" className="btn btn-secondary text-xs">
               Agregar

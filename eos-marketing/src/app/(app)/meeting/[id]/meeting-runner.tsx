@@ -22,6 +22,8 @@ import { RockCard } from "../../rocks/rock-card";
 import { IssueList } from "../../issues/issue-list";
 import { AddIssueForm } from "../../issues/add-issue-form";
 import { TodoList } from "../../todos/todo-list";
+import { CareerSummary } from "../../indicadores/career-summary";
+import type { CareerRow } from "@/lib/domain/careers-shared";
 import {
   advanceSegmentAction,
   addHeadlineAction,
@@ -161,6 +163,7 @@ export function MeetingRunner({
   meeting,
   session,
   scorecard,
+  careerIndicators,
   rocks,
   milestonesByRock,
   members,
@@ -178,6 +181,7 @@ export function MeetingRunner({
     grid: Record<string, number | null>;
     weeks: string[];
   };
+  careerIndicators: { rows: CareerRow[]; week: string; weekLabel: string };
   rocks: Rock[];
   milestonesByRock: Record<number, RockMilestone[]>;
   members: PublicUser[];
@@ -287,13 +291,23 @@ export function MeetingRunner({
         )}
 
         {segment.key === "scorecard" && (
-          <ScorecardTable
-            owners={scorecard.owners}
-            metrics={scorecard.metrics}
-            targets={scorecard.targets}
-            grid={scorecard.grid}
-            weeks={scorecard.weeks}
-          />
+          <div className="flex flex-col gap-8">
+            {scorecard.metrics.length > 0 && scorecard.owners.length > 0 && (
+              <ScorecardTable
+                owners={scorecard.owners}
+                metrics={scorecard.metrics}
+                targets={scorecard.targets}
+                grid={scorecard.grid}
+                weeks={scorecard.weeks}
+              />
+            )}
+            <CareerSummary
+              rows={careerIndicators.rows}
+              members={members}
+              week={careerIndicators.week}
+              weekLabel={careerIndicators.weekLabel}
+            />
+          </div>
         )}
 
         {segment.key === "rocks" && (

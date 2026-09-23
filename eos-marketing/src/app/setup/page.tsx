@@ -16,7 +16,8 @@ export default async function SetupPage() {
         <h1 className="text-xl font-bold">Configura tu sistema EOS</h1>
         <p className="mt-1 text-sm text-muted">
           Esta es la primera vez que se usa esta aplicación. Crea tu equipo y tu
-          cuenta de administrador para empezar.
+          cuenta de administrador para empezar. Se cargarán automáticamente las
+          personas del equipo de marketing y sus carreras.
         </p>
         <SetupForm />
       </div>

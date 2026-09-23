@@ -101,3 +101,17 @@ export async function isUserInTeam(userId: number, teamId: number) {
   `;
   return rows.length > 0;
 }
+
+export async function updateUserAccess(
+  userId: number,
+  input: { name: string; email: string; password: string | null }
+) {
+  await db().sql`
+    UPDATE users SET name = ${input.name}, email = ${input.email.toLowerCase().trim()}
+    WHERE id = ${userId}
+  `;
+  if (input.password) {
+    const passwordHash = await hashPassword(input.password);
+    await db().sql`UPDATE users SET password_hash = ${passwordHash} WHERE id = ${userId}`;
+  }
+}

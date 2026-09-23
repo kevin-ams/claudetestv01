@@ -23,7 +23,15 @@ npm run dev        # http://localhost:3000
 
 La primera vez la base se crea vacía y se aplican las migraciones de
 `db/migrations`. Abre la app y verás `/setup` para crear el equipo y la cuenta
-de administrador.
+de administrador. Al terminar el setup se cargan automáticamente:
+
+- Las personas del equipo (Kevin, Lucero, Luis, Andrea, Patty, Miguel). Si tu
+  nombre coincide con uno de ellos, tu cuenta ocupa ese lugar. Los demás quedan
+  con un correo provisional `nombre@marketing.local` y sin acceso: asígnales
+  correo y contraseña desde **Equipo → Editar acceso**.
+- Las 117 carreras con su programa, nivel y responsable (`src/lib/domain/careers-catalog.ts`),
+  con metas en 0.
+- El Rock de Kevin "Dashboard de Active" (Q4 2026) con sus hitos y fechas.
 
 **Volver a cero:** detén la app y borra la carpeta `.data/`.
 
@@ -33,6 +41,7 @@ de administrador.
 | -------------- | ---------------------------------------------------------------- |
 | `AUTH_SECRET`  | Secreto para firmar las cookies de sesión. Si falta, usa uno de desarrollo. |
 | `EOS_DATA_DIR` | Carpeta de la base de datos local (por defecto `.data/pglite`). |
+| `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Para activar la sincronización de leads (la consulta está preparada en `src/lib/integrations/activecampaign.ts`, falta implementarla). |
 
 ## Estructura
 
@@ -46,7 +55,15 @@ de administrador.
 
 - **V/TO** (`/vto`): Vision/Traction Organizer editable por secciones.
 - **Organigrama** (`/accountability`): árbol de asientos con roles/responsabilidades.
-- **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos.
+- **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos y fecha por hito.
+- **Indicadores de carrera** (`/indicadores`): meta semanal de leads y de consumo de
+  presupuesto por carrera, con semáforo, costo por lead y totales. Filtros por
+  programa, carrera, nivel y responsable; vistas por responsable y por programa.
+  Los números se editan a mano en la tabla; el consumo se importa desde el CSV del
+  reporte de Meta (la carrera se reconoce por su código en el nombre de la campaña y
+  las asignaciones manuales se recuerdan); el botón de ActiveCampaign está listo para
+  conectarse. En la reunión L10 se muestran en modo resumen dentro del Scorecard
+  (última semana cerrada).
 - **Scorecard** (`/scorecard`): indicadores semanales por dueño, con meta, semáforo y un dueño "rollup" calculado automáticamente (suma o promedio de los demás).
 - **Issues** (`/issues`): lista IDS priorizable, con conversión a To-Do al resolver.
 - **To-Dos** (`/todos`): pendientes semanales con dueño y fecha límite.

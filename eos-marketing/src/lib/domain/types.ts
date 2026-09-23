@@ -188,3 +188,46 @@ export type MeetingHeadline = {
   created_by: number | null;
   created_at: string;
 };
+
+export type CareerLevel = "Pregrado" | "Postgrado" | "Técnico" | "Diplomado";
+
+export type Career = {
+  id: number;
+  team_id: number;
+  program: string;
+  code: string;
+  name: string;
+  level: CareerLevel;
+  owner_id: number | null;
+  leads_goal: number;
+  budget_goal: number;
+  archived: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+export type LeadsSource = "manual" | "activecampaign";
+export type BudgetSource = "manual" | "csv";
+
+export type CareerWeekly = {
+  career_id: number;
+  week_start: string;
+  leads: number | null;
+  leads_source: LeadsSource | null;
+  budget_spent: number | null;
+  budget_source: BudgetSource | null;
+  updated_by: number | null;
+  updated_at: string;
+};
+
+export type CareerImport = {
+  id: number;
+  team_id: number;
+  kind: "budget_csv" | "activecampaign";
+  week_start: string;
+  file_name: string | null;
+  careers_updated: number;
+  total: number;
+  created_by: number | null;
+  created_at: string;
+};

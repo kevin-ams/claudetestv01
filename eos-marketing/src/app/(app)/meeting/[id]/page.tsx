@@ -7,7 +7,9 @@ import { listRocks, listMilestonesForRocks } from "@/lib/domain/rocks";
 import { listIssues } from "@/lib/domain/issues";
 import { listTodos } from "@/lib/domain/todos";
 import { listTeamMembers } from "@/lib/domain/users";
-import { lastNWeeks, currentQuarter } from "@/lib/utils/dates";
+import { listCareers, listWeekly } from "@/lib/domain/careers";
+import { mergeWeekly } from "@/lib/domain/careers-shared";
+import { lastNWeeks, currentQuarter, lastClosedWeek, formatWeekRange } from "@/lib/utils/dates";
 import { MeetingRunner } from "./meeting-runner";
 
 export default async function MeetingPage({
@@ -24,6 +26,7 @@ export default async function MeetingPage({
   if (!meeting || meeting.team_id !== session.teamId) notFound();
 
   const weeks = lastNWeeks(4);
+  const careerWeek = lastClosedWeek();
   const { quarter, year } = currentQuarter();
 
   const [
@@ -37,6 +40,8 @@ export default async function MeetingPage({
     todos,
     headlines,
     ratings,
+    careers,
+    careerWeekly,
   ] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
@@ -48,6 +53,8 @@ export default async function MeetingPage({
     listTodos(session.teamId),
     listHeadlines(meetingId),
     listRatings(meetingId),
+    listCareers(session.teamId),
+    listWeekly(session.teamId, careerWeek),
   ]);
   const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
   const milestonesByRock: Record<number, typeof milestones> = {};
@@ -62,6 +69,11 @@ export default async function MeetingPage({
       meeting={meeting}
       session={session}
       scorecard={{ owners, metrics, targets, grid, weeks }}
+      careerIndicators={{
+        rows: mergeWeekly(careers, careerWeekly),
+        week: careerWeek,
+        weekLabel: formatWeekRange(careerWeek),
+      }}
       rocks={rocks}
       milestonesByRock={milestonesByRock}
       members={members}

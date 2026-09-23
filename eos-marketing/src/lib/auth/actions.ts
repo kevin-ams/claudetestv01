@@ -11,6 +11,7 @@ import {
   isUserInTeam,
 } from "@/lib/domain/users";
 import { createTeam, seedNewTeam } from "@/lib/domain/teams";
+import { seedMarketingTeam } from "@/lib/domain/marketing-seed";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSessionCookie, destroySessionCookie, getSession } from "@/lib/auth/session";
 
@@ -55,6 +56,7 @@ export async function setupAdminAction(
     role: "admin",
   });
   await addTeamMember(team.id, user.id, "Líder de equipo");
+  await seedMarketingTeam(team.id, user);
 
   await createSessionCookie({
     userId: user.id,
