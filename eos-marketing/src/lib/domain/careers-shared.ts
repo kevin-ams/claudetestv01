@@ -3,8 +3,8 @@ import type { Career, CareerLevel, CareerMonthlyGoal, CareerWeekly } from "./typ
 
 export const CAREER_LEVELS: CareerLevel[] = ["Pregrado", "Postgrado", "Técnico", "Diplomado"];
 
-/** Símbolo de moneda para el presupuesto (reporte de Meta). */
-export const CURRENCY = "Q";
+/** Moneda de presupuestos y consumo: dólares estadounidenses. */
+export const CURRENCY = "$";
 
 export type Tone = "green" | "yellow" | "red" | "none";
 
@@ -43,7 +43,7 @@ export function pct(value: number | null, goal: number): string {
 
 export function money(value: number | null): string {
   if (value === null) return "—";
-  return `${CURRENCY} ${value.toLocaleString("es-GT", {
+  return `${value < 0 ? "-" : ""}${CURRENCY}${Math.abs(value).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -232,7 +232,7 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
 
-/** "Q 1,234.56", "1.234,56", "$1234" → número. */
+/** "$1,234.56", "US$ 1234", "1.234,56" → número. */
 export function parseAmount(raw: string): number | null {
   let s = raw.replace(/[^\d.,-]/g, "");
   if (!s || !/\d/.test(s)) return null;

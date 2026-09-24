@@ -130,7 +130,7 @@ async function seedIndicators(ctx: DemoContext) {
   for (const career of careers) {
     const [min, max] = baseLeads[career.level] ?? [20, 60];
     const monthly = Math.round(between(min, max));
-    const cpl = between(35, 75);
+    const cpl = between(5, 11); // costo por lead en US$
     performance.set(career.id, rand() < 0.25 ? between(0.55, 0.8) : between(0.85, 1.2));
     months.forEach((m, i) => {
       const seasonal = 1 + 0.08 * Math.sin(i);
@@ -164,7 +164,7 @@ async function seedIndicators(ctx: DemoContext) {
   for (const w of weeks.slice(-3)) {
     await db().sql`
       INSERT INTO career_imports (team_id, kind, week_start, file_name, careers_updated, total)
-      VALUES (${teamId}, 'budget_csv', ${w}, ${`reporte-meta-${w}.csv`}, ${careers.length}, ${Math.round(between(55000, 70000))})
+      VALUES (${teamId}, 'budget_csv', ${w}, ${`reporte-meta-${w}.csv`}, ${careers.length}, ${Math.round(between(7500, 9500))})
     `;
   }
 }
@@ -186,7 +186,7 @@ async function seedScorecard(ctx: DemoContext) {
   `) as { id: number }[];
   const metrics = [
     { name: "Leads recibidos", predicts: "Inscripciones del próximo período", direction: "higher_better", format: "count", aggregation: "sum", target: 260, spread: 0.3 },
-    { name: "Costo por lead (Q)", predicts: "Eficiencia de la inversión en pauta", direction: "lower_better", format: "currency", aggregation: "average", target: 55, spread: 0.25 },
+    { name: "Costo por lead (US$)", predicts: "Eficiencia de la inversión en pauta", direction: "lower_better", format: "currency", aggregation: "average", target: 8, spread: 0.25 },
     { name: "% leads contactados en 24 h", predicts: "Conversión a entrevista con admisiones", direction: "higher_better", format: "percentage", aggregation: "average", target: 85, spread: 0.15 },
     { name: "Piezas publicadas", predicts: "Alcance orgánico y consistencia de marca", direction: "higher_better", format: "count", aggregation: "sum", target: 6, spread: 0.4 },
     { name: "Campañas activas sin errores", predicts: "Leads sin interrupciones", direction: "higher_better", format: "count", aggregation: "sum", target: 4, spread: 0.35 },
@@ -228,7 +228,7 @@ async function seedRocks(ctx: DemoContext) {
       owner: "Kevin",
       company: true,
       status: "on_track",
-      description: "Meta de leads de todas las carreras, con costo por lead menor a Q60.",
+      description: "Meta de leads de todas las carreras, con costo por lead menor a $9.",
       milestones: [["Metas por carrera aprobadas", 0.1, true], ["Campañas de admisiones activas", 0.35, true], ["Revisión de mitad de trimestre", 0.55, false], ["Cierre y reporte", 0.95, false]],
     },
     {
@@ -281,7 +281,7 @@ async function seedIssuesTodos(ctx: DemoContext) {
   const issues: [string, string, RosterName, number, "short_term" | "long_term", boolean][] = [
     ["Leads de Maestría en Data Science muy por debajo de la meta", "Tres semanas seguidas bajo el 70% de la meta.", "Luis", 5, "short_term", false],
     ["Formulario de FACTI no envía a ActiveCampaign", "Los leads llegan por correo pero no al CRM.", "Andrea", 2, "short_term", false],
-    ["Falta presupuesto para la campaña de IRE", "Se necesita aprobación adicional de Q15,000.", "Patty", 9, "short_term", false],
+    ["Falta presupuesto para la campaña de IRE", "Se necesita aprobación adicional de $2,000.", "Patty", 9, "short_term", false],
     ["Tiempo de respuesta de admisiones mayor a 48 h", "Afecta la conversión de pregrado.", "Kevin", 14, "long_term", false],
     ["Creatividades de ESEC con baja tasa de clics", "CTR de 0.4% contra 1.1% del promedio.", "Lucero", 7, "short_term", false],
     ["Definir proceso para carreras nuevas", "Checklist de lanzamiento con la unidad académica.", "Kevin", 21, "long_term", false],
@@ -360,8 +360,8 @@ async function seedVtoOrg(ctx: DemoContext) {
       core_focus = ${JSON.stringify({ purpose: "Conectar a cada aspirante con la carrera que transforma su futuro", niche: "Marketing de admisiones para pregrado y posgrado" })}::jsonb,
       ten_year_target = 'Ser el equipo de marketing educativo de referencia en la región',
       marketing_strategy = ${JSON.stringify({ target_market: "Jóvenes y profesionales de 17 a 40 años en Guatemala y Centroamérica", three_uniques: ["Datos por carrera cada semana", "Contenido validado con cada facultad", "Seguimiento de leads en 24 h"], proven_process: "Definición → Producción → Activación → Mejora continua", guarantee: "Cada lead recibe respuesta en menos de 24 horas" })}::jsonb,
-      three_year_picture = ${JSON.stringify({ future_date: `${year + 3}-12-31`, revenue: "", profit: "", measurables: "60,000 leads al año · CPL < Q45", looks_like: ["Dashboard en tiempo real por carrera", "Todas las carreras con embudo automatizado", "Equipo de 10 personas"] })}::jsonb,
-      one_year_plan = ${JSON.stringify({ future_date: `${year}-12-31`, revenue: "", profit: "", measurables: "45,000 leads · CPL < Q55", goals: ["Automatizar el seguimiento de todas las maestrías", "Lanzar 8 carreras con el proceso completo", "Reducir 15% el costo por lead"] })}::jsonb
+      three_year_picture = ${JSON.stringify({ future_date: `${year + 3}-12-31`, revenue: "", profit: "", measurables: "60,000 leads al año · CPL < $7", looks_like: ["Dashboard en tiempo real por carrera", "Todas las carreras con embudo automatizado", "Equipo de 10 personas"] })}::jsonb,
+      one_year_plan = ${JSON.stringify({ future_date: `${year}-12-31`, revenue: "", profit: "", measurables: "45,000 leads · CPL < $8", goals: ["Automatizar el seguimiento de todas las maestrías", "Lanzar 8 carreras con el proceso completo", "Reducir 15% el costo por lead"] })}::jsonb
     WHERE team_id = ${teamId}
   `;
   const head = (await db().sql`

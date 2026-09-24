@@ -87,7 +87,7 @@ export function formatValue(
 ): string {
   if (value === null) return "-";
   if (format === "percentage") return `${value}%`;
-  if (format === "currency") return `$${value.toLocaleString("es-GT")}`;
+  if (format === "currency") return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return `${value}`;
 }
 

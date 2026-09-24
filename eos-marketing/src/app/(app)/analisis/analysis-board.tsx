@@ -341,14 +341,14 @@ export function AnalysisBoard({
 
         <ChartCard
           title="Consumo de presupuesto por semana"
-          subtitle="Importe gastado contra el presupuesto de cada semana (Q)"
+          subtitle="Importe gastado contra el presupuesto de cada semana (US$)"
           table={{ columns: ["Semana", "Consumo", "Presupuesto"], rows: weekly.map((d) => [d.week, money(d.spent), money(d.budget)]) }}
         >
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={weekly} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke={C.grid} />
               <XAxis dataKey="week" {...AXIS_PROPS} />
-              <YAxis {...AXIS_PROPS} tickFormatter={(v: number) => `Q${num(v)}`} />
+              <YAxis {...AXIS_PROPS} tickFormatter={(v: number) => `$${num(v)}`} />
               <Tooltip content={<ChartTooltip fmt={money} />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: C.text }} />
               <Bar isAnimationActive={false} dataKey="spent" name="Consumo" fill={C.actual} radius={[4, 4, 0, 0]} maxBarSize={28} />
@@ -359,14 +359,14 @@ export function AnalysisBoard({
 
         <ChartCard
           title="Costo por lead"
-          subtitle="Consumo de la semana entre leads recibidos (Q)"
+          subtitle="Consumo de la semana entre leads recibidos (US$)"
           table={{ columns: ["Semana", "Costo por lead"], rows: weekly.map((d) => [d.week, money(d.cpl)]) }}
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={weekly} margin={{ top: 8, right: 8, left: 4, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke={C.grid} />
               <XAxis dataKey="week" {...AXIS_PROPS} />
-              <YAxis {...AXIS_PROPS} tickFormatter={(v: number) => `Q${num(v)}`} />
+              <YAxis {...AXIS_PROPS} tickFormatter={(v: number) => `$${num(v)}`} />
               <Tooltip content={<ChartTooltip fmt={money} />} />
               <Line dataKey="cpl" name="Costo por lead" stroke={C.actual} strokeWidth={2} dot={{ r: 4, fill: C.actual, strokeWidth: 2, stroke: "#fff" }} connectNulls type="linear" isAnimationActive={false} />
             </LineChart>

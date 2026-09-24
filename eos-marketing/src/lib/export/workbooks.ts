@@ -105,7 +105,7 @@ export async function careerWorkbook(teamId: number, from: string, to: string) {
     }
   }
   for (const key of ["leadsPct", "budgetPct"]) detail.getColumn(key).numFmt = "0%";
-  for (const key of ["spent", "budget", "cpl"]) detail.getColumn(key).numFmt = '"Q" #,##0.00';
+  for (const key of ["spent", "budget", "cpl"]) detail.getColumn(key).numFmt = '"$"#,##0.00';
   detail.getColumn("leadsGoal").numFmt = "0.0";
 
   // Resumen del rango por responsable.
@@ -139,7 +139,7 @@ export async function careerWorkbook(teamId: number, from: string, to: string) {
     });
   }
   for (const key of ["leadsPct", "budgetPct"]) summary.getColumn(key).numFmt = "0%";
-  for (const key of ["spent", "budget", "cpl"]) summary.getColumn(key).numFmt = '"Q" #,##0.00';
+  for (const key of ["spent", "budget", "cpl"]) summary.getColumn(key).numFmt = '"$"#,##0.00';
   summary.getColumn("leadsGoal").numFmt = "0.0";
 
   // Metas mensuales de los meses que toca el rango.
