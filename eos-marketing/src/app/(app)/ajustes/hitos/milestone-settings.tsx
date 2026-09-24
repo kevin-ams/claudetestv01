@@ -66,11 +66,11 @@ function MilestoneEditor({
       <div className="grid gap-2 sm:grid-cols-[1fr_180px_110px]">
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
           Nombre
-          <input className="input" required value={label} onChange={(e) => setLabel(e.target.value)} />
+          <input className="eos-input" required value={label} onChange={(e) => setLabel(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
           Etapa
-          <select className="input" value={stage} onChange={(e) => setStage(e.target.value as StageKey)}>
+          <select className="eos-input" value={stage} onChange={(e) => setStage(e.target.value as StageKey)}>
             {CONTROL_STAGES.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
@@ -81,7 +81,7 @@ function MilestoneEditor({
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
           Duración (días)
           <input
-            className="input"
+            className="eos-input"
             type="number"
             min={0}
             max={365}
@@ -93,11 +93,11 @@ function MilestoneEditor({
       </div>
       <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
         Subacciones principales
-        <textarea className="input min-h-16" value={actions} onChange={(e) => setActions(e.target.value)} />
+        <textarea className="eos-input min-h-16" value={actions} onChange={(e) => setActions(e.target.value)} />
       </label>
       <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
         Se considera completo cuando…
-        <textarea className="input min-h-12" value={doneWhen} onChange={(e) => setDoneWhen(e.target.value)} />
+        <textarea className="eos-input min-h-12" value={doneWhen} onChange={(e) => setDoneWhen(e.target.value)} />
       </label>
       <fieldset className="flex flex-col gap-1">
         <legend className="mb-1 text-xs font-semibold text-muted">
@@ -131,10 +131,10 @@ function MilestoneEditor({
       </label>
       {result && !result.ok && <p className="text-sm text-red">{result.message}</p>}
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary text-xs" disabled={pending}>
+        <button type="submit" className="eos-btn eos-btn-primary text-xs" disabled={pending}>
           {pending ? "Guardando..." : "Guardar hito"}
         </button>
-        <button type="button" className="btn btn-secondary text-xs" onClick={onClose}>
+        <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={onClose}>
           Cancelar
         </button>
       </div>
@@ -160,13 +160,13 @@ function AddMilestoneForm({ stage }: { stage: StageKey }) {
       }}
     >
       <input
-        className="input text-sm"
+        className="eos-input text-sm"
         placeholder="+ Nuevo hito en esta etapa"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         aria-label={`Nuevo hito en ${stage}`}
       />
-      <button type="submit" className="btn btn-secondary text-xs" disabled={pending}>
+      <button type="submit" className="eos-btn eos-btn-secondary text-xs" disabled={pending}>
         Agregar
       </button>
     </form>
@@ -196,7 +196,7 @@ export function MilestoneSettings({
 
   return (
     <div className={`flex flex-col gap-4 ${pending ? "opacity-70" : ""}`}>
-      <div className="card grid gap-3 p-4 sm:grid-cols-3">
+      <div className="eos-card grid gap-3 p-4 sm:grid-cols-3">
         <div>
           <p className="text-xs font-semibold uppercase text-muted">Hitos</p>
           <p className="text-2xl font-bold">{milestones.length}</p>
@@ -256,10 +256,10 @@ export function MilestoneSettings({
                           <p className="font-semibold">
                             {m.label}
                             {plan.critical.has(m.key) && (
-                              <span className="ml-2 badge bg-red-bg text-red">Ruta crítica</span>
+                              <span className="ml-2 eos-badge bg-red-bg text-red">Ruta crítica</span>
                             )}
                             {plan.launchKey === m.key && (
-                              <span className="ml-2 badge bg-primary/10 text-primary">Lanzamiento</span>
+                              <span className="ml-2 eos-badge bg-primary/10 text-primary">Lanzamiento</span>
                             )}
                           </p>
                           <p className="text-xs text-muted">
@@ -325,7 +325,7 @@ export function MilestoneSettings({
 
       {canEdit && (
         <button
-          className="btn btn-secondary self-start text-xs"
+          className="eos-btn eos-btn-secondary self-start text-xs"
           onClick={() => {
             if (
               confirm(

@@ -33,15 +33,15 @@ function ResolveRow({ issue }: { issue: Issue }) {
       }}
     >
       <input
-        className="input flex-1 text-xs"
+        className="eos-input flex-1 text-xs"
         placeholder="To-Do de seguimiento (opcional)"
         value={followUp}
         onChange={(e) => setFollowUp(e.target.value)}
       />
-      <button type="submit" className="btn btn-primary text-xs">
+      <button type="submit" className="eos-btn eos-btn-primary text-xs">
         Confirmar
       </button>
-      <button type="button" className="btn btn-secondary text-xs" onClick={() => setOpen(false)}>
+      <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={() => setOpen(false)}>
         Cancelar
       </button>
     </form>
@@ -79,7 +79,7 @@ export function IssueList({
         ) : (
           <ul className="flex flex-col gap-2">
             {openIssues.map((issue, idx) => (
-              <li key={issue.id} className="card flex flex-wrap items-center gap-3 p-3">
+              <li key={issue.id} className="eos-card flex flex-wrap items-center gap-3 p-3">
                 <span className="w-6 text-center text-xs font-semibold text-muted">
                   {idx + 1}
                 </span>
@@ -162,7 +162,7 @@ export function IssueList({
         {showSolved && (
           <ul className="mt-3 flex flex-col gap-2">
             {solvedIssues.map((issue) => (
-              <li key={issue.id} className="card flex items-center gap-3 p-3 opacity-70">
+              <li key={issue.id} className="eos-card flex items-center gap-3 p-3 opacity-70">
                 <div className="flex-1">
                   <p className="font-medium line-through">{issue.title}</p>
                 </div>

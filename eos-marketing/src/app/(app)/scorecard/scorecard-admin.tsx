@@ -19,7 +19,7 @@ export function ScorecardAdmin({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="card p-4">
+    <div className="eos-card p-4">
       <button
         className="text-sm font-semibold text-primary underline"
         onClick={() => setOpen((v) => !v)}
@@ -45,24 +45,24 @@ export function ScorecardAdmin({
               ))}
             </ul>
             <form action={createMetricAction} className="flex flex-col gap-2">
-              <input name="name" required className="input" placeholder="Nombre del indicador" />
-              <input name="predicts" className="input" placeholder="¿Qué predice?" />
+              <input name="name" required className="eos-input" placeholder="Nombre del indicador" />
+              <input name="predicts" className="eos-input" placeholder="¿Qué predice?" />
               <div className="flex gap-2">
-                <select name="direction" className="input" defaultValue="higher_better">
+                <select name="direction" className="eos-input" defaultValue="higher_better">
                   <option value="higher_better">Mayor mejor</option>
                   <option value="lower_better">Menor mejor</option>
                 </select>
-                <select name="format" className="input" defaultValue="count">
+                <select name="format" className="eos-input" defaultValue="count">
                   <option value="count">Conteo</option>
                   <option value="percentage">%</option>
                   <option value="currency">Moneda</option>
                 </select>
-                <select name="aggregation" className="input" defaultValue="sum">
+                <select name="aggregation" className="eos-input" defaultValue="sum">
                   <option value="sum">Suma (rollup)</option>
                   <option value="average">Promedio (rollup)</option>
                 </select>
               </div>
-              <button type="submit" className="btn btn-primary self-start">
+              <button type="submit" className="eos-btn eos-btn-primary self-start">
                 + Agregar indicador
               </button>
             </form>
@@ -87,12 +87,12 @@ export function ScorecardAdmin({
               ))}
             </ul>
             <form action={createOwnerAction} className="flex flex-col gap-2">
-              <input name="name" required className="input" placeholder="Nombre del dueño" />
+              <input name="name" required className="eos-input" placeholder="Nombre del dueño" />
               <label className="flex items-center gap-2 text-sm">
                 <input type="checkbox" name="isRollup" />
                 Es un rollup calculado (ej. &quot;General&quot;)
               </label>
-              <button type="submit" className="btn btn-primary self-start">
+              <button type="submit" className="eos-btn eos-btn-primary self-start">
                 + Agregar dueño
               </button>
             </form>

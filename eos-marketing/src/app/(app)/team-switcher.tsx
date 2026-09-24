@@ -17,7 +17,7 @@ export function TeamSwitcher({
       value={currentTeamId}
       disabled={pending}
       aria-label="Cambiar de equipo"
-      className="input ml-2 !w-auto text-xs"
+      className="eos-input ml-2 !w-auto text-xs"
       onChange={(e) => {
         const teamId = Number(e.target.value);
         startTransition(() => switchTeamAction(teamId));

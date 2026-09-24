@@ -13,20 +13,20 @@ export function AddTeammateForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
-      <input name="name" required className="input" placeholder="Nombre completo" />
-      <input name="email" type="email" required className="input" placeholder="Correo" />
+      <input name="name" required className="eos-input" placeholder="Nombre completo" />
+      <input name="email" type="email" required className="eos-input" placeholder="Correo" />
       <input
         name="password"
         type="password"
         minLength={8}
         required
-        className="input"
+        className="eos-input"
         placeholder="Contraseña temporal (mínimo 8 caracteres)"
       />
-      <input name="seatTitle" className="input" placeholder="Asiento / rol (opcional)" />
+      <input name="seatTitle" className="eos-input" placeholder="Asiento / rol (opcional)" />
       {state.error && <p className="text-sm text-red">{state.error}</p>}
       {state.success && <p className="text-sm text-green">{state.success}</p>}
-      <button type="submit" disabled={pending} className="btn btn-primary self-start">
+      <button type="submit" disabled={pending} className="eos-btn eos-btn-primary self-start">
         {pending ? "Agregando..." : "+ Agregar persona"}
       </button>
       <p className="text-xs text-muted">

@@ -22,20 +22,20 @@ export default async function TeamSettingsPage() {
       </div>
 
       {session.role === "admin" && (
-        <form action={renameTeamAction} className="card mb-6 flex items-center gap-2 p-4">
+        <form action={renameTeamAction} className="eos-card mb-6 flex items-center gap-2 p-4">
           <input
             name="name"
             defaultValue={team?.name}
-            className="input flex-1"
+            className="eos-input flex-1"
             placeholder="Nombre del equipo"
           />
-          <button type="submit" className="btn btn-secondary">
+          <button type="submit" className="eos-btn eos-btn-secondary">
             Guardar
           </button>
         </form>
       )}
 
-      <div className="card mb-6 p-4">
+      <div className="eos-card mb-6 p-4">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           Miembros ({members.length})
         </h2>
@@ -56,7 +56,7 @@ export default async function TeamSettingsPage() {
                 {session.role === "admin" && m.id !== session.userId && (
                   <EditAccessForm userId={m.id} name={m.name} email={m.email} />
                 )}
-                <span className="badge bg-background text-muted">
+                <span className="eos-badge bg-background text-muted">
                   {m.role === "admin" ? "Admin" : "Miembro"}
                 </span>
               </div>
@@ -66,7 +66,7 @@ export default async function TeamSettingsPage() {
       </div>
 
       {session.role === "admin" ? (
-        <div className="card p-4">
+        <div className="eos-card p-4">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
             Agregar persona
           </h2>

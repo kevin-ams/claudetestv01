@@ -21,7 +21,7 @@ export function SetupForm() {
           id="teamName"
           name="teamName"
           required
-          className="input mt-1"
+          className="eos-input mt-1"
           placeholder="Ej. Marketing"
         />
       </div>
@@ -29,7 +29,7 @@ export function SetupForm() {
         <label className="text-sm font-medium" htmlFor="name">
           Tu nombre
         </label>
-        <input id="name" name="name" required className="input mt-1" placeholder="Ej. Kevin" />
+        <input id="name" name="name" required className="eos-input mt-1" placeholder="Ej. Kevin" />
         <p className="mt-1 text-xs text-muted">
           Si tu nombre es uno del equipo (Kevin, Lucero, Luis, Andrea, Patty o
           Miguel), tu cuenta tomará ese lugar y sus carreras.
@@ -44,7 +44,7 @@ export function SetupForm() {
           name="email"
           type="email"
           required
-          className="input mt-1"
+          className="eos-input mt-1"
         />
       </div>
       <div>
@@ -57,13 +57,13 @@ export function SetupForm() {
           type="password"
           minLength={8}
           required
-          className="input mt-1"
+          className="eos-input mt-1"
         />
       </div>
       {state.error && (
         <p className="text-sm text-red">{state.error}</p>
       )}
-      <button type="submit" disabled={pending} className="btn btn-primary mt-2">
+      <button type="submit" disabled={pending} className="eos-btn eos-btn-primary mt-2">
         {pending ? "Creando..." : "Crear equipo y entrar"}
       </button>
     </form>

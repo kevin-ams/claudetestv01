@@ -62,7 +62,7 @@ export function Toolbar({
 
         <div className="ml-auto flex flex-wrap gap-2">
           <button
-            className="btn btn-secondary"
+            className="eos-btn eos-btn-secondary"
             disabled={syncing}
             title={acConfigured ? "Traer los leads de la semana desde ActiveCampaign" : "Integración pendiente de conectar"}
             onClick={() =>
@@ -73,12 +73,12 @@ export function Toolbar({
             }
           >
             {syncing ? "Actualizando..." : "↻ Actualizar leads desde ActiveCampaign"}
-            {!acConfigured && <span className="badge bg-yellow-bg text-yellow">Pendiente</span>}
+            {!acConfigured && <span className="eos-badge bg-yellow-bg text-yellow">Pendiente</span>}
           </button>
-          <button className="btn btn-secondary" onClick={() => setPanel(panel === "import" ? null : "import")}>
+          <button className="eos-btn eos-btn-secondary" onClick={() => setPanel(panel === "import" ? null : "import")}>
             ⇪ Importar consumo (CSV)
           </button>
-          <button className="btn btn-primary" onClick={() => setPanel(panel === "add" ? null : "add")}>
+          <button className="eos-btn eos-btn-primary" onClick={() => setPanel(panel === "add" ? null : "add")}>
             + Carrera
           </button>
         </div>
@@ -104,22 +104,22 @@ export function Toolbar({
             setPanel(null);
             router.refresh();
           }}
-          className="card grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6"
+          className="eos-card grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6"
         >
-          <input name="program" list="new-career-programs" required className="input" placeholder="Programa (ej. FISICC)" />
+          <input name="program" list="new-career-programs" required className="eos-input" placeholder="Programa (ej. FISICC)" />
           <datalist id="new-career-programs">
             {programs.map((p) => (
               <option key={p} value={p} />
             ))}
           </datalist>
-          <input name="code" className="input" placeholder="Código" />
-          <input name="name" required className="input sm:col-span-2" placeholder="Nombre de la carrera" />
-          <select name="level" className="input" defaultValue="Pregrado">
+          <input name="code" className="eos-input" placeholder="Código" />
+          <input name="name" required className="eos-input sm:col-span-2" placeholder="Nombre de la carrera" />
+          <select name="level" className="eos-input" defaultValue="Pregrado">
             {CAREER_LEVELS.map((l) => (
               <option key={l}>{l}</option>
             ))}
           </select>
-          <select name="ownerId" className="input" defaultValue="none">
+          <select name="ownerId" className="eos-input" defaultValue="none">
             <option value="none">Sin responsable</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -128,10 +128,10 @@ export function Toolbar({
             ))}
           </select>
           <div className="flex gap-2 sm:col-span-3 lg:col-span-6">
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="eos-btn eos-btn-primary">
               Agregar carrera
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setPanel(null)}>
+            <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setPanel(null)}>
               Cancelar
             </button>
           </div>

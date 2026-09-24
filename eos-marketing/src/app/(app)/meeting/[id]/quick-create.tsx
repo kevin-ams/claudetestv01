@@ -21,10 +21,10 @@ export function QuickCreateBar({ onCreate }: { onCreate: (draft: QuickDraft) => 
   return (
     <div className="sticky top-2 z-20 mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
       <span className="px-2 text-xs font-semibold uppercase tracking-wide text-muted">Capturar</span>
-      <button className="btn btn-secondary py-1.5 text-xs" onClick={() => onCreate({ kind: "todo" })}>
+      <button className="eos-btn eos-btn-secondary py-1.5 text-xs" onClick={() => onCreate({ kind: "todo" })}>
         ✅ + To-Do
       </button>
-      <button className="btn btn-secondary py-1.5 text-xs" onClick={() => onCreate({ kind: "issue" })}>
+      <button className="eos-btn eos-btn-secondary py-1.5 text-xs" onClick={() => onCreate({ kind: "issue" })}>
         ⚠️ + Issue
       </button>
       <span className="ml-auto hidden text-[11px] text-muted sm:inline">
@@ -84,7 +84,7 @@ export function QuickCreateModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
       <form
-        className="card flex w-full max-w-lg flex-col gap-3 p-5 shadow-xl"
+        className="eos-card flex w-full max-w-lg flex-col gap-3 p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault();
@@ -116,7 +116,7 @@ export function QuickCreateModal({
         </div>
         {draft.source && <p className="text-xs text-muted">Desde: {draft.source}</p>}
         <input
-          className="input"
+          className="eos-input"
           autoFocus
           placeholder={kind === "todo" ? "¿Qué hay que hacer?" : "¿Cuál es el issue?"}
           value={title}
@@ -124,14 +124,14 @@ export function QuickCreateModal({
           aria-label="Título"
         />
         <textarea
-          className="input min-h-20"
+          className="eos-input min-h-20"
           placeholder="Descripción (opcional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           aria-label="Descripción"
         />
         <div className="flex flex-wrap gap-2">
-          <select className="input !w-auto" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} aria-label="Dueño">
+          <select className="eos-input !w-auto" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} aria-label="Dueño">
             <option value="none">Sin dueño</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -141,14 +141,14 @@ export function QuickCreateModal({
           </select>
           <input
             type="date"
-            className="input !w-auto"
+            className="eos-input !w-auto"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
             aria-label="Fecha"
             title={kind === "todo" ? "Fecha límite" : "Fecha específica"}
           />
           {kind === "issue" && (
-            <select className="input !w-auto" value={term} onChange={(e) => setTerm(e.target.value as typeof term)} aria-label="Plazo">
+            <select className="eos-input !w-auto" value={term} onChange={(e) => setTerm(e.target.value as typeof term)} aria-label="Plazo">
               <option value="short_term">Corto plazo</option>
               <option value="long_term">Largo plazo</option>
             </select>
@@ -156,10 +156,10 @@ export function QuickCreateModal({
         </div>
         {error && <p className="text-sm text-red">{error}</p>}
         <div className="flex gap-2">
-          <button type="submit" className="btn btn-primary" disabled={pending}>
+          <button type="submit" className="eos-btn eos-btn-primary" disabled={pending}>
             {pending ? "Guardando..." : kind === "todo" ? "Crear To-Do" : "Agregar Issue"}
           </button>
-          <button type="button" className="btn btn-secondary" onClick={onClose}>
+          <button type="button" className="eos-btn eos-btn-secondary" onClick={onClose}>
             Cancelar
           </button>
         </div>

@@ -29,7 +29,7 @@ export default async function MeetingListPage() {
           </p>
         </div>
         {active ? (
-          <Link href={`/meeting/${active.id}`} className="btn btn-primary">
+          <Link href={`/meeting/${active.id}`} className="eos-btn eos-btn-primary">
             Continuar reunión en curso →
           </Link>
         ) : (
@@ -45,7 +45,7 @@ export default async function MeetingListPage() {
       ) : (
         <ul className="flex flex-col gap-2">
           {meetings.map((m) => (
-            <li key={m.id} className="card flex items-center justify-between gap-3 p-3">
+            <li key={m.id} className="eos-card flex items-center justify-between gap-3 p-3">
               <div>
                 <p className="font-medium">
                   Reunión #{m.id} · {new Date(m.created_at).toLocaleDateString("es-GT")}
@@ -55,7 +55,7 @@ export default async function MeetingListPage() {
                   {m.avg_rating !== null && ` · Calificación: ${Number(m.avg_rating).toFixed(1)}/10`}
                 </p>
               </div>
-              <Link href={`/meeting/${m.id}`} className="btn btn-secondary text-xs">
+              <Link href={`/meeting/${m.id}`} className="eos-btn eos-btn-secondary text-xs">
                 Ver
               </Link>
             </li>

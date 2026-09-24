@@ -55,7 +55,7 @@ function LabelEditor({ track, allLabels }: { track: TrackRow; allLabels: string[
         }}
       >
         <input
-          className="input text-sm"
+          className="eos-input text-sm"
           list="track-label-suggestions"
           placeholder="Nueva etiqueta"
           value={input}
@@ -66,7 +66,7 @@ function LabelEditor({ track, allLabels }: { track: TrackRow; allLabels: string[
             <option key={l} value={l} />
           ))}
         </datalist>
-        <button type="submit" className="btn btn-secondary text-xs">
+        <button type="submit" className="eos-btn eos-btn-secondary text-xs">
           Agregar
         </button>
       </form>
@@ -137,7 +137,7 @@ export function TrackDrawer({
         </div>
 
         <div className={`flex flex-col gap-5 p-4 ${pending ? "opacity-70" : ""}`}>
-          <section className="card grid gap-3 p-4 sm:grid-cols-2">
+          <section className="eos-card grid gap-3 p-4 sm:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase text-muted">Estado</p>
               <div className="mt-1">
@@ -161,7 +161,7 @@ export function TrackDrawer({
               Inicio del plan
               <input
                 type="date"
-                className="input text-sm normal-case"
+                className="eos-input text-sm normal-case"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
@@ -170,14 +170,14 @@ export function TrackDrawer({
               …o calcular desde la fecha de lanzamiento
               <input
                 type="date"
-                className="input text-sm normal-case"
+                className="eos-input text-sm normal-case"
                 onChange={(e) => e.target.value && setStartDate(startForLaunch(plan, e.target.value))}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold uppercase text-muted sm:col-span-2">
               Notas
               <textarea
-                className="input min-h-16 text-sm normal-case"
+                className="eos-input min-h-16 text-sm normal-case"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Acuerdos, bloqueos, contactos…"
@@ -185,7 +185,7 @@ export function TrackDrawer({
             </label>
             <div className="sm:col-span-2">
               <button
-                className="btn btn-primary text-xs"
+                className="eos-btn eos-btn-primary text-xs"
                 disabled={notes === track.notes && startDate === track.start_date}
                 onClick={() => run(() => updateTrackDetailsAction(track.career_id, notes, startDate))}
               >
@@ -194,7 +194,7 @@ export function TrackDrawer({
             </div>
           </section>
 
-          <section className="card p-4">
+          <section className="eos-card p-4">
             <p className="mb-2 text-xs font-semibold uppercase text-muted">Etiquetas</p>
             <LabelEditor track={track} allLabels={allLabels} />
           </section>
@@ -235,7 +235,7 @@ export function TrackDrawer({
                                   ◆
                                 </span>
                               )}
-                              {isCurrent && <span className="ml-2 badge bg-primary/10 text-primary">Actual</span>}
+                              {isCurrent && <span className="ml-2 eos-badge bg-primary/10 text-primary">Actual</span>}
                             </p>
                             <p className="mt-0.5 text-xs text-muted">{m.actions}</p>
                             <p className="mt-1 text-xs">
@@ -275,7 +275,7 @@ export function TrackDrawer({
           </section>
 
           <button
-            className="btn btn-danger self-start text-xs"
+            className="eos-btn eos-btn-danger self-start text-xs"
             onClick={() => {
               if (confirm(`¿Quitar "${track.name}" del tablero? Se pierde su avance de hitos.`)) {
                 run(async () => {

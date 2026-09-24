@@ -44,7 +44,7 @@ export function RockCard({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="card p-4">
+    <div className="eos-card p-4">
       {editing ? (
         <form
           action={async (fd) => {
@@ -53,13 +53,13 @@ export function RockCard({
           }}
           className="flex flex-col gap-2"
         >
-          <input name="title" required className="input" defaultValue={rock.title} />
+          <input name="title" required className="eos-input" defaultValue={rock.title} />
           <textarea
             name="description"
-            className="input min-h-16"
+            className="eos-input min-h-16"
             defaultValue={rock.description}
           />
-          <select name="ownerId" defaultValue={rock.owner_id ?? "none"} className="input">
+          <select name="ownerId" defaultValue={rock.owner_id ?? "none"} className="eos-input">
             <option value="none">Sin dueño</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -70,7 +70,7 @@ export function RockCard({
           <input
             type="date"
             name="dueDate"
-            className="input"
+            className="eos-input"
             defaultValue={rock.due_date ?? ""}
           />
           <label className="flex items-center gap-2 text-sm">
@@ -82,12 +82,12 @@ export function RockCard({
             Rock de la empresa
           </label>
           <div className="flex gap-2">
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="eos-btn eos-btn-primary">
               Guardar
             </button>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="eos-btn eos-btn-secondary"
               onClick={() => setEditing(false)}
             >
               Cancelar
@@ -103,7 +103,7 @@ export function RockCard({
                 <p className="mt-0.5 text-sm text-muted">{rock.description}</p>
               )}
             </div>
-            <span className={`badge shrink-0 ${STATUS_CLASS[rock.status]}`}>
+            <span className={`eos-badge shrink-0 ${STATUS_CLASS[rock.status]}`}>
               {STATUS_LABEL[rock.status]}
             </span>
           </div>
@@ -175,7 +175,7 @@ export function RockCard({
             }}
           >
             <input
-              className="input min-w-0 flex-1 text-sm"
+              className="eos-input min-w-0 flex-1 text-sm"
               placeholder="+ Agregar hito"
               value={milestoneInput}
               onChange={(e) => setMilestoneInput(e.target.value)}
@@ -183,12 +183,12 @@ export function RockCard({
             <input
               type="date"
               aria-label="Fecha del nuevo hito"
-              className="input shrink-0 text-sm"
+              className="eos-input shrink-0 text-sm"
               style={{ width: "9.5rem" }}
               value={milestoneDate}
               onChange={(e) => setMilestoneDate(e.target.value)}
             />
-            <button type="submit" className="btn btn-secondary text-xs">
+            <button type="submit" className="eos-btn eos-btn-secondary text-xs">
               Agregar
             </button>
           </form>
@@ -198,7 +198,7 @@ export function RockCard({
             {(["on_track", "off_track", "done"] as RockStatus[]).map((s) => (
               <button
                 key={s}
-                className={`badge ${
+                className={`eos-badge ${
                   rock.status === s ? STATUS_CLASS[s] : "bg-background text-muted"
                 }`}
                 onClick={() => startTransition(() => updateRockStatusAction(rock.id, s))}

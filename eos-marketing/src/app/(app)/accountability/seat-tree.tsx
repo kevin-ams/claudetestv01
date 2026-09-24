@@ -26,7 +26,7 @@ function UserSelect({
     <select
       name="userId"
       defaultValue={defaultValue ?? "none"}
-      className="input"
+      className="eos-input"
     >
       <option value="none">Sin asignar</option>
       {members.map((m) => (
@@ -65,22 +65,22 @@ function SeatForm({
       <input
         name="title"
         required
-        className="input"
+        className="eos-input"
         placeholder="Nombre del asiento (ej. Visionario, Integrador, Ventas)"
         defaultValue={seat?.title}
       />
       <UserSelect members={members} defaultValue={seat?.user_id} />
       <textarea
         name="roles"
-        className="input min-h-20"
+        className="eos-input min-h-20"
         placeholder={"Roles / responsabilidades, una por línea"}
         defaultValue={(seat?.roles ?? []).join("\n")}
       />
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary">
+        <button type="submit" className="eos-btn eos-btn-primary">
           Guardar
         </button>
-        <button type="button" className="btn btn-secondary" onClick={onDone}>
+        <button type="button" className="eos-btn eos-btn-secondary" onClick={onDone}>
           Cancelar
         </button>
       </div>
@@ -103,7 +103,7 @@ function SeatNode({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="card w-72 p-4 text-center">
+      <div className="eos-card w-72 p-4 text-center">
         {editing ? (
           <SeatForm
             members={members}
@@ -178,7 +178,7 @@ export function SeatTree({ seats, members }: Props) {
   return (
     <div>
       <div className="mb-6 flex justify-end">
-        <button className="btn btn-secondary" onClick={() => setAddingRoot((v) => !v)}>
+        <button className="eos-btn eos-btn-secondary" onClick={() => setAddingRoot((v) => !v)}>
           + Agregar asiento raíz
         </button>
       </div>

@@ -18,7 +18,7 @@ export function EditableSection({
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className="card p-5">
+    <div className="eos-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{title}</h3>
@@ -42,7 +42,7 @@ export function EditableSection({
             className="flex flex-col gap-3"
           >
             {editForm}
-            <button type="submit" className="btn btn-primary self-start">
+            <button type="submit" className="eos-btn eos-btn-primary self-start">
               Guardar
             </button>
           </form>

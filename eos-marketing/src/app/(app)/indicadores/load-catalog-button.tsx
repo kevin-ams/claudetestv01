@@ -12,7 +12,7 @@ export function LoadCatalogButton() {
   return (
     <div className="flex flex-col items-start gap-2">
       <button
-        className="btn btn-primary"
+        className="eos-btn eos-btn-primary"
         disabled={pending}
         onClick={() =>
           startTransition(async () => {

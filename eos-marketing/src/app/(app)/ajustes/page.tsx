@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Card, Chip } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { listTeamMembers } from "@/lib/domain/users";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
@@ -69,6 +70,11 @@ export default async function AjustesIndexPage() {
     "/ajustes/demo": team?.is_demo ? "Estás viendo la demo" : demo ? "Demo creada" : "Desactivada",
   };
 
+  const STATUS_COLOR: Record<string, "default" | "accent" | "success" | "warning"> = {
+    "/ajustes/anuncios": adSettings.enabled ? "success" : "default",
+    "/ajustes/demo": team?.is_demo ? "warning" : demo ? "accent" : "default",
+  };
+
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-6">
       <div>
@@ -77,15 +83,23 @@ export default async function AjustesIndexPage() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {SECTIONS.map((s) => (
-          <Link key={s.href} href={s.href} className="card flex gap-4 p-5 transition hover:border-primary">
-            <span className="text-3xl" aria-hidden>
-              {s.icon}
-            </span>
-            <span className="flex flex-col gap-1">
-              <span className="font-semibold">{s.title}</span>
-              <span className="text-sm text-muted">{s.description}</span>
-              <span className="text-xs font-semibold text-primary">{status[s.href]}</span>
-            </span>
+          <Link key={s.href} href={s.href} className="group rounded-2xl focus-visible:outline-2 focus-visible:outline-primary">
+            <Card className="h-full transition group-hover:shadow-md group-hover:ring-1 group-hover:ring-primary/40">
+              <Card.Header className="flex-row items-start gap-3">
+                <span className="text-3xl" aria-hidden>
+                  {s.icon}
+                </span>
+                <span className="flex flex-col gap-1">
+                  <Card.Title>{s.title}</Card.Title>
+                  <Card.Description>{s.description}</Card.Description>
+                </span>
+              </Card.Header>
+              <Card.Footer>
+                <Chip size="sm" color={STATUS_COLOR[s.href] ?? "default"} variant="soft">
+                  {status[s.href]}
+                </Chip>
+              </Card.Footer>
+            </Card>
           </Link>
         ))}
       </div>

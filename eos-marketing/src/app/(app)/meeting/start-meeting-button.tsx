@@ -8,7 +8,7 @@ export function StartMeetingButton() {
 
   return (
     <button
-      className="btn btn-primary"
+      className="eos-btn eos-btn-primary"
       disabled={pending}
       onClick={() => startTransition(() => startNewMeetingAction())}
     >

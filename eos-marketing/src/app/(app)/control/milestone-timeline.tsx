@@ -15,7 +15,7 @@ export function MilestoneTimeline({
   onSelect: (key: ColumnKey) => void;
 }) {
   return (
-    <div className="card overflow-x-auto p-4">
+    <div className="eos-card overflow-x-auto p-4">
       <div className="mb-1 flex items-baseline justify-between gap-2">
         <h2 className="text-lg font-bold">Visualización de los hitos</h2>
         <span className="flex items-center gap-1.5 text-xs text-muted">

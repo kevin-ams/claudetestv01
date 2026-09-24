@@ -66,13 +66,13 @@ export default async function RocksPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href={quarterHref(prev.quarter, prev.year)} className="btn btn-secondary">
+          <Link href={quarterHref(prev.quarter, prev.year)} className="eos-btn eos-btn-secondary">
             ← Q{prev.quarter} {prev.year}
           </Link>
           <span className="font-semibold">
             Q{quarter} {year}
           </span>
-          <Link href={quarterHref(next.quarter, next.year)} className="btn btn-secondary">
+          <Link href={quarterHref(next.quarter, next.year)} className="eos-btn eos-btn-secondary">
             Q{next.quarter} {next.year} →
           </Link>
         </div>

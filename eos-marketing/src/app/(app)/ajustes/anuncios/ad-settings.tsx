@@ -105,11 +105,11 @@ function SlotCard({
   }
 
   return (
-    <div className={`card flex flex-col gap-3 p-4 ${pending || uploading ? "opacity-70" : ""}`}>
+    <div className={`eos-card flex flex-col gap-3 p-4 ${pending || uploading ? "opacity-70" : ""}`}>
       <div className="flex items-center justify-between">
         <p className="font-semibold">Espacio {slot.slot}</p>
         {slot.has_image && (
-          <span className={`badge ${slot.active ? "bg-green-bg text-green" : "bg-background text-muted"}`}>
+          <span className={`eos-badge ${slot.active ? "bg-green-bg text-green" : "bg-background text-muted"}`}>
             {slot.active ? "Activo" : "Pausado"}
           </span>
         )}
@@ -127,7 +127,7 @@ function SlotCard({
       </div>
 
       {canEdit && (
-        <label className="btn btn-secondary cursor-pointer text-xs">
+        <label className="eos-btn eos-btn-secondary cursor-pointer text-xs">
           {slot.has_image ? "Reemplazar imagen" : "Subir imagen"}
           <input
             type="file"
@@ -146,7 +146,7 @@ function SlotCard({
       {slot.has_image && (
         <>
           <input
-            className="input text-sm"
+            className="eos-input text-sm"
             placeholder="Título (opcional)"
             value={title}
             disabled={!canEdit}
@@ -154,7 +154,7 @@ function SlotCard({
             aria-label={`Título del espacio ${slot.slot}`}
           />
           <input
-            className="input text-sm"
+            className="eos-input text-sm"
             placeholder="Enlace al hacer clic (opcional)"
             value={link}
             disabled={!canEdit}
@@ -168,7 +168,7 @@ function SlotCard({
           <div className="flex flex-wrap gap-2">
             {canEdit && (
               <button
-                className="btn btn-primary text-xs"
+                className="eos-btn eos-btn-primary text-xs"
                 disabled={!dirty}
                 onClick={() => run(() => saveAdDetailsAction(slot.slot, { title, linkUrl: link, active }))}
               >
@@ -176,14 +176,14 @@ function SlotCard({
               </button>
             )}
             <button
-              className="btn btn-secondary text-xs"
+              className="eos-btn eos-btn-secondary text-xs"
               onClick={() => onPreview({ slot: slot.slot, title, link_url: link, version: slot.version })}
             >
               Vista previa
             </button>
             {canEdit && (
               <button
-                className="btn btn-danger ml-auto text-xs"
+                className="eos-btn eos-btn-danger ml-auto text-xs"
                 onClick={() => {
                   if (confirm(`¿Quitar el anuncio del espacio ${slot.slot}?`)) run(() => clearAdSlotAction(slot.slot));
                 }}
@@ -231,7 +231,7 @@ export function AdSettings({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="card flex flex-wrap items-center gap-4 p-4">
+      <div className="eos-card flex flex-wrap items-center gap-4 p-4">
         <label className="flex items-center gap-2 font-semibold">
           <input
             type="checkbox"
@@ -248,7 +248,7 @@ export function AdSettings({
             type="number"
             min={1}
             max={240}
-            className="input !w-20"
+            className="eos-input !w-20"
             value={minutes}
             disabled={!canEdit}
             onChange={(e) => setMinutes(e.target.value)}
@@ -258,7 +258,7 @@ export function AdSettings({
         </label>
         {canEdit && (
           <button
-            className="btn btn-primary text-xs"
+            className="eos-btn eos-btn-primary text-xs"
             disabled={pending || (enabled === settings.enabled && minutes === String(settings.interval_minutes))}
             onClick={() =>
               startTransition(async () => {

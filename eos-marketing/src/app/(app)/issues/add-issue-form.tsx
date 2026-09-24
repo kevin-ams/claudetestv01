@@ -9,7 +9,7 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
 
   if (!open) {
     return (
-      <button className="btn btn-primary" onClick={() => setOpen(true)}>
+      <button className="eos-btn eos-btn-primary" onClick={() => setOpen(true)}>
         + Nuevo Issue
       </button>
     );
@@ -21,12 +21,12 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
         await createIssueAction(fd);
         setOpen(false);
       }}
-      className="card flex max-w-xl flex-col gap-2 p-4"
+      className="eos-card flex max-w-xl flex-col gap-2 p-4"
     >
-      <input name="title" required className="input" placeholder="Título del issue" />
-      <textarea name="description" className="input min-h-16" placeholder="Detalle (opcional)" />
+      <input name="title" required className="eos-input" placeholder="Título del issue" />
+      <textarea name="description" className="eos-input min-h-16" placeholder="Detalle (opcional)" />
       <div className="flex gap-2">
-        <select name="ownerId" defaultValue="none" className="input">
+        <select name="ownerId" defaultValue="none" className="eos-input">
           <option value="none">Sin dueño</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -34,17 +34,17 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
             </option>
           ))}
         </select>
-        <select name="term" defaultValue="short_term" className="input">
+        <select name="term" defaultValue="short_term" className="eos-input">
           <option value="short_term">Corto plazo</option>
           <option value="long_term">Largo plazo</option>
         </select>
-        <input type="date" name="dueDate" className="input" aria-label="Fecha" title="Fecha específica (opcional)" />
+        <input type="date" name="dueDate" className="eos-input" aria-label="Fecha" title="Fecha específica (opcional)" />
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary">
+        <button type="submit" className="eos-btn eos-btn-primary">
           Agregar
         </button>
-        <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
+        <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setOpen(false)}>
           Cancelar
         </button>
       </div>

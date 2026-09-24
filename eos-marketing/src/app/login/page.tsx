@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { countUsers, isUserInTeam } from "@/lib/domain/users";
 import { getSession } from "@/lib/auth/session";
+import { Card } from "@heroui/react";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {
@@ -15,20 +16,25 @@ export default async function LoginPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="card w-full max-w-sm p-8">
-        <h1 className="text-xl font-bold">Iniciar sesión</h1>
-        <p className="mt-1 text-sm text-muted">
-          Entra a tu sistema EOS: V/TO, Rocks, Scorecard, Issues, To-Dos y la
-          Reunión Level 10.
-        </p>
-        <LoginForm />
-        <p className="mt-6 text-xs text-muted">
-          ¿Primera vez usando la app?{" "}
-          <Link href="/setup" className="font-medium text-primary underline">
-            Configura tu equipo
-          </Link>
-        </p>
-      </div>
+      <Card className="w-full max-w-sm p-4">
+        <Card.Header>
+          <Card.Title className="text-xl font-bold">Iniciar sesión</Card.Title>
+          <Card.Description>
+            Entra a tu sistema EOS: V/TO, Rocks, Scorecard, Issues, To-Dos y la Reunión Level 10.
+          </Card.Description>
+        </Card.Header>
+        <Card.Content>
+          <LoginForm />
+        </Card.Content>
+        <Card.Footer className="text-xs text-muted">
+          <span>
+            ¿Primera vez usando la app?{" "}
+            <Link href="/setup" className="font-medium text-primary underline">
+              Configura tu equipo
+            </Link>
+          </span>
+        </Card.Footer>
+      </Card>
     </div>
   );
 }

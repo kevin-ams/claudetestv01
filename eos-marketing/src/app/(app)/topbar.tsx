@@ -22,7 +22,7 @@ export function Topbar({
           {session.name}
         </span>
         <form action={logoutAction}>
-          <button type="submit" className="btn btn-secondary !px-3 !py-1.5 text-xs">
+          <button type="submit" className="eos-btn eos-btn-secondary !px-3 !py-1.5 text-xs">
             Salir
           </button>
         </form>

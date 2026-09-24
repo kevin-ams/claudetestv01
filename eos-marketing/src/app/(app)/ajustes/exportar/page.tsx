@@ -11,7 +11,7 @@ export default function ExportarPage() {
         title="Exportar datos"
         description="Descarga la información en Excel. El formato .xlsm es un libro habilitado para macros (sin macros incluidas); .xlsx es el formato normal."
       />
-      <section className="card flex flex-col gap-3 p-5">
+      <section className="eos-card flex flex-col gap-3 p-5">
         <div>
           <h2 className="font-semibold">Indicadores de carrera</h2>
           <p className="text-sm text-muted">
@@ -21,7 +21,7 @@ export default function ExportarPage() {
         </div>
         <ExportPanel kind="indicadores" defaultFrom={from} defaultTo={to} />
       </section>
-      <section className="card flex flex-col gap-3 p-5">
+      <section className="eos-card flex flex-col gap-3 p-5">
         <div>
           <h2 className="font-semibold">Scorecard</h2>
           <p className="text-sm text-muted">

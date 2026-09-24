@@ -63,7 +63,7 @@ export default async function VTOPage() {
             editForm={
               <textarea
                 name="coreValues"
-                className="input min-h-28"
+                className="eos-input min-h-28"
                 placeholder={"Un valor por línea"}
                 defaultValue={(vto.core_values ?? []).join("\n")}
               />
@@ -84,13 +84,13 @@ export default async function VTOPage() {
               <>
                 <textarea
                   name="purpose"
-                  className="input min-h-20"
+                  className="eos-input min-h-20"
                   placeholder="Propósito / Causa / Pasión"
                   defaultValue={vto.core_focus?.purpose ?? ""}
                 />
                 <textarea
                   name="niche"
-                  className="input min-h-16"
+                  className="eos-input min-h-16"
                   placeholder="Nicho"
                   defaultValue={vto.core_focus?.niche ?? ""}
                 />
@@ -109,7 +109,7 @@ export default async function VTOPage() {
             editForm={
               <textarea
                 name="tenYearTarget"
-                className="input min-h-24"
+                className="eos-input min-h-24"
                 defaultValue={vto.ten_year_target ?? ""}
               />
             }
@@ -136,25 +136,25 @@ export default async function VTOPage() {
               <>
                 <textarea
                   name="targetMarket"
-                  className="input min-h-16"
+                  className="eos-input min-h-16"
                   placeholder="Mercado objetivo (target market / list)"
                   defaultValue={vto.marketing_strategy?.target_market ?? ""}
                 />
                 <textarea
                   name="threeUniques"
-                  className="input min-h-20"
+                  className="eos-input min-h-20"
                   placeholder={"Un diferenciador por línea"}
                   defaultValue={(vto.marketing_strategy?.three_uniques ?? []).join("\n")}
                 />
                 <textarea
                   name="provenProcess"
-                  className="input min-h-16"
+                  className="eos-input min-h-16"
                   placeholder="Proceso comprobado"
                   defaultValue={vto.marketing_strategy?.proven_process ?? ""}
                 />
                 <textarea
                   name="guarantee"
-                  className="input min-h-16"
+                  className="eos-input min-h-16"
                   placeholder="Garantía"
                   defaultValue={vto.marketing_strategy?.guarantee ?? ""}
                 />
@@ -183,31 +183,31 @@ export default async function VTOPage() {
               <>
                 <input
                   name="futureDate"
-                  className="input"
+                  className="eos-input"
                   placeholder="Fecha futura (ej. 31 dic 2028)"
                   defaultValue={vto.three_year_picture?.future_date ?? ""}
                 />
                 <input
                   name="revenue"
-                  className="input"
+                  className="eos-input"
                   placeholder="Ingresos"
                   defaultValue={vto.three_year_picture?.revenue ?? ""}
                 />
                 <input
                   name="profit"
-                  className="input"
+                  className="eos-input"
                   placeholder="Utilidad"
                   defaultValue={vto.three_year_picture?.profit ?? ""}
                 />
                 <input
                   name="measurables"
-                  className="input"
+                  className="eos-input"
                   placeholder="Medibles"
                   defaultValue={vto.three_year_picture?.measurables ?? ""}
                 />
                 <textarea
                   name="looksLike"
-                  className="input min-h-24"
+                  className="eos-input min-h-24"
                   placeholder={"Un punto por línea: ¿cómo se ve la empresa?"}
                   defaultValue={(vto.three_year_picture?.looks_like ?? []).join("\n")}
                 />
@@ -217,7 +217,7 @@ export default async function VTOPage() {
         </section>
 
         <section className="flex flex-col gap-6">
-          <h2 className="text-lg font-bold text-accent">TRACCIÓN</h2>
+          <h2 className="text-lg font-bold text-highlight">TRACCIÓN</h2>
 
           <EditableSection
             title="Plan a 1 año"
@@ -240,31 +240,31 @@ export default async function VTOPage() {
               <>
                 <input
                   name="futureDate"
-                  className="input"
+                  className="eos-input"
                   placeholder="Fecha futura (ej. 31 dic 2026)"
                   defaultValue={vto.one_year_plan?.future_date ?? ""}
                 />
                 <input
                   name="revenue"
-                  className="input"
+                  className="eos-input"
                   placeholder="Ingresos"
                   defaultValue={vto.one_year_plan?.revenue ?? ""}
                 />
                 <input
                   name="profit"
-                  className="input"
+                  className="eos-input"
                   placeholder="Utilidad"
                   defaultValue={vto.one_year_plan?.profit ?? ""}
                 />
                 <input
                   name="measurables"
-                  className="input"
+                  className="eos-input"
                   placeholder="Medibles"
                   defaultValue={vto.one_year_plan?.measurables ?? ""}
                 />
                 <textarea
                   name="goals"
-                  className="input min-h-24"
+                  className="eos-input min-h-24"
                   placeholder={"Una meta por línea"}
                   defaultValue={(vto.one_year_plan?.goals ?? []).join("\n")}
                 />
@@ -272,24 +272,24 @@ export default async function VTOPage() {
             }
           />
 
-          <div className="card p-5">
+          <div className="eos-card p-5">
             <h3 className="font-semibold">Rocks trimestrales</h3>
             <p className="mt-1 text-sm text-muted">
               Los Rocks de la organización y de cada persona viven en su propio
               módulo, conectados a este mismo equipo.
             </p>
-            <Link href="/rocks" className="btn btn-secondary mt-3">
+            <Link href="/rocks" className="eos-btn eos-btn-secondary mt-3">
               Ir a Rocks →
             </Link>
           </div>
 
-          <div className="card p-5">
+          <div className="eos-card p-5">
             <h3 className="font-semibold">Issues List</h3>
             <p className="mt-1 text-sm text-muted">
               La lista maestra de obstáculos y oportunidades de la organización
               vive en su propio módulo.
             </p>
-            <Link href="/issues" className="btn btn-secondary mt-3">
+            <Link href="/issues" className="eos-btn eos-btn-secondary mt-3">
               Ir a Issues →
             </Link>
           </div>

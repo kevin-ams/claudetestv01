@@ -117,15 +117,15 @@ function EditCareerRow({
           }}
           className="grid gap-2 sm:grid-cols-6"
         >
-          <input name="program" list="career-programs" required defaultValue={row.program} className="input" placeholder="Programa" />
-          <input name="code" defaultValue={row.code} className="input" placeholder="Código" />
-          <input name="name" required defaultValue={row.name} className="input sm:col-span-2" placeholder="Nombre de la carrera" />
-          <select name="level" defaultValue={row.level} className="input">
+          <input name="program" list="career-programs" required defaultValue={row.program} className="eos-input" placeholder="Programa" />
+          <input name="code" defaultValue={row.code} className="eos-input" placeholder="Código" />
+          <input name="name" required defaultValue={row.name} className="eos-input sm:col-span-2" placeholder="Nombre de la carrera" />
+          <select name="level" defaultValue={row.level} className="eos-input">
             {CAREER_LEVELS.map((l) => (
               <option key={l}>{l}</option>
             ))}
           </select>
-          <select name="ownerId" defaultValue={row.owner_id ?? "none"} className="input">
+          <select name="ownerId" defaultValue={row.owner_id ?? "none"} className="eos-input">
             <option value="none">Sin responsable</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -139,15 +139,15 @@ function EditCareerRow({
             ))}
           </datalist>
           <div className="flex flex-wrap gap-2 sm:col-span-6">
-            <button type="submit" className="btn btn-primary text-xs">
+            <button type="submit" className="eos-btn eos-btn-primary text-xs">
               Guardar
             </button>
-            <button type="button" className="btn btn-secondary text-xs" onClick={onClose}>
+            <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={onClose}>
               Cancelar
             </button>
             <button
               type="button"
-              className="btn btn-danger ml-auto text-xs"
+              className="eos-btn eos-btn-danger ml-auto text-xs"
               onClick={async () => {
                 if (confirm(`¿Archivar "${row.name}"? Dejará de aparecer en los indicadores.`)) {
                   await archiveCareerAction(row.id);
@@ -238,14 +238,14 @@ export function CareerBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="card grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-6">
-        <select className="input" value={program} onChange={(e) => setParam("programa", e.target.value)} aria-label="Programa">
+      <div className="eos-card grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-6">
+        <select className="eos-input" value={program} onChange={(e) => setParam("programa", e.target.value)} aria-label="Programa">
           <option value="">Todos los programas</option>
           {programs.map((p) => (
             <option key={p}>{p}</option>
           ))}
         </select>
-        <select className="input lg:col-span-2" value={career} onChange={(e) => setParam("carrera", e.target.value)} aria-label="Carrera">
+        <select className="eos-input lg:col-span-2" value={career} onChange={(e) => setParam("carrera", e.target.value)} aria-label="Carrera">
           <option value="">Todas las carreras</option>
           {careerOptions.map((c) => (
             <option key={c.id} value={c.id}>
@@ -253,13 +253,13 @@ export function CareerBoard({
             </option>
           ))}
         </select>
-        <select className="input" value={level} onChange={(e) => setParam("nivel", e.target.value)} aria-label="Nivel">
+        <select className="eos-input" value={level} onChange={(e) => setParam("nivel", e.target.value)} aria-label="Nivel">
           <option value="">Todos los niveles</option>
           {CAREER_LEVELS.map((l) => (
             <option key={l}>{l}</option>
           ))}
         </select>
-        <select className="input" value={owner} onChange={(e) => setParam("resp", e.target.value)} aria-label="Responsable">
+        <select className="eos-input" value={owner} onChange={(e) => setParam("resp", e.target.value)} aria-label="Responsable">
           <option value="">Todos los responsables</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -269,7 +269,7 @@ export function CareerBoard({
           <option value="none">Sin responsable</option>
         </select>
         <input
-          className="input"
+          className="eos-input"
           type="search"
           placeholder="Buscar código o nombre"
           defaultValue={query}
@@ -314,11 +314,11 @@ export function CareerBoard({
       <SummaryTiles rows={filtered} />
 
       {view !== "detalle" ? (
-        <div className="card p-4">
+        <div className="eos-card p-4">
           <GroupTable rows={filtered} by={view === "responsable" ? "owner" : "program"} members={members} />
         </div>
       ) : (
-        <div className="card overflow-x-auto">
+        <div className="eos-card overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
@@ -387,7 +387,7 @@ export function CareerBoard({
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <span className={`badge ${TONE_CLASS[leadsTone(r.leads, r.leads_goal)]}`}>{pct(r.leads, r.leads_goal)}</span>
+                      <span className={`eos-badge ${TONE_CLASS[leadsTone(r.leads, r.leads_goal)]}`}>{pct(r.leads, r.leads_goal)}</span>
                     </td>
                     <td className="px-2 text-right">
                       <span className="inline-flex items-center">
@@ -405,7 +405,7 @@ export function CareerBoard({
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <span className={`badge ${TONE_CLASS[budgetTone(r.budget_spent, r.budget_goal)]}`}>
+                      <span className={`eos-badge ${TONE_CLASS[budgetTone(r.budget_spent, r.budget_goal)]}`}>
                         {pct(r.budget_spent, r.budget_goal)}
                       </span>
                     </td>

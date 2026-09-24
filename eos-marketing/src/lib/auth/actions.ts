@@ -22,7 +22,8 @@ const setupSchema = z.object({
   password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
 });
 
-export type FormState = { error: string | null };
+/** `email` se devuelve en los errores de login para no borrar lo que la persona escribió. */
+export type FormState = { error: string | null; email?: string };
 
 export async function setupAdminAction(
   _prev: FormState,
@@ -83,21 +84,21 @@ export async function loginAction(
     password: formData.get("password"),
   });
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos", email: String(formData.get("email") ?? "") };
   }
 
   const user = await getUserByEmail(parsed.data.email);
   if (!user) {
-    return { error: "Correo o contraseña incorrectos" };
+    return { error: "Correo o contraseña incorrectos", email: parsed.data.email };
   }
   const valid = await verifyPassword(parsed.data.password, user.password_hash);
   if (!valid) {
-    return { error: "Correo o contraseña incorrectos" };
+    return { error: "Correo o contraseña incorrectos", email: parsed.data.email };
   }
 
   const teams = await getUserTeams(user.id);
   if (teams.length === 0) {
-    return { error: "Tu cuenta no pertenece a ningún equipo todavía. Contacta a tu administrador." };
+    return { error: "Tu cuenta no pertenece a ningún equipo todavía. Contacta a tu administrador.", email: parsed.data.email };
   }
 
   await createSessionCookie({

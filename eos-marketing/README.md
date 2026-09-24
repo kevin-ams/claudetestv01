@@ -48,6 +48,17 @@ estaba corriendo.
 | `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Para activar la sincronización de leads (la consulta está preparada en `src/lib/integrations/activecampaign.ts`, falta implementarla). |
 
+## Interfaz (HeroUI v3)
+
+Los componentes nuevos usan [HeroUI v3](https://heroui.com) (`@heroui/react`, Tailwind 4 +
+React Aria). Sus estilos se cargan en `src/app/globals.css` después de Tailwind, con el tema
+mapeado a los colores de la app (azul `#234c6a`, tema claro fijo). Las clases propias de la
+app llevan el prefijo `eos-` (`eos-card`, `eos-btn`, `eos-input`, `eos-badge`) para no chocar
+con las de HeroUI. Ya usan HeroUI: inicio de sesión y el índice de Ajustes.
+
+Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el servidor MCP
+`heroui-react` en `.mcp.json` (raíz del repo); Claude Code pide aprobarlo la primera vez.
+
 ## Estructura
 
 - `src/lib/db.ts` — conexión a PGlite y ejecución de migraciones.

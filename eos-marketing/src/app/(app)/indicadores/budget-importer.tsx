@@ -110,7 +110,7 @@ export function BudgetImporter({
     <label className="flex flex-col gap-1 text-xs font-medium text-muted">
       {label}
       <select
-        className="input"
+        className="eos-input"
         value={cols[kind]}
         onChange={(e) => setCols({ ...cols, [kind]: Number(e.target.value) })}
       >
@@ -125,7 +125,7 @@ export function BudgetImporter({
   );
 
   return (
-    <div className="card flex flex-col gap-4 p-4">
+    <div className="eos-card flex flex-col gap-4 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-bold">Importar consumo semanal (CSV de Meta)</h2>
@@ -161,14 +161,14 @@ export function BudgetImporter({
               Semana (lunes)
               <input
                 type="date"
-                className="input"
+                className="eos-input"
                 value={targetWeek}
                 onChange={(e) => e.target.value && setTargetWeek(shiftWeek(e.target.value, 0))}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-muted">
               Si ya hay consumo esa semana
-              <select className="input" value={mode} onChange={(e) => setMode(e.target.value as "replace" | "add")}>
+              <select className="eos-input" value={mode} onChange={(e) => setMode(e.target.value as "replace" | "add")}>
                 <option value="replace">Reemplazarlo</option>
                 <option value="add">Sumarlo</option>
               </select>
@@ -201,7 +201,7 @@ export function BudgetImporter({
                           <span className="text-xs">Se omite</span>
                         ) : (
                           <select
-                            className="input py-1 text-xs"
+                            className="eos-input py-1 text-xs"
                             value={l.careerId === null ? IGNORE : String(l.careerId)}
                             onChange={(e) => setOverrides({ ...overrides, [l.i]: e.target.value })}
                           >
@@ -227,7 +227,7 @@ export function BudgetImporter({
               total <b>{money(total)}</b>
             </p>
             <button
-              className="btn btn-primary ml-auto"
+              className="eos-btn eos-btn-primary ml-auto"
               disabled={pending || assigned.length === 0 || cols.spend === -1}
               onClick={submit}
             >

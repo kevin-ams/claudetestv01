@@ -20,7 +20,7 @@ export function ClickUpButton({
 
   if (url) {
     return (
-      <a href={url} target="_blank" rel="noreferrer" className="badge bg-green-bg text-green">
+      <a href={url} target="_blank" rel="noreferrer" className="eos-badge bg-green-bg text-green">
         ✓ En ClickUp
       </a>
     );

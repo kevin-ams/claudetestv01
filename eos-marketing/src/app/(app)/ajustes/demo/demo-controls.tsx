@@ -79,18 +79,18 @@ export function DemoControls({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         {!hasDemo && canEdit && (
-          <button className="btn btn-primary" disabled={busy} onClick={create}>
+          <button className="eos-btn eos-btn-primary" disabled={busy} onClick={create}>
             Ver plataforma con información demo
           </button>
         )}
         {hasDemo && !inDemo && (
-          <button className="btn btn-primary" disabled={busy} onClick={enter}>
+          <button className="eos-btn eos-btn-primary" disabled={busy} onClick={enter}>
             Ir a la demo
           </button>
         )}
         {hasDemo && canEdit && (
           <button
-            className="btn btn-secondary"
+            className="eos-btn eos-btn-secondary"
             disabled={busy}
             onClick={() => {
               if (confirm("¿Regenerar la demo? Se borran los cambios hechos dentro de ella.")) void create();
@@ -100,7 +100,7 @@ export function DemoControls({
           </button>
         )}
         {hasDemo && (
-          <button className="btn btn-danger" disabled={busy} onClick={stop}>
+          <button className="eos-btn eos-btn-danger" disabled={busy} onClick={stop}>
             Desactivar información demo
           </button>
         )}

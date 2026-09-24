@@ -49,7 +49,7 @@ function AddTracksPanel({
   const allSelected = list.length > 0 && list.every((c) => selected.has(c.id));
 
   return (
-    <div className="card flex flex-col gap-3 p-4">
+    <div className="eos-card flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-bold">Agregar carreras al tablero</h2>
@@ -63,7 +63,7 @@ function AddTracksPanel({
         </button>
       </div>
       <div className="flex flex-wrap gap-2">
-        <select className="input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
+        <select className="eos-input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
           <option value="">Todos los responsables</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -71,14 +71,14 @@ function AddTracksPanel({
             </option>
           ))}
         </select>
-        <select className="input !w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
+        <select className="eos-input !w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
           <option value="">Todos los programas</option>
           {programs.map((p) => (
             <option key={p}>{p}</option>
           ))}
         </select>
         <input
-          className="input !w-auto"
+          className="eos-input !w-auto"
           type="search"
           placeholder="Buscar carrera"
           value={query}
@@ -86,7 +86,7 @@ function AddTracksPanel({
         />
         <label className="flex items-center gap-2 text-sm">
           Inicio del plan
-          <input type="date" className="input !w-auto" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <input type="date" className="eos-input !w-auto" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </label>
       </div>
       <div className="max-h-72 overflow-y-auto rounded-lg border border-border">
@@ -127,7 +127,7 @@ function AddTracksPanel({
         {list.length === 0 && <p className="p-3 text-sm text-muted">No hay carreras disponibles con esos filtros.</p>}
       </div>
       <button
-        className="btn btn-primary self-start"
+        className="eos-btn eos-btn-primary self-start"
         disabled={pending || selected.size === 0}
         onClick={() =>
           startTransition(async () => {
@@ -297,8 +297,8 @@ export function ControlBoard({
     <div className="flex flex-col gap-4">
       <MilestoneTimeline plan={plan} counts={counts} onSelect={scrollTo} />
 
-      <div className="card flex flex-wrap items-center gap-2 p-3">
-        <select className="input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
+      <div className="eos-card flex flex-wrap items-center gap-2 p-3">
+        <select className="eos-input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
           <option value="">Todos los responsables</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -307,25 +307,25 @@ export function ControlBoard({
           ))}
           <option value="none">Sin responsable</option>
         </select>
-        <select className="input !w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
+        <select className="eos-input !w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
           <option value="">Todos los programas</option>
           {programs.map((p) => (
             <option key={p}>{p}</option>
           ))}
         </select>
-        <select className="input !w-auto" value={label} onChange={(e) => setLabel(e.target.value)} aria-label="Etiqueta">
+        <select className="eos-input !w-auto" value={label} onChange={(e) => setLabel(e.target.value)} aria-label="Etiqueta">
           <option value="">Todas las etiquetas</option>
           {allLabels.map((l) => (
             <option key={l}>{l}</option>
           ))}
         </select>
-        <select className="input !w-auto" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Estado">
+        <select className="eos-input !w-auto" value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Estado">
           <option value="">On y off track</option>
           <option value="on_track">Solo on track</option>
           <option value="off_track">Solo off track</option>
         </select>
         <input
-          className="input !w-auto"
+          className="eos-input !w-auto"
           type="search"
           placeholder="Buscar carrera"
           value={query}
@@ -336,7 +336,7 @@ export function ControlBoard({
           {filtered.length} carreras · <span className={offTrack ? "font-semibold text-red" : ""}>{offTrack} off track</span> ·{" "}
           <span className={late ? "font-semibold text-red" : ""}>{late} con hito atrasado</span>
         </span>
-        <button className="btn btn-primary ml-auto" onClick={() => setAdding((v) => !v)}>
+        <button className="eos-btn eos-btn-primary ml-auto" onClick={() => setAdding((v) => !v)}>
           + Agregar carreras
         </button>
       </div>
@@ -344,7 +344,7 @@ export function ControlBoard({
       {adding && <AddTracksPanel launchOffset={plan.launchOffset} available={available} members={members} onClose={() => setAdding(false)} />}
 
       {tracks.length === 0 ? (
-        <div className="card p-6 text-sm text-muted">
+        <div className="eos-card p-6 text-sm text-muted">
           El tablero está vacío. Usa &quot;+ Agregar carreras&quot; para empezar a darles seguimiento.
         </div>
       ) : (

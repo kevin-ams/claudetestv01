@@ -94,7 +94,7 @@ function ChartCard({
 }) {
   const [asTable, setAsTable] = useState(false);
   return (
-    <section className="card flex flex-col gap-2 p-4">
+    <section className="eos-card flex flex-col gap-2 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-semibold">{title}</h2>
@@ -138,7 +138,7 @@ function ChartCard({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
-    <div className="card p-4">
+    <div className="eos-card p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="text-2xl font-bold tabular-nums">{value}</p>
       {detail && <p className="text-xs text-muted">{detail}</p>}
@@ -250,7 +250,7 @@ export function AnalysisBoard({
   return (
     <div className="flex flex-col gap-4">
       {/* Filtros: una sola fila arriba de las gráficas */}
-      <div className="card flex flex-wrap items-center gap-2 p-3">
+      <div className="eos-card flex flex-wrap items-center gap-2 p-3">
         <div className="flex gap-1 rounded-lg bg-background p-1">
           {PRESETS.map((p) => (
             <button
@@ -268,7 +268,7 @@ export function AnalysisBoard({
           Desde
           <input
             type="date"
-            className="input !w-auto"
+            className="eos-input !w-auto"
             defaultValue={from}
             onChange={(e) => e.target.value && router.push(`/analisis?desde=${e.target.value}&hasta=${to}`)}
           />
@@ -277,18 +277,18 @@ export function AnalysisBoard({
           Hasta
           <input
             type="date"
-            className="input !w-auto"
+            className="eos-input !w-auto"
             defaultValue={to}
             onChange={(e) => e.target.value && router.push(`/analisis?desde=${from}&hasta=${e.target.value}`)}
           />
         </label>
-        <select className="input !w-auto" value={program} onChange={(e) => { setProgram(e.target.value); setCareer(""); }} aria-label="Programa">
+        <select className="eos-input !w-auto" value={program} onChange={(e) => { setProgram(e.target.value); setCareer(""); }} aria-label="Programa">
           <option value="">Todos los programas</option>
           {programs.map((p) => (
             <option key={p}>{p}</option>
           ))}
         </select>
-        <select className="input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
+        <select className="eos-input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
           <option value="">Todos los responsables</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -296,13 +296,13 @@ export function AnalysisBoard({
             </option>
           ))}
         </select>
-        <select className="input !w-auto" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
+        <select className="eos-input !w-auto" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
           <option value="">Todos los niveles</option>
           {CAREER_LEVELS.map((l) => (
             <option key={l}>{l}</option>
           ))}
         </select>
-        <select className="input !w-auto max-w-64" value={career} onChange={(e) => setCareer(e.target.value)} aria-label="Carrera">
+        <select className="eos-input !w-auto max-w-64" value={career} onChange={(e) => setCareer(e.target.value)} aria-label="Carrera">
           <option value="">Todas las carreras</option>
           {history.careers
             .filter((c) => !program || c.program === program)
@@ -419,14 +419,14 @@ export function AnalysisBoard({
           ) : (
             <div className="flex h-full flex-col gap-2">
               <div className="flex flex-wrap gap-2">
-                <select className="input !w-auto max-w-72 text-xs" value={metricId} onChange={(e) => setMetricId(Number(e.target.value))} aria-label="Indicador">
+                <select className="eos-input !w-auto max-w-72 text-xs" value={metricId} onChange={(e) => setMetricId(Number(e.target.value))} aria-label="Indicador">
                   {scorecard.metrics.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
                   ))}
                 </select>
-                <select className="input !w-auto text-xs" value={scOwnerId} onChange={(e) => setScOwnerId(Number(e.target.value))} aria-label="Dueño">
+                <select className="eos-input !w-auto text-xs" value={scOwnerId} onChange={(e) => setScOwnerId(Number(e.target.value))} aria-label="Dueño">
                   {scorecard.owners.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
@@ -453,7 +453,7 @@ export function AnalysisBoard({
         </ChartCard>
       </div>
 
-      <section className="card p-4">
+      <section className="eos-card p-4">
         <h2 className="font-semibold">Carreras más lejos de su meta de leads</h2>
         <p className="mb-2 text-xs text-muted">Acumulado del período, solo carreras con meta.</p>
         {gaps.length === 0 ? (

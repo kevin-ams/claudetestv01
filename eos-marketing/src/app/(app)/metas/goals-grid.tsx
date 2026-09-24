@@ -68,7 +68,7 @@ function CopyMonthForm({ months }: { months: string[] }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="text-muted">Copiar metas de</span>
-      <select className="input !w-auto" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Mes de origen">
+      <select className="eos-input !w-auto" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Mes de origen">
         {months.map((m, i) => (
           <option key={m} value={m}>
             {MONTH_LABELS[i]}
@@ -76,20 +76,20 @@ function CopyMonthForm({ months }: { months: string[] }) {
         ))}
       </select>
       <span className="text-muted">a</span>
-      <select className="input !w-auto" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Mes de destino">
+      <select className="eos-input !w-auto" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Mes de destino">
         {months.map((m, i) => (
           <option key={m} value={m}>
             {MONTH_LABELS[i]}
           </option>
         ))}
       </select>
-      <select className="input !w-auto" value={scope} onChange={(e) => setScope(e.target.value as GoalField | "both")} aria-label="Qué copiar">
+      <select className="eos-input !w-auto" value={scope} onChange={(e) => setScope(e.target.value as GoalField | "both")} aria-label="Qué copiar">
         <option value="both">Leads y presupuesto</option>
         <option value="leads">Solo leads</option>
         <option value="budget">Solo presupuesto</option>
       </select>
       <button
-        className="btn btn-secondary"
+        className="eos-btn eos-btn-secondary"
         disabled={pending}
         onClick={() =>
           startTransition(async () => {
@@ -150,7 +150,7 @@ export function GoalsGrid({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="card flex flex-col gap-3 p-3">
+      <div className="eos-card flex flex-col gap-3 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-border p-1">
             <Link href={`/metas?anio=${year - 1}`} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Año anterior">
@@ -177,13 +177,13 @@ export function GoalsGrid({
               </button>
             ))}
           </div>
-          <select className="input !w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
+          <select className="eos-input !w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
             <option value="">Todos los programas</option>
             {programs.map((p) => (
               <option key={p}>{p}</option>
             ))}
           </select>
-          <select className="input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
+          <select className="eos-input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
             <option value="">Todos los responsables</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
@@ -193,7 +193,7 @@ export function GoalsGrid({
             <option value="none">Sin responsable</option>
           </select>
           <input
-            className="input !w-auto"
+            className="eos-input !w-auto"
             type="search"
             placeholder="Buscar carrera"
             value={query}
@@ -205,7 +205,7 @@ export function GoalsGrid({
         <CopyMonthForm months={months} />
       </div>
 
-      <div className="card overflow-x-auto">
+      <div className="eos-card overflow-x-auto">
         <table className="w-full min-w-[1100px] text-sm">
           <thead>
             <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">

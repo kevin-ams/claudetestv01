@@ -21,7 +21,7 @@ function isOverdue(todo: Todo) {
 
 function OwnerSelect({ members, defaultValue }: { members: PublicUser[]; defaultValue: number | null }) {
   return (
-    <select name="ownerId" defaultValue={defaultValue ?? "none"} className="input !w-auto">
+    <select name="ownerId" defaultValue={defaultValue ?? "none"} className="eos-input !w-auto">
       <option value="none">Sin dueño</option>
       {members.map((m) => (
         <option key={m.id} value={m.id}>
@@ -40,18 +40,18 @@ function AddTodoForm({ members }: { members: PublicUser[] }) {
         await createTodoAction(fd);
         setShowDescription(false);
       }}
-      className="card flex flex-col gap-2 p-4"
+      className="eos-card flex flex-col gap-2 p-4"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <input name="title" required className="input min-w-[200px] flex-1" placeholder="Nuevo to-do" />
+        <input name="title" required className="eos-input min-w-[200px] flex-1" placeholder="Nuevo to-do" />
         <OwnerSelect members={members} defaultValue={null} />
-        <input type="date" name="dueDate" className="input !w-auto" aria-label="Fecha límite" />
-        <button type="submit" className="btn btn-primary">
+        <input type="date" name="dueDate" className="eos-input !w-auto" aria-label="Fecha límite" />
+        <button type="submit" className="eos-btn eos-btn-primary">
           Agregar
         </button>
       </div>
       {showDescription ? (
-        <textarea name="description" className="input min-h-16" placeholder="Descripción del to-do" autoFocus />
+        <textarea name="description" className="eos-input min-h-16" placeholder="Descripción del to-do" autoFocus />
       ) : (
         <button
           type="button"
@@ -81,7 +81,7 @@ function TodoItem({
 
   if (editing) {
     return (
-      <li className="card p-3">
+      <li className="eos-card p-3">
         <form
           action={async (fd) => {
             await updateTodoAction(todo.id, fd);
@@ -89,20 +89,20 @@ function TodoItem({
           }}
           className="flex flex-col gap-2"
         >
-          <input name="title" required className="input" defaultValue={todo.title} />
+          <input name="title" required className="eos-input" defaultValue={todo.title} />
           <textarea
             name="description"
-            className="input min-h-20"
+            className="eos-input min-h-20"
             defaultValue={todo.description}
             placeholder="Descripción del to-do"
           />
           <div className="flex flex-wrap gap-2">
             <OwnerSelect members={members} defaultValue={todo.owner_id} />
-            <input type="date" name="dueDate" className="input !w-auto" defaultValue={todo.due_date ?? ""} />
-            <button type="submit" className="btn btn-primary">
+            <input type="date" name="dueDate" className="eos-input !w-auto" defaultValue={todo.due_date ?? ""} />
+            <button type="submit" className="eos-btn eos-btn-primary">
               Guardar
             </button>
-            <button type="button" className="btn btn-secondary" onClick={() => setEditing(false)}>
+            <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setEditing(false)}>
               Cancelar
             </button>
           </div>
@@ -112,7 +112,7 @@ function TodoItem({
   }
 
   return (
-    <li className="card flex items-start gap-3 p-3">
+    <li className="eos-card flex items-start gap-3 p-3">
       <input
         type="checkbox"
         className="mt-1"
@@ -147,7 +147,7 @@ function TodoItem({
           </button>
         </div>
       </div>
-      {isOverdue(todo) && <span className="badge bg-red-bg text-red">Vencido</span>}
+      {isOverdue(todo) && <span className="eos-badge bg-red-bg text-red">Vencido</span>}
       <button
         className="text-xs text-red"
         aria-label={`Eliminar ${todo.title}`}
@@ -206,7 +206,7 @@ export function TodoList({
         </h2>
         <ul className="flex flex-col gap-2">
           {done.map((t) => (
-            <li key={t.id} className="card flex items-center gap-3 p-3 opacity-70">
+            <li key={t.id} className="eos-card flex items-center gap-3 p-3 opacity-70">
               <input
                 type="checkbox"
                 defaultChecked

@@ -22,7 +22,7 @@ export default async function DiagnosticoPage() {
       >
         {failed ? `✕ ${failed} prueba(s) con error` : "✓ Todo funciona correctamente"}
       </p>
-      <ul className="card divide-y divide-border">
+      <ul className="eos-card divide-y divide-border">
         {checks.map((c) => (
           <li key={c.name} className="flex items-start gap-3 p-4">
             <span className={`mt-0.5 font-bold ${c.ok ? "text-green" : "text-red"}`} aria-hidden>

@@ -55,7 +55,7 @@ export default async function IndicadoresPage({
       />
 
       {careers.length === 0 ? (
-        <div className="card flex flex-col gap-3 p-6">
+        <div className="eos-card flex flex-col gap-3 p-6">
           <p className="text-sm text-muted">
             Este equipo todavía no tiene carreras. Carga el catálogo del equipo de marketing
             (carreras, responsables y el Rock de Kevin) o agrégalas una por una con &quot;+ Carrera&quot;.
@@ -67,7 +67,7 @@ export default async function IndicadoresPage({
       )}
 
       {imports.length > 0 && (
-        <div className="card p-4">
+        <div className="eos-card p-4">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Últimas actualizaciones</h2>
           <ul className="flex flex-col gap-1 text-sm">
             {imports.map((imp) => (

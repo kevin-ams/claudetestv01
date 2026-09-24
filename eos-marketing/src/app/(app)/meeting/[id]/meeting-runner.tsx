@@ -68,7 +68,7 @@ function HeadlinesPanel({
         <h4 className="mb-2 text-sm font-semibold">Noticias externas</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "customer").map((h) => (
-            <li key={h.id} className="card flex items-start justify-between gap-2 p-2">
+            <li key={h.id} className="eos-card flex items-start justify-between gap-2 p-2">
               <span>{h.content}</span>
               <button
                 type="button"
@@ -88,12 +88,12 @@ function HeadlinesPanel({
           }}
         >
           <input
-            className="input"
+            className="eos-input"
             value={customer}
             onChange={(e) => setCustomer(e.target.value)}
             placeholder="Nueva noticia externa (estudiantes, mercado, universidad)"
           />
-          <button type="submit" className="btn btn-secondary">
+          <button type="submit" className="eos-btn eos-btn-secondary">
             +
           </button>
         </form>
@@ -102,7 +102,7 @@ function HeadlinesPanel({
         <h4 className="mb-2 text-sm font-semibold">Noticias del equipo</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "employee").map((h) => (
-            <li key={h.id} className="card flex items-start justify-between gap-2 p-2">
+            <li key={h.id} className="eos-card flex items-start justify-between gap-2 p-2">
               <span>{h.content}</span>
               <button
                 type="button"
@@ -122,12 +122,12 @@ function HeadlinesPanel({
           }}
         >
           <input
-            className="input"
+            className="eos-input"
             value={employee}
             onChange={(e) => setEmployee(e.target.value)}
             placeholder="Nueva noticia del equipo"
           />
-          <button type="submit" className="btn btn-secondary">
+          <button type="submit" className="eos-btn eos-btn-secondary">
             +
           </button>
         </form>
@@ -152,7 +152,7 @@ function RatingPanel({
       : null;
 
   return (
-    <div className="card p-5">
+    <div className="eos-card p-5">
       <h4 className="mb-2 font-semibold">Califica esta reunión (1-10)</h4>
       <div className="flex flex-wrap gap-1.5">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
@@ -238,7 +238,7 @@ export function MeetingRunner({
           Duró {formatClock(totalElapsed)} · Calificación promedio:{" "}
           {meeting.avg_rating ? Number(meeting.avg_rating).toFixed(1) : "-"}/10
         </p>
-        <Link href="/meeting" className="btn btn-primary mt-6 inline-flex">
+        <Link href="/meeting" className="eos-btn eos-btn-primary mt-6 inline-flex">
           Volver al historial
         </Link>
       </div>
@@ -272,7 +272,7 @@ export function MeetingRunner({
         ))}
       </div>
 
-      <div className="card mb-6 flex flex-wrap items-center justify-between gap-4 p-5">
+      <div className="eos-card mb-6 flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
           <h2 className="text-xl font-bold">{segment.label}</h2>
           <p className="text-sm text-muted">{segment.description}</p>
@@ -287,14 +287,14 @@ export function MeetingRunner({
           </span>
           {upcoming ? (
             <button
-              className="btn btn-primary"
+              className="eos-btn eos-btn-primary"
               onClick={() => advanceSegmentAction(meeting.id, upcoming.key)}
             >
               Siguiente: {upcoming.label} →
             </button>
           ) : (
             <button
-              className="btn btn-primary"
+              className="eos-btn eos-btn-primary"
               onClick={() => completeMeetingAction(meeting.id)}
             >
               Finalizar reunión ✓
@@ -328,7 +328,7 @@ export function MeetingRunner({
 
       <div className="mb-10">
         {segment.key === "segue" && (
-          <div className="card p-6 text-sm text-muted">
+          <div className="eos-card p-6 text-sm text-muted">
             Cada persona comparte una buena noticia personal y una del negocio.
             No hay datos que revisar en este segmento. Cuando terminen, avancen
             al Scorecard.
@@ -449,7 +449,7 @@ export function MeetingRunner({
 
         {segment.key === "conclude" && (
           <div className="flex flex-col gap-4">
-            <div className="card p-5 text-sm text-muted">
+            <div className="eos-card p-5 text-sm text-muted">
               Recapitulen los nuevos to-dos y qué mensajes se deben cascadear al
               resto de la organización.
             </div>

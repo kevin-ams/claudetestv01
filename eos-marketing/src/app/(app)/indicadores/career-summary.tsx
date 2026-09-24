@@ -117,7 +117,7 @@ export function GroupTable({
                   {num(leads)} / {num(t.leadsGoal)}
                 </td>
                 <td className="px-2 text-right">
-                  <span className={`badge ${TONE_CLASS[leadsTone(leads, t.leadsGoal)]}`}>
+                  <span className={`eos-badge ${TONE_CLASS[leadsTone(leads, t.leadsGoal)]}`}>
                     {pct(leads, t.leadsGoal)}
                   </span>
                 </td>
@@ -125,7 +125,7 @@ export function GroupTable({
                   {money(spent)} / {money(t.budgetGoal)}
                 </td>
                 <td className="px-2 text-right">
-                  <span className={`badge ${TONE_CLASS[budgetTone(spent, t.budgetGoal)]}`}>
+                  <span className={`eos-badge ${TONE_CLASS[budgetTone(spent, t.budgetGoal)]}`}>
                     {pct(spent, t.budgetGoal)}
                   </span>
                 </td>
@@ -174,11 +174,11 @@ export function CareerSummary({
         </Link>
       </div>
       <SummaryTiles rows={rows} />
-      <div className="card p-4">
+      <div className="eos-card p-4">
         <GroupTable rows={rows} by="owner" members={members} />
       </div>
       {offTrack.length > 0 && (
-        <div className="card p-4">
+        <div className="eos-card p-4">
           <p className="mb-2 text-sm font-semibold">
             Carreras más lejos de su meta de leads (candidatas a Issue)
           </p>
