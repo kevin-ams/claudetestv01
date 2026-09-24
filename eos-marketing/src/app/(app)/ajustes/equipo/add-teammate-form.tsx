@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input } from "@heroui/react";
 import { useActionState } from "react";
 import { addTeammateAction, type FormState } from "./actions";
 
@@ -13,22 +14,21 @@ export function AddTeammateForm() {
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
-      <input name="name" required className="eos-input" placeholder="Nombre completo" />
-      <input name="email" type="email" required className="eos-input" placeholder="Correo" />
-      <input
+      <Input fullWidth name="name" required placeholder="Nombre completo" />
+      <Input fullWidth name="email" type="email" required placeholder="Correo" />
+      <Input fullWidth
         name="password"
         type="password"
         minLength={8}
         required
-        className="eos-input"
         placeholder="Contraseña temporal (mínimo 8 caracteres)"
       />
-      <input name="seatTitle" className="eos-input" placeholder="Asiento / rol (opcional)" />
+      <Input fullWidth name="seatTitle" placeholder="Asiento / rol (opcional)" />
       {state.error && <p className="text-sm text-red">{state.error}</p>}
       {state.success && <p className="text-sm text-green">{state.success}</p>}
-      <button type="submit" disabled={pending} className="eos-btn eos-btn-primary self-start">
+      <Button variant="primary" type="submit" isDisabled={pending} className="self-start">
         {pending ? "Agregando..." : "+ Agregar persona"}
-      </button>
+      </Button>
       <p className="text-xs text-muted">
         Comparte el correo y la contraseña con esa persona para que pueda entrar y cambiarla luego.
       </p>

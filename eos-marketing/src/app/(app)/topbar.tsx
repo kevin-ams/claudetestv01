@@ -1,3 +1,4 @@
+import { Button } from "@heroui/react";
 import { logoutAction } from "@/lib/auth/actions";
 import { TeamSwitcher } from "./team-switcher";
 import { SidebarToggle } from "./sidebar-toggle";
@@ -19,9 +20,9 @@ export function Topbar({
         <ThemeToggleButton />
         <span className="hidden text-sm text-muted sm:inline">{session.name}</span>
         <form action={logoutAction}>
-          <button type="submit" className="eos-btn eos-btn-secondary !px-3 !py-1.5 text-xs">
+          <Button variant="outline" size="sm" type="submit">
             Salir
-          </button>
+          </Button>
         </form>
       </div>
     </header>

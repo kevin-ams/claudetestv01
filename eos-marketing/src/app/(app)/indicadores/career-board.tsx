@@ -1,5 +1,9 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Segmented } from "@/components/ui/segmented";
+import { Button, Card, Chip, Input } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { PublicUser } from "@/lib/domain/types";
@@ -13,7 +17,7 @@ import {
   num,
   pct,
   totalsFor,
-  TONE_CLASS,
+  TONE_CHIP,
   type CareerRow,
 } from "@/lib/domain/careers-shared";
 import {
@@ -64,10 +68,10 @@ function NumberCell({
   }
 
   return (
-    <input
+    <Input
       inputMode="decimal"
       title={title}
-      className={`w-20 rounded border border-transparent bg-transparent px-1 py-1 text-right text-sm tabular-nums outline-none hover:border-border focus:border-primary ${
+      className={`shadow-none w-20 rounded border border-transparent bg-transparent px-1 py-1 text-right text-sm tabular-nums outline-none hover:border-border focus:border-primary ${
         pending ? "opacity-50" : ""
       } ${className}`}
       value={local}
@@ -117,38 +121,38 @@ function EditCareerRow({
           }}
           className="grid gap-2 sm:grid-cols-6"
         >
-          <input name="program" list="career-programs" required defaultValue={row.program} className="eos-input" placeholder="Programa" />
-          <input name="code" defaultValue={row.code} className="eos-input" placeholder="Código" />
-          <input name="name" required defaultValue={row.name} className="eos-input sm:col-span-2" placeholder="Nombre de la carrera" />
-          <select name="level" defaultValue={row.level} className="eos-input">
+          <Input fullWidth name="program" list="career-programs" required defaultValue={row.program} placeholder="Programa" />
+          <Input fullWidth name="code" defaultValue={row.code} placeholder="Código" />
+          <Input fullWidth name="name" required defaultValue={row.name} className="sm:col-span-2" placeholder="Nombre de la carrera" />
+          <AppSelect fullWidth name="level" defaultValue={row.level}>
             {CAREER_LEVELS.map((l) => (
               <option key={l}>{l}</option>
             ))}
-          </select>
-          <select name="ownerId" defaultValue={row.owner_id ?? "none"} className="eos-input">
+          </AppSelect>
+          <AppSelect fullWidth name="ownerId" defaultValue={row.owner_id ?? "none"}>
             <option value="none">Sin responsable</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
               </option>
             ))}
-          </select>
+          </AppSelect>
           <datalist id="career-programs">
             {programs.map((p) => (
               <option key={p} value={p} />
             ))}
           </datalist>
           <div className="flex flex-wrap gap-2 sm:col-span-6">
-            <button type="submit" className="eos-btn eos-btn-primary text-xs">
+            <Button variant="primary" size="sm" type="submit">
               Guardar
-            </button>
-            <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={onClose}>
+            </Button>
+            <Button variant="outline" size="sm" type="button" onPress={onClose}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button variant="danger-soft" size="sm"
               type="button"
-              className="eos-btn eos-btn-danger ml-auto text-xs"
-              onClick={async () => {
+              className="ml-auto"
+              onPress={async () => {
                 if (confirm(`¿Archivar "${row.name}"? Dejará de aparecer en los indicadores.`)) {
                   await archiveCareerAction(row.id);
                   onClose();
@@ -157,7 +161,7 @@ function EditCareerRow({
               }}
             >
               Archivar carrera
-            </button>
+            </Button>
           </div>
         </form>
       </td>
@@ -238,28 +242,28 @@ export function CareerBoard({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="eos-card grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-6">
-        <select className="eos-input" value={program} onChange={(e) => setParam("programa", e.target.value)} aria-label="Programa">
+      <Card className="grid gap-2 p-3 sm:grid-cols-2 lg:grid-cols-6">
+        <AppSelect fullWidth value={program} onChange={(e) => setParam("programa", e.target.value)} aria-label="Programa">
           <option value="">Todos los programas</option>
           {programs.map((p) => (
             <option key={p}>{p}</option>
           ))}
-        </select>
-        <select className="eos-input lg:col-span-2" value={career} onChange={(e) => setParam("carrera", e.target.value)} aria-label="Carrera">
+        </AppSelect>
+        <AppSelect fullWidth className="lg:col-span-2" value={career} onChange={(e) => setParam("carrera", e.target.value)} aria-label="Carrera">
           <option value="">Todas las carreras</option>
           {careerOptions.map((c) => (
             <option key={c.id} value={c.id}>
               {c.label}
             </option>
           ))}
-        </select>
-        <select className="eos-input" value={level} onChange={(e) => setParam("nivel", e.target.value)} aria-label="Nivel">
+        </AppSelect>
+        <AppSelect fullWidth value={level} onChange={(e) => setParam("nivel", e.target.value)} aria-label="Nivel">
           <option value="">Todos los niveles</option>
           {CAREER_LEVELS.map((l) => (
             <option key={l}>{l}</option>
           ))}
-        </select>
-        <select className="eos-input" value={owner} onChange={(e) => setParam("resp", e.target.value)} aria-label="Responsable">
+        </AppSelect>
+        <AppSelect fullWidth value={owner} onChange={(e) => setParam("resp", e.target.value)} aria-label="Responsable">
           <option value="">Todos los responsables</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
@@ -267,9 +271,8 @@ export function CareerBoard({
             </option>
           ))}
           <option value="none">Sin responsable</option>
-        </select>
-        <input
-          className="eos-input"
+        </AppSelect>
+        <Input fullWidth
           type="search"
           placeholder="Buscar código o nombre"
           defaultValue={query}
@@ -277,48 +280,39 @@ export function CareerBoard({
           aria-label="Buscar carrera"
         />
         <div className="flex flex-wrap items-center gap-3 text-sm sm:col-span-2 lg:col-span-6">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={onlyRed} onChange={(e) => setParam("rojo", e.target.checked ? "1" : "")} />
+          <AppCheckbox checked={onlyRed} onChange={(e) => setParam("rojo", e.target.checked ? "1" : "")} className="flex items-center gap-2">
             Solo a revisar
-          </label>
+          </AppCheckbox>
           <span className="text-muted">
             {filtered.length} de {rows.length} carreras
           </span>
           {anyFilter && (
-            <button className="text-primary underline" onClick={() => router.replace(`${pathname}?semana=${week}`, { scroll: false })}>
+            <Button size="sm" variant="ghost" className="text-primary" onPress={() => router.replace(`${pathname}?semana=${week}`, { scroll: false })}>
               Limpiar filtros
-            </button>
+            </Button>
           )}
-          <div className="ml-auto flex gap-1 rounded-lg bg-background p-1">
-            {(
-              [
-                ["detalle", "Detalle"],
-                ["responsable", "Por responsable"],
-                ["programa", "Por programa"],
-              ] as [View, string][]
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                onClick={() => setParam("vista", key === "detalle" ? "" : key)}
-                className={`rounded-md px-3 py-1 text-xs font-semibold ${
-                  view === key ? "bg-card shadow-sm" : "text-muted"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            aria-label="Vista"
+            className="ml-auto"
+            options={[
+              { id: "detalle" as View, label: "Detalle" },
+              { id: "responsable" as View, label: "Por responsable" },
+              { id: "programa" as View, label: "Por programa" },
+            ]}
+            value={view}
+            onChange={(key) => setParam("vista", key === "detalle" ? "" : key)}
+          />
         </div>
-      </div>
+      </Card>
 
       <SummaryTiles rows={filtered} />
 
       {view !== "detalle" ? (
-        <div className="eos-card p-4">
+        <Card className="block gap-0 p-4">
           <GroupTable rows={filtered} by={view === "responsable" ? "owner" : "program"} members={members} />
-        </div>
+        </Card>
       ) : (
-        <div className="eos-card overflow-x-auto">
+        <Card className="block p-0 gap-0 overflow-x-auto">
           <table className="w-full min-w-[980px] text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
@@ -356,8 +350,9 @@ export function CareerBoard({
                       </p>
                     </td>
                     <td className="px-2">
-                      <select
-                        className="rounded border border-transparent bg-transparent py-1 text-sm hover:border-border"
+                      <AppSelect
+                        variant="secondary"
+                        className="min-w-32"
                         value={r.owner_id ?? "none"}
                         aria-label={`Responsable de ${r.name}`}
                         onChange={(e) =>
@@ -373,7 +368,7 @@ export function CareerBoard({
                             {m.name}
                           </option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </td>
                     <td className="px-2 text-right">
                       <span className="inline-flex items-center">
@@ -387,7 +382,7 @@ export function CareerBoard({
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <span className={`eos-badge ${TONE_CLASS[leadsTone(r.leads, r.leads_goal)]}`}>{pct(r.leads, r.leads_goal)}</span>
+                      <Chip size="sm" variant="soft" color={TONE_CHIP[leadsTone(r.leads, r.leads_goal)]}>{pct(r.leads, r.leads_goal)}</Chip>
                     </td>
                     <td className="px-2 text-right">
                       <span className="inline-flex items-center">
@@ -405,15 +400,15 @@ export function CareerBoard({
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <span className={`eos-badge ${TONE_CLASS[budgetTone(r.budget_spent, r.budget_goal)]}`}>
+                      <Chip size="sm" variant="soft" color={TONE_CHIP[budgetTone(r.budget_spent, r.budget_goal)]}>
                         {pct(r.budget_spent, r.budget_goal)}
-                      </span>
+                      </Chip>
                     </td>
                     <td className="whitespace-nowrap px-2 text-right text-xs tabular-nums text-muted">{costPerLead(r.budget_spent, r.leads)}</td>
                     <td className="px-2 text-right">
-                      <button className="text-xs font-medium text-primary underline" onClick={() => setEditing(r.id)}>
+                      <Button size="sm" variant="ghost" className="text-xs text-primary" onPress={() => setEditing(r.id)}>
                         Editar
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 )
@@ -446,7 +441,7 @@ export function CareerBoard({
               </tfoot>
             )}
           </table>
-        </div>
+        </Card>
       )}
       <p className="text-xs text-muted">
         Semáforo — Leads: verde ≥100% de la meta, amarillo ≥80%, rojo menor. Presupuesto: verde si

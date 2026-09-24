@@ -1,5 +1,8 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
+import { Button, Card, Input } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -95,15 +98,15 @@ function ChartCard({
 }) {
   const [asTable, setAsTable] = useState(false);
   return (
-    <section className="eos-card flex flex-col gap-2 p-4">
+    <section className="card card--default flex flex-col gap-2 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-semibold">{title}</h2>
           {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
         </div>
-        <button className="text-xs font-medium text-primary underline" onClick={() => setAsTable((v) => !v)}>
+        <Button size="sm" variant="ghost" className="text-xs text-primary" onPress={() => setAsTable((v) => !v)}>
           {asTable ? "Ver gráfica" : "Ver tabla"}
-        </button>
+        </Button>
       </div>
       {asTable ? (
         <div className="max-h-72 overflow-auto">
@@ -139,11 +142,11 @@ function ChartCard({
 
 function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
-    <div className="eos-card p-4">
+    <Card className="block gap-0 p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className="text-2xl font-bold tabular-nums">{value}</p>
       {detail && <p className="text-xs text-muted">{detail}</p>}
-    </div>
+    </Card>
   );
 }
 
@@ -251,59 +254,53 @@ export function AnalysisBoard({
   return (
     <div className="flex flex-col gap-4">
       {/* Filtros: una sola fila arriba de las gráficas */}
-      <div className="eos-card flex flex-wrap items-center gap-2 p-3">
-        <div className="flex gap-1 rounded-lg bg-background p-1">
-          {PRESETS.map((p) => (
-            <button
-              key={p.weeks}
-              onClick={() => setRange(p.weeks)}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold ${
-                history.weeks.length === p.weeks && history.weeks.at(-1) === to ? "bg-card shadow-sm" : "text-muted"
-              }`}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+      <Card className="flex flex-row flex-wrap items-center gap-2 p-3">
+        <Segmented
+          aria-label="Periodo"
+          className="max-w-full overflow-x-auto"
+          options={PRESETS.map((p) => ({ id: p.weeks, label: p.label }))}
+          value={PRESETS.find((p) => history.weeks.length === p.weeks && history.weeks.at(-1) === to)?.weeks ?? null}
+          onChange={setRange}
+        />
         <label className="flex items-center gap-1 text-xs text-muted">
           Desde
-          <input
+          <Input
             type="date"
-            className="eos-input !w-auto"
+            className="w-auto"
             defaultValue={from}
             onChange={(e) => e.target.value && router.push(`/analisis?desde=${e.target.value}&hasta=${to}`)}
           />
         </label>
         <label className="flex items-center gap-1 text-xs text-muted">
           Hasta
-          <input
+          <Input
             type="date"
-            className="eos-input !w-auto"
+            className="w-auto"
             defaultValue={to}
             onChange={(e) => e.target.value && router.push(`/analisis?desde=${from}&hasta=${e.target.value}`)}
           />
         </label>
-        <select className="eos-input !w-auto" value={program} onChange={(e) => { setProgram(e.target.value); setCareer(""); }} aria-label="Programa">
+        <AppSelect className="w-auto" value={program} onChange={(e) => { setProgram(e.target.value); setCareer(""); }} aria-label="Programa">
           <option value="">Todos los programas</option>
           {programs.map((p) => (
             <option key={p}>{p}</option>
           ))}
-        </select>
-        <select className="eos-input !w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
+        </AppSelect>
+        <AppSelect className="w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
           <option value="">Todos los responsables</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
             </option>
           ))}
-        </select>
-        <select className="eos-input !w-auto" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
+        </AppSelect>
+        <AppSelect className="w-auto" value={level} onChange={(e) => setLevel(e.target.value)} aria-label="Nivel">
           <option value="">Todos los niveles</option>
           {CAREER_LEVELS.map((l) => (
             <option key={l}>{l}</option>
           ))}
-        </select>
-        <select className="eos-input !w-auto max-w-64" value={career} onChange={(e) => setCareer(e.target.value)} aria-label="Carrera">
+        </AppSelect>
+        <AppSelect className="w-auto max-w-64" value={career} onChange={(e) => setCareer(e.target.value)} aria-label="Carrera">
           <option value="">Todas las carreras</option>
           {history.careers
             .filter((c) => !program || c.program === program)
@@ -312,8 +309,8 @@ export function AnalysisBoard({
                 {careerLabel(c)}
               </option>
             ))}
-        </select>
-      </div>
+        </AppSelect>
+      </Card>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Leads del período" value={num(total.leads)} detail={`Meta ${num(Math.round(total.leadsGoal))} · ${pct(total.leads, total.leadsGoal)}`} />
@@ -420,20 +417,20 @@ export function AnalysisBoard({
           ) : (
             <div className="flex h-full flex-col gap-2">
               <div className="flex flex-wrap gap-2">
-                <select className="eos-input !w-auto max-w-72 text-xs" value={metricId} onChange={(e) => setMetricId(Number(e.target.value))} aria-label="Indicador">
+                <AppSelect className="w-auto max-w-72 text-xs" value={metricId} onChange={(e) => setMetricId(Number(e.target.value))} aria-label="Indicador">
                   {scorecard.metrics.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
                   ))}
-                </select>
-                <select className="eos-input !w-auto text-xs" value={scOwnerId} onChange={(e) => setScOwnerId(Number(e.target.value))} aria-label="Dueño">
+                </AppSelect>
+                <AppSelect className="w-auto text-xs" value={scOwnerId} onChange={(e) => setScOwnerId(Number(e.target.value))} aria-label="Dueño">
                   {scorecard.owners.map((o) => (
                     <option key={o.id} value={o.id}>
                       {o.name}
                     </option>
                   ))}
-                </select>
+                </AppSelect>
               </div>
               <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
@@ -454,7 +451,7 @@ export function AnalysisBoard({
         </ChartCard>
       </div>
 
-      <section className="eos-card p-4">
+      <section className="card card--default block gap-0 p-4">
         <h2 className="font-semibold">Carreras más lejos de su meta de leads</h2>
         <p className="mb-2 text-xs text-muted">Acumulado del período, solo carreras con meta.</p>
         {gaps.length === 0 ? (

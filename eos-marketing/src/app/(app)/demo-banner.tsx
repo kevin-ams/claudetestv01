@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@heroui/react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/progress-bar";
@@ -17,11 +18,11 @@ export function DemoBanner() {
         <span>
           <b>Modo demo:</b> estás viendo información de ejemplo. Nada de lo que hagas aquí afecta tus datos reales.
         </span>
-        <button
+        <Button size="sm" variant="ghost"
           type="button"
-          disabled={pending}
-          className="rounded-md bg-card px-3 py-1 text-xs font-semibold text-foreground shadow-sm"
-          onClick={() =>
+          isDisabled={pending}
+          className="bg-card text-xs text-foreground shadow-sm"
+          onPress={() =>
             startTransition(async () => {
               const res = await stopDemoAction().catch((e) => ({ ok: false, message: String(e) }));
               if (!res.ok) {
@@ -34,7 +35,7 @@ export function DemoBanner() {
           }
         >
           {pending ? "Desactivando…" : "Desactivar demo y volver"}
-        </button>
+        </Button>
       </div>
       {pending && (
         <div className="mt-2">

@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react";
 import { redirect } from "next/navigation";
 import { countUsers } from "@/lib/domain/users";
 import { SetupForm } from "./setup-form";
@@ -12,7 +13,7 @@ export default async function SetupPage() {
 
   return (
     <div className="flex flex-1 items-center justify-center px-4 py-12">
-      <div className="eos-card w-full max-w-md p-8">
+      <Card className="block gap-0 w-full max-w-md p-8">
         <h1 className="text-xl font-bold">Configura tu sistema EOS</h1>
         <p className="mt-1 text-sm text-muted">
           Esta es la primera vez que se usa esta aplicación. Crea tu equipo y tu
@@ -20,7 +21,7 @@ export default async function SetupPage() {
           personas del equipo de marketing y sus carreras.
         </p>
         <SetupForm />
-      </div>
+      </Card>
     </div>
   );
 }

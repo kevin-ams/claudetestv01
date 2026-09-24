@@ -1,5 +1,8 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Button, Card, Chip, Input } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnnouncementModal, adImageUrl, type PopupAd } from "@/components/announcement-popup";
@@ -105,13 +108,13 @@ function SlotCard({
   }
 
   return (
-    <div className={`eos-card flex flex-col gap-3 p-4 ${pending || uploading ? "opacity-70" : ""}`}>
+    <Card className={`flex flex-col gap-3 p-4 ${pending || uploading ? "opacity-70" : ""}`}>
       <div className="flex items-center justify-between">
         <p className="font-semibold">Espacio {slot.slot}</p>
         {slot.has_image && (
-          <span className={`eos-badge ${slot.active ? "bg-green-bg text-green" : "bg-background text-muted"}`}>
+          <Chip size="sm" variant="soft" color={slot.active ? "success" : "default"}>
             {slot.active ? "Activo" : "Pausado"}
-          </span>
+          </Chip>
         )}
       </div>
 
@@ -127,7 +130,7 @@ function SlotCard({
       </div>
 
       {canEdit && (
-        <label className="eos-btn eos-btn-secondary cursor-pointer text-xs">
+        <label className={`${buttonVariants({ variant: "outline", size: "sm" })} cursor-pointer`}>
           {slot.has_image ? "Reemplazar imagen" : "Subir imagen"}
           <input
             type="file"
@@ -145,51 +148,48 @@ function SlotCard({
 
       {slot.has_image && (
         <>
-          <input
-            className="eos-input text-sm"
+          <Input fullWidth
+            className="text-sm"
             placeholder="Título (opcional)"
             value={title}
             disabled={!canEdit}
             onChange={(e) => setTitle(e.target.value)}
             aria-label={`Título del espacio ${slot.slot}`}
           />
-          <input
-            className="eos-input text-sm"
+          <Input fullWidth
+            className="text-sm"
             placeholder="Enlace al hacer clic (opcional)"
             value={link}
             disabled={!canEdit}
             onChange={(e) => setLink(e.target.value)}
             aria-label={`Enlace del espacio ${slot.slot}`}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={active} disabled={!canEdit} onChange={(e) => setActive(e.target.checked)} />
+          <AppCheckbox checked={active} disabled={!canEdit} onChange={(e) => setActive(e.target.checked)} className="flex items-center gap-2 text-sm">
             Mostrar este anuncio
-          </label>
+          </AppCheckbox>
           <div className="flex flex-wrap gap-2">
             {canEdit && (
-              <button
-                className="eos-btn eos-btn-primary text-xs"
-                disabled={!dirty}
-                onClick={() => run(() => saveAdDetailsAction(slot.slot, { title, linkUrl: link, active }))}
+              <Button variant="primary" size="sm"
+                isDisabled={!dirty}
+                onPress={() => run(() => saveAdDetailsAction(slot.slot, { title, linkUrl: link, active }))}
               >
                 Guardar
-              </button>
+              </Button>
             )}
-            <button
-              className="eos-btn eos-btn-secondary text-xs"
-              onClick={() => onPreview({ slot: slot.slot, title, link_url: link, version: slot.version })}
+            <Button variant="outline" size="sm"
+              onPress={() => onPreview({ slot: slot.slot, title, link_url: link, version: slot.version })}
             >
               Vista previa
-            </button>
+            </Button>
             {canEdit && (
-              <button
-                className="eos-btn eos-btn-danger ml-auto text-xs"
-                onClick={() => {
+              <Button variant="danger-soft" size="sm"
+                className="ml-auto"
+                onPress={() => {
                   if (confirm(`¿Quitar el anuncio del espacio ${slot.slot}?`)) run(() => clearAdSlotAction(slot.slot));
                 }}
               >
                 Quitar
-              </button>
+              </Button>
             )}
           </div>
         </>
@@ -204,7 +204,7 @@ function SlotCard({
           {result.message}
         </p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -231,24 +231,22 @@ export function AdSettings({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="eos-card flex flex-wrap items-center gap-4 p-4">
-        <label className="flex items-center gap-2 font-semibold">
-          <input
-            type="checkbox"
-            className="h-4 w-4"
-            checked={enabled}
-            disabled={!canEdit}
-            onChange={(e) => setEnabled(e.target.checked)}
-          />
+      <Card className="flex flex-row flex-wrap items-center gap-4 p-4">
+        <AppCheckbox
+          checked={enabled}
+          disabled={!canEdit}
+          onChange={(e) => setEnabled(e.target.checked)}
+          className="flex items-center gap-2 font-semibold"
+        >
           Anuncios activados
-        </label>
+        </AppCheckbox>
         <label className="flex items-center gap-2 text-sm">
           Mostrar uno cada
-          <input
+          <Input
             type="number"
             min={1}
             max={240}
-            className="eos-input !w-20"
+            className="w-20"
             value={minutes}
             disabled={!canEdit}
             onChange={(e) => setMinutes(e.target.value)}
@@ -257,10 +255,9 @@ export function AdSettings({
           minutos
         </label>
         {canEdit && (
-          <button
-            className="eos-btn eos-btn-primary text-xs"
-            disabled={pending || (enabled === settings.enabled && minutes === String(settings.interval_minutes))}
-            onClick={() =>
+          <Button variant="primary" size="sm"
+            isDisabled={pending || (enabled === settings.enabled && minutes === String(settings.interval_minutes))}
+            onPress={() =>
               startTransition(async () => {
                 setResult(await saveAdSettingsAction(enabled, Number(minutes)));
                 router.refresh();
@@ -268,13 +265,13 @@ export function AdSettings({
             }
           >
             Guardar
-          </button>
+          </Button>
         )}
         <span className="text-sm text-muted">
           {settings.enabled ? `${showing} anuncio(s) en rotación` : "Nadie ve anuncios mientras estén desactivados."}
         </span>
         {result && <span className={`text-sm ${result.ok ? "text-green" : "text-red"}`}>{result.message}</span>}
-      </div>
+      </Card>
 
       {!canEdit && (
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">

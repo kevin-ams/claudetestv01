@@ -1,3 +1,4 @@
+import { Chip } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { getTeam } from "@/lib/domain/teams";
 import { DEMO_STEPS, getDemoTeamFor } from "@/lib/domain/demo";
@@ -17,11 +18,11 @@ export default async function DemoPage() {
         description="Muestra la plataforma llena de datos de ejemplo para presentaciones, sin tocar tu información real."
       />
 
-      <section className="eos-card flex flex-col gap-4 p-5">
+      <section className="card card--default flex flex-col gap-4 p-5">
         <div className="flex items-center gap-3">
-          <span className={`eos-badge ${inDemo ? "bg-yellow-bg text-yellow" : demo ? "bg-primary/10 text-primary" : "bg-background text-muted"}`}>
+          <Chip size="sm" variant="soft" color={inDemo ? "warning" : demo ? "accent" : "default"}>
             {inDemo ? "Estás viendo la demo" : demo ? "Demo creada (no la estás viendo)" : "Demo desactivada"}
-          </span>
+          </Chip>
         </div>
         <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
           <li>

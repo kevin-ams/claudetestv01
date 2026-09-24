@@ -1,5 +1,7 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Button, Chip, CloseButton, Drawer, Input, TextArea } from "@heroui/react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicUser } from "@/lib/domain/types";
@@ -39,9 +41,9 @@ function LabelEditor({ track, allLabels }: { track: TrackRow; allLabels: string[
         {track.labels.map((l) => (
           <span key={l} className="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
             {l}
-            <button aria-label={`Quitar etiqueta ${l}`} onClick={() => save(track.labels.filter((x) => x !== l))}>
+            <Button size="sm" variant="ghost" aria-label={`Quitar etiqueta ${l}`} onPress={() => save(track.labels.filter((x) => x !== l))}>
               ×
-            </button>
+            </Button>
           </span>
         ))}
       </div>
@@ -54,8 +56,8 @@ function LabelEditor({ track, allLabels }: { track: TrackRow; allLabels: string[
           setInput("");
         }}
       >
-        <input
-          className="eos-input text-sm"
+        <Input fullWidth
+          className="text-sm"
           list="track-label-suggestions"
           placeholder="Nueva etiqueta"
           value={input}
@@ -66,20 +68,20 @@ function LabelEditor({ track, allLabels }: { track: TrackRow; allLabels: string[
             <option key={l} value={l} />
           ))}
         </datalist>
-        <button type="submit" className="eos-btn eos-btn-secondary text-xs">
+        <Button variant="outline" size="sm" type="submit">
           Agregar
-        </button>
+        </Button>
       </form>
       <div className="flex flex-wrap gap-1">
         {suggestions.slice(0, 6).map((l) => (
-          <button
+          <Button size="sm" variant="outline"
             key={l}
             type="button"
-            className="rounded border border-dashed border-border px-1.5 py-0.5 text-[11px] text-muted hover:border-primary hover:text-primary"
-            onClick={() => save([...track.labels, l])}
+            className="text-[11px] text-muted h-6 px-2"
+            onPress={() => save([...track.labels, l])}
           >
             + {l}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
@@ -114,10 +116,10 @@ export function TrackDrawer({
     });
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={onClose}>
-      <aside
-        className="flex h-full w-full max-w-xl flex-col overflow-y-auto bg-background shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+    <Drawer.Backdrop isOpen onOpenChange={(open) => !open && onClose()}>
+      <Drawer.Content placement="right" className="w-full max-w-xl">
+      <Drawer.Dialog
+        className="flex h-full flex-col gap-0 overflow-y-auto bg-background p-0"
         aria-label={`Detalle de ${track.name}`}
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-border bg-card p-4">
@@ -131,13 +133,11 @@ export function TrackDrawer({
             </h2>
             <p className="text-sm text-muted">Responsable: {owner?.name ?? "Sin responsable"}</p>
           </div>
-          <button className="text-xl text-muted" onClick={onClose} aria-label="Cerrar">
-            ✕
-          </button>
+          <CloseButton onPress={onClose} aria-label="Cerrar" />
         </div>
 
         <div className={`flex flex-col gap-5 p-4 ${pending ? "opacity-70" : ""}`}>
-          <section className="eos-card grid gap-3 p-4 sm:grid-cols-2">
+          <section className="card card--default grid gap-3 p-4 sm:grid-cols-2">
             <div>
               <p className="text-xs font-semibold uppercase text-muted">Estado</p>
               <div className="mt-1">
@@ -159,42 +159,41 @@ export function TrackDrawer({
             </div>
             <label className="flex flex-col gap-1 text-xs font-semibold uppercase text-muted">
               Inicio del plan
-              <input
+              <Input fullWidth
                 type="date"
-                className="eos-input text-sm normal-case"
+                className="text-sm normal-case"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold uppercase text-muted">
               …o calcular desde la fecha de lanzamiento
-              <input
+              <Input fullWidth
                 type="date"
-                className="eos-input text-sm normal-case"
+                className="text-sm normal-case"
                 onChange={(e) => e.target.value && setStartDate(startForLaunch(plan, e.target.value))}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-semibold uppercase text-muted sm:col-span-2">
               Notas
-              <textarea
-                className="eos-input min-h-16 text-sm normal-case"
+              <TextArea fullWidth
+                className="min-h-16 text-sm normal-case"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Acuerdos, bloqueos, contactos…"
               />
             </label>
             <div className="sm:col-span-2">
-              <button
-                className="eos-btn eos-btn-primary text-xs"
-                disabled={notes === track.notes && startDate === track.start_date}
-                onClick={() => run(() => updateTrackDetailsAction(track.career_id, notes, startDate))}
+              <Button variant="primary" size="sm"
+                isDisabled={notes === track.notes && startDate === track.start_date}
+                onPress={() => run(() => updateTrackDetailsAction(track.career_id, notes, startDate))}
               >
                 Guardar cambios
-              </button>
+              </Button>
             </div>
           </section>
 
-          <section className="eos-card p-4">
+          <section className="card card--default block gap-0 p-4">
             <p className="mb-2 text-xs font-semibold uppercase text-muted">Etiquetas</p>
             <LabelEditor track={track} allLabels={allLabels} />
           </section>
@@ -216,9 +215,7 @@ export function TrackDrawer({
                     return (
                       <li key={m.key} className={`p-3 ${isCurrent ? "bg-primary/5" : ""}`}>
                         <div className="flex items-start gap-2">
-                          <input
-                            type="checkbox"
-                            className="mt-1"
+                          <AppCheckbox
                             checked={Boolean(mp.doneOn)}
                             aria-label={`Completar ${m.label}`}
                             onChange={(e) =>
@@ -235,7 +232,7 @@ export function TrackDrawer({
                                   ◆
                                 </span>
                               )}
-                              {isCurrent && <span className="ml-2 eos-badge bg-primary/10 text-primary">Actual</span>}
+                              {isCurrent && <Chip size="sm" color="accent" variant="soft" className="ml-2">Actual</Chip>}
                             </p>
                             <p className="mt-0.5 text-xs text-muted">{m.actions}</p>
                             <p className="mt-1 text-xs">
@@ -250,9 +247,9 @@ export function TrackDrawer({
                               {mp.doneOn ? (
                                 <label className="inline-flex items-center gap-1 text-green">
                                   Completado
-                                  <input
+                                  <Input
                                     type="date"
-                                    className="rounded border border-transparent bg-transparent hover:border-border"
+                                    className="shadow-none rounded border border-transparent bg-transparent px-1 py-0 text-xs hover:border-border"
                                     value={mp.doneOn}
                                     onChange={(e) =>
                                       e.target.value &&
@@ -274,9 +271,9 @@ export function TrackDrawer({
             ))}
           </section>
 
-          <button
-            className="eos-btn eos-btn-danger self-start text-xs"
-            onClick={() => {
+          <Button variant="danger-soft" size="sm"
+            className="self-start"
+            onPress={() => {
               if (confirm(`¿Quitar "${track.name}" del tablero? Se pierde su avance de hitos.`)) {
                 run(async () => {
                   await removeTrackAction(track.career_id);
@@ -286,9 +283,10 @@ export function TrackDrawer({
             }}
           >
             Quitar del tablero
-          </button>
+          </Button>
         </div>
-      </aside>
-    </div>
+      </Drawer.Dialog>
+      </Drawer.Content>
+    </Drawer.Backdrop>
   );
 }

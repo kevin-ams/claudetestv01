@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input } from "@heroui/react";
 import { useActionState, useState } from "react";
 import { updateAccessAction, type FormState } from "./actions";
 
@@ -22,32 +23,31 @@ export function EditAccessForm({
 
   if (!open) {
     return (
-      <button type="button" className="text-xs font-medium text-primary underline" onClick={() => setOpen(true)}>
+      <Button size="sm" variant="ghost" type="button" className="text-xs text-primary" onPress={() => setOpen(true)}>
         Editar acceso
-      </button>
+      </Button>
     );
   }
 
   return (
     <form action={formAction} className="mt-2 flex w-full flex-col gap-2 rounded-lg bg-background p-3">
-      <input name="name" required className="eos-input" defaultValue={name} placeholder="Nombre" />
-      <input name="email" type="email" required className="eos-input" defaultValue={email} placeholder="Correo" />
-      <input
+      <Input fullWidth name="name" required defaultValue={name} placeholder="Nombre" />
+      <Input fullWidth name="email" type="email" required defaultValue={email} placeholder="Correo" />
+      <Input fullWidth
         name="password"
         type="password"
         minLength={8}
-        className="eos-input"
         placeholder="Nueva contraseña (vacío = no cambiar)"
       />
       {state.error && <p className="text-sm text-red">{state.error}</p>}
       {state.success && <p className="text-sm text-green">{state.success}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={pending} className="eos-btn eos-btn-primary text-xs">
+        <Button variant="primary" size="sm" type="submit" isDisabled={pending}>
           {pending ? "Guardando..." : "Guardar"}
-        </button>
-        <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={() => setOpen(false)}>
+        </Button>
+        <Button variant="outline" size="sm" type="button" onPress={() => setOpen(false)}>
           Cerrar
-        </button>
+        </Button>
       </div>
     </form>
   );

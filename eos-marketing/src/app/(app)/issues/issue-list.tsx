@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input } from "@heroui/react";
 import { useState, useTransition } from "react";
 import type { Issue, PublicUser } from "@/lib/domain/types";
 import { ClickUpButton } from "@/components/clickup-button";
@@ -18,9 +19,9 @@ function ResolveRow({ issue }: { issue: Issue }) {
 
   if (!open) {
     return (
-      <button className="text-xs font-medium text-green underline" onClick={() => setOpen(true)}>
+      <Button size="sm" variant="ghost" className="text-xs text-green" onPress={() => setOpen(true)}>
         Resolver
-      </button>
+      </Button>
     );
   }
 
@@ -32,18 +33,18 @@ function ResolveRow({ issue }: { issue: Issue }) {
         setOpen(false);
       }}
     >
-      <input
-        className="eos-input flex-1 text-xs"
+      <Input fullWidth
+        className="flex-1 text-xs"
         placeholder="To-Do de seguimiento (opcional)"
         value={followUp}
         onChange={(e) => setFollowUp(e.target.value)}
       />
-      <button type="submit" className="eos-btn eos-btn-primary text-xs">
+      <Button variant="primary" size="sm" type="submit">
         Confirmar
-      </button>
-      <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={() => setOpen(false)}>
+      </Button>
+      <Button variant="outline" size="sm" type="button" onPress={() => setOpen(false)}>
         Cancelar
-      </button>
+      </Button>
     </form>
   );
 }
@@ -79,25 +80,25 @@ export function IssueList({
         ) : (
           <ul className="flex flex-col gap-2">
             {openIssues.map((issue, idx) => (
-              <li key={issue.id} className="eos-card flex flex-wrap items-center gap-3 p-3">
+              <li key={issue.id} className="card card--default flex flex-row flex-wrap items-center gap-3 p-3">
                 <span className="w-6 text-center text-xs font-semibold text-muted">
                   {idx + 1}
                 </span>
                 <div className="flex flex-col">
-                  <button
-                    disabled={idx === 0}
-                    className="text-xs text-muted disabled:opacity-30"
-                    onClick={() => moveIssueAction(issue.id, "up")}
+                  <Button size="sm" variant="ghost"
+                    isDisabled={idx === 0}
+                    className="text-xs text-muted"
+                    onPress={() => moveIssueAction(issue.id, "up")}
                   >
                     ▲
-                  </button>
-                  <button
-                    disabled={idx === openIssues.length - 1}
-                    className="text-xs text-muted disabled:opacity-30"
-                    onClick={() => moveIssueAction(issue.id, "down")}
+                  </Button>
+                  <Button size="sm" variant="ghost"
+                    isDisabled={idx === openIssues.length - 1}
+                    className="text-xs text-muted"
+                    onPress={() => moveIssueAction(issue.id, "down")}
                   >
                     ▼
-                  </button>
+                  </Button>
                 </div>
                 <div className="min-w-[180px] flex-1">
                   <p className="font-medium">{issue.title}</p>
@@ -111,10 +112,10 @@ export function IssueList({
                     </span>
                     <label className="inline-flex items-center gap-1">
                       Fecha:
-                      <input
+                      <Input
                         type="date"
                         aria-label={`Fecha de ${issue.title}`}
-                        className={`rounded border border-transparent bg-transparent px-1 hover:border-border focus:border-primary ${
+                        className={`shadow-none rounded border border-transparent bg-transparent px-1 py-0 text-xs hover:border-border focus:border-primary ${
                           issue.due_date && issue.due_date < today ? "font-semibold text-red" : ""
                         }`}
                         defaultValue={issue.due_date ?? ""}
@@ -124,13 +125,13 @@ export function IssueList({
                       />
                     </label>
                     {onCreateTodo && (
-                      <button
+                      <Button size="sm" variant="outline"
                         type="button"
-                        className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-green hover:bg-green-bg"
-                        onClick={() => onCreateTodo(issue)}
+                        className="text-[11px] text-green h-6 px-2"
+                        onPress={() => onCreateTodo(issue)}
                       >
                         + To-Do
-                      </button>
+                      </Button>
                     )}
                     <ClickUpButton
                       sentUrl={issue.clickup_url}
@@ -140,12 +141,12 @@ export function IssueList({
                   </div>
                 </div>
                 <ResolveRow issue={issue} />
-                <button
+                <Button size="sm" variant="ghost"
                   className="text-xs text-red"
-                  onClick={() => deleteIssueAction(issue.id)}
+                  onPress={() => deleteIssueAction(issue.id)}
                 >
                   ✕
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -153,25 +154,25 @@ export function IssueList({
       </div>
 
       <div>
-        <button
-          className="text-sm font-medium text-primary underline"
-          onClick={() => setShowSolved((v) => !v)}
+        <Button size="sm" variant="ghost"
+          className="text-sm text-primary"
+          onPress={() => setShowSolved((v) => !v)}
         >
           {showSolved ? "Ocultar" : "Ver"} resueltos ({solvedIssues.length})
-        </button>
+        </Button>
         {showSolved && (
           <ul className="mt-3 flex flex-col gap-2">
             {solvedIssues.map((issue) => (
-              <li key={issue.id} className="eos-card flex items-center gap-3 p-3 opacity-70">
+              <li key={issue.id} className="card card--default flex flex-row items-center gap-3 p-3 opacity-70">
                 <div className="flex-1">
                   <p className="font-medium line-through">{issue.title}</p>
                 </div>
-                <button
-                  className="text-xs text-primary underline"
-                  onClick={() => reopenIssueAction(issue.id)}
+                <Button size="sm" variant="ghost"
+                  className="text-xs text-primary"
+                  onPress={() => reopenIssueAction(issue.id)}
                 >
                   Reabrir
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

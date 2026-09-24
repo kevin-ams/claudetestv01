@@ -1,5 +1,8 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
+import { Button, Input, Modal, TextArea } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicUser } from "@/lib/domain/types";
@@ -21,12 +24,12 @@ export function QuickCreateBar({ onCreate }: { onCreate: (draft: QuickDraft) => 
   return (
     <div className="sticky top-2 z-20 mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
       <span className="px-2 text-xs font-semibold uppercase tracking-wide text-muted">Capturar</span>
-      <button className="eos-btn eos-btn-secondary py-1.5 text-xs" onClick={() => onCreate({ kind: "todo" })}>
+      <Button variant="outline" size="sm" onPress={() => onCreate({ kind: "todo" })}>
         ✅ + To-Do
-      </button>
-      <button className="eos-btn eos-btn-secondary py-1.5 text-xs" onClick={() => onCreate({ kind: "issue" })}>
+      </Button>
+      <Button variant="outline" size="sm" onPress={() => onCreate({ kind: "issue" })}>
         ⚠️ + Issue
-      </button>
+      </Button>
       <span className="ml-auto hidden text-[11px] text-muted sm:inline">
         También puedes usar los botones → Issue y + To-Do dentro de cada paso.
       </span>
@@ -82,88 +85,79 @@ export function QuickCreateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
-      <form
-        className="eos-card flex w-full max-w-lg flex-col gap-3 p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        aria-label="Crear To-Do o Issue"
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1 rounded-lg bg-background p-1">
-            {(
-              [
-                ["todo", "To-Do"],
-                ["issue", "Issue"],
-              ] as [QuickKind, string][]
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setKind(k)}
-                className={`rounded-md px-3 py-1 text-sm font-semibold ${kind === k ? "bg-card shadow-sm" : "text-muted"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="text-muted" onClick={onClose} aria-label="Cerrar">
-            ✕
-          </button>
-        </div>
-        {draft.source && <p className="text-xs text-muted">Desde: {draft.source}</p>}
-        <input
-          className="eos-input"
-          autoFocus
-          placeholder={kind === "todo" ? "¿Qué hay que hacer?" : "¿Cuál es el issue?"}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          aria-label="Título"
-        />
-        <textarea
-          className="eos-input min-h-20"
-          placeholder="Descripción (opcional)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          aria-label="Descripción"
-        />
-        <div className="flex flex-wrap gap-2">
-          <select className="eos-input !w-auto" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} aria-label="Dueño">
-            <option value="none">Sin dueño</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            className="eos-input !w-auto"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            aria-label="Fecha"
-            title={kind === "todo" ? "Fecha límite" : "Fecha específica"}
-          />
-          {kind === "issue" && (
-            <select className="eos-input !w-auto" value={term} onChange={(e) => setTerm(e.target.value as typeof term)} aria-label="Plazo">
-              <option value="short_term">Corto plazo</option>
-              <option value="long_term">Largo plazo</option>
-            </select>
-          )}
-        </div>
-        {error && <p className="text-sm text-red">{error}</p>}
-        <div className="flex gap-2">
-          <button type="submit" className="eos-btn eos-btn-primary" disabled={pending}>
-            {pending ? "Guardando..." : kind === "todo" ? "Crear To-Do" : "Agregar Issue"}
-          </button>
-          <button type="button" className="eos-btn eos-btn-secondary" onClick={onClose}>
-            Cancelar
-          </button>
-        </div>
-      </form>
-    </div>
+    <Modal.Backdrop isOpen onOpenChange={(open) => !open && onClose()}>
+      <Modal.Container>
+        <Modal.Dialog className="sm:max-w-lg" aria-label="Crear To-Do o Issue">
+          <Modal.CloseTrigger />
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <Segmented
+                aria-label="Tipo"
+                options={[
+                  { id: "todo" as QuickKind, label: "To-Do" },
+                  { id: "issue" as QuickKind, label: "Issue" },
+                ]}
+                value={kind}
+                onChange={setKind}
+              />
+            </div>
+            {draft.source && <p className="text-xs text-muted">Desde: {draft.source}</p>}
+            <Input fullWidth
+              autoFocus
+              placeholder={kind === "todo" ? "¿Qué hay que hacer?" : "¿Cuál es el issue?"}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              aria-label="Título"
+            />
+            <TextArea fullWidth
+              className="min-h-20"
+              placeholder="Descripción (opcional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              aria-label="Descripción"
+            />
+            <div className="flex flex-wrap gap-2">
+              <AppSelect className="w-auto" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} aria-label="Dueño">
+                <option value="none">Sin dueño</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </AppSelect>
+              <Input
+                type="date"
+                className="w-auto"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                aria-label="Fecha"
+                title={kind === "todo" ? "Fecha límite" : "Fecha específica"}
+              />
+              {kind === "issue" && (
+                <AppSelect className="w-auto" value={term} onChange={(e) => setTerm(e.target.value as typeof term)} aria-label="Plazo">
+                  <option value="short_term">Corto plazo</option>
+                  <option value="long_term">Largo plazo</option>
+                </AppSelect>
+              )}
+            </div>
+            {error && <p className="text-sm text-red">{error}</p>}
+            <div className="flex gap-2">
+              <Button variant="primary" type="submit" isDisabled={pending}>
+                {pending ? "Guardando..." : kind === "todo" ? "Crear To-Do" : "Agregar Issue"}
+              </Button>
+              <Button variant="outline" type="button" onPress={onClose}>
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }

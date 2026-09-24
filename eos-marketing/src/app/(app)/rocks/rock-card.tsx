@@ -1,5 +1,8 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Button, Card, Chip, Input, TextArea, ToggleButton, ToggleButtonGroup } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState, useTransition } from "react";
 import type { Rock, RockMilestone, RockStatus, PublicUser } from "@/lib/domain/types";
 import {
@@ -18,10 +21,10 @@ const STATUS_LABEL: Record<RockStatus, string> = {
   done: "Completado",
 };
 
-const STATUS_CLASS: Record<RockStatus, string> = {
-  on_track: "bg-green-bg text-green",
-  off_track: "bg-red-bg text-red",
-  done: "bg-primary/10 text-primary",
+const STATUS_COLOR: Record<RockStatus, "success" | "danger" | "accent"> = {
+  on_track: "success",
+  off_track: "danger",
+  done: "accent",
 };
 
 export function RockCard({
@@ -44,7 +47,7 @@ export function RockCard({
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="eos-card p-4">
+    <Card className="block gap-0 p-4">
       {editing ? (
         <form
           action={async (fd) => {
@@ -53,45 +56,42 @@ export function RockCard({
           }}
           className="flex flex-col gap-2"
         >
-          <input name="title" required className="eos-input" defaultValue={rock.title} />
-          <textarea
+          <Input fullWidth name="title" required defaultValue={rock.title} />
+          <TextArea fullWidth
             name="description"
-            className="eos-input min-h-16"
+            className="min-h-16"
             defaultValue={rock.description}
           />
-          <select name="ownerId" defaultValue={rock.owner_id ?? "none"} className="eos-input">
+          <AppSelect fullWidth name="ownerId" defaultValue={rock.owner_id ?? "none"}>
             <option value="none">Sin dueño</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
               </option>
             ))}
-          </select>
-          <input
+          </AppSelect>
+          <Input fullWidth
             type="date"
             name="dueDate"
-            className="eos-input"
             defaultValue={rock.due_date ?? ""}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="isCompanyRock"
-              defaultChecked={rock.is_company_rock}
-            />
+          <AppCheckbox
+            name="isCompanyRock"
+            defaultChecked={rock.is_company_rock}
+            className="flex items-center gap-2 text-sm"
+          >
             Rock de la empresa
-          </label>
+          </AppCheckbox>
           <div className="flex gap-2">
-            <button type="submit" className="eos-btn eos-btn-primary">
+            <Button variant="primary" type="submit">
               Guardar
-            </button>
-            <button
+            </Button>
+            <Button variant="outline"
               type="button"
-              className="eos-btn eos-btn-secondary"
-              onClick={() => setEditing(false)}
+              onPress={() => setEditing(false)}
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
@@ -103,9 +103,9 @@ export function RockCard({
                 <p className="mt-0.5 text-sm text-muted">{rock.description}</p>
               )}
             </div>
-            <span className={`eos-badge shrink-0 ${STATUS_CLASS[rock.status]}`}>
+            <Chip size="sm" variant="soft" color={STATUS_COLOR[rock.status]} className="shrink-0">
               {STATUS_LABEL[rock.status]}
-            </span>
+            </Chip>
           </div>
 
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
@@ -124,8 +124,7 @@ export function RockCard({
             <ul className="mt-3 flex flex-col gap-1.5">
               {milestones.map((m) => (
                 <li key={m.id} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
+                  <AppCheckbox
                     checked={m.done}
                     onChange={(e) =>
                       startTransition(() =>
@@ -136,11 +135,11 @@ export function RockCard({
                   <span className={m.done ? "text-muted line-through" : ""}>
                     {m.title}
                   </span>
-                  <input
+                  <Input
                     type="date"
                     aria-label={`Fecha del hito ${m.title}`}
                     title="Fecha del hito"
-                    className={`ml-auto rounded border border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-primary ${
+                    className={`shadow-none ml-auto rounded border border-transparent bg-transparent px-1 text-xs hover:border-border focus:border-primary ${
                       !m.done && m.due_date && m.due_date < today
                         ? "font-semibold text-red"
                         : "text-muted"
@@ -152,12 +151,12 @@ export function RockCard({
                       )
                     }
                   />
-                  <button
+                  <Button size="sm" variant="ghost"
                     className="text-xs text-red"
-                    onClick={() => startTransition(() => deleteMilestoneAction(m.id))}
+                    onPress={() => startTransition(() => deleteMilestoneAction(m.id))}
                   >
                     ✕
-                  </button>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -174,62 +173,70 @@ export function RockCard({
               setMilestoneDate("");
             }}
           >
-            <input
-              className="eos-input min-w-0 flex-1 text-sm"
+            <Input fullWidth
+              className="min-w-0 flex-1 text-sm"
               placeholder="+ Agregar hito"
               value={milestoneInput}
               onChange={(e) => setMilestoneInput(e.target.value)}
             />
-            <input
+            <Input fullWidth
               type="date"
               aria-label="Fecha del nuevo hito"
-              className="eos-input shrink-0 text-sm"
+              className="shrink-0 text-sm"
               style={{ width: "9.5rem" }}
               value={milestoneDate}
               onChange={(e) => setMilestoneDate(e.target.value)}
             />
-            <button type="submit" className="eos-btn eos-btn-secondary text-xs">
+            <Button variant="outline" size="sm" type="submit">
               Agregar
-            </button>
+            </Button>
           </form>
 
           <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3 text-xs">
             <span className="text-muted">Estado:</span>
-            {(["on_track", "off_track", "done"] as RockStatus[]).map((s) => (
-              <button
-                key={s}
-                className={`eos-badge ${
-                  rock.status === s ? STATUS_CLASS[s] : "bg-background text-muted"
-                }`}
-                onClick={() => startTransition(() => updateRockStatusAction(rock.id, s))}
-              >
-                {STATUS_LABEL[s]}
-              </button>
-            ))}
+            <ToggleButtonGroup
+              aria-label="Estado de la roca"
+              size="sm"
+              disallowEmptySelection
+              selectedKeys={[rock.status]}
+              onSelectionChange={(keys) => {
+                const s = [...keys][0] as RockStatus | undefined;
+                if (s && s !== rock.status) startTransition(() => updateRockStatusAction(rock.id, s));
+              }}
+            >
+              {(["on_track", "off_track", "done"] as RockStatus[]).map((s, i) => (
+                <ToggleButton key={s} id={s}>
+                  {i > 0 && <ToggleButtonGroup.Separator />}
+                  {STATUS_LABEL[s]}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
             {onRaiseIssue && (
-              <button type="button" className="ml-auto rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg" onClick={onRaiseIssue}>
+              <Button size="sm" variant="outline" type="button" className="ml-auto text-[11px] text-red h-6 px-2" onPress={onRaiseIssue}>
                 → Issue
-              </button>
+              </Button>
             )}
-            <button
-              className={`${onRaiseIssue ? "" : "ml-auto "}font-medium text-primary underline`}
-              onClick={() => setEditing(true)}
+            <Button
+              size="sm"
+              variant="ghost"
+              className={`${onRaiseIssue ? "" : "ml-auto "}text-primary`}
+              onPress={() => setEditing(true)}
             >
               Editar
-            </button>
-            <button
-              className="font-medium text-red underline"
-              onClick={async () => {
+            </Button>
+            <Button size="sm" variant="ghost"
+              className="text-red"
+              onPress={async () => {
                 if (confirm(`¿Eliminar el rock "${rock.title}"?`)) {
                   await deleteRockAction(rock.id);
                 }
               }}
             >
               Eliminar
-            </button>
+            </Button>
           </div>
         </>
       )}
-    </div>
+    </Card>
   );
 }

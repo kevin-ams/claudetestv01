@@ -29,6 +29,14 @@ export function budgetTone(spent: number | null, goal: number): Tone {
   return "red";
 }
 
+/** Color de Chip (HeroUI) para cada semáforo. */
+export const TONE_CHIP: Record<Tone, "success" | "warning" | "danger" | "default"> = {
+  green: "success",
+  yellow: "warning",
+  red: "danger",
+  none: "default",
+};
+
 export const TONE_CLASS: Record<Tone, string> = {
   green: "bg-green-bg text-green",
   yellow: "bg-yellow-bg text-yellow",

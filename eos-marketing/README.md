@@ -50,11 +50,25 @@ estaba corriendo.
 
 ## Interfaz (HeroUI v3)
 
-Los componentes nuevos usan [HeroUI v3](https://heroui.com) (`@heroui/react`, Tailwind 4 +
-React Aria). Sus estilos se cargan en `src/app/globals.css` después de Tailwind, con el tema
-mapeado a los colores de la app (azul `#234c6a`, tema claro fijo). Las clases propias de la
-app llevan el prefijo `eos-` (`eos-card`, `eos-btn`, `eos-input`, `eos-badge`) para no chocar
-con las de HeroUI. Ya usan HeroUI: inicio de sesión y el índice de Ajustes.
+Toda la interfaz usa [HeroUI v3](https://heroui.com) (`@heroui/react`, Tailwind 4 + React
+Aria): botones, campos, selects, casillas, chips, tarjetas, pestañas, ventanas (Modal/Drawer),
+tooltips y barras de progreso. Íconos: `@gravity-ui/icons`. Los estilos de HeroUI se cargan en
+`src/app/globals.css` después de Tailwind, con el tema mapeado a los colores de la app.
+
+- `src/components/ui/select.tsx` (`AppSelect`) y `checkbox.tsx` (`AppCheckbox`): Select y
+  Checkbox de HeroUI con la misma forma de uso que los elementos nativos (`<option>` como hijos,
+  `name` para formularios, `onChange={(e) => e.target.value}`).
+- `src/components/ui/segmented.tsx`: control segmentado (ToggleButtonGroup).
+
+**Modo claro / oscuro:** cada persona elige Claro, Oscuro o Sistema (botón ☀/☾ de la barra
+superior o Ajustes › Apariencia). Se guarda en la cookie `eos-theme`; un script en el `<head>`
+lo aplica antes de pintar. Los colores oscuros están en `globals.css` (`.dark`).
+
+**Color del template:** Ajustes › Apariencia (solo administradores) guarda `teams.theme_color`
+(migración `008`). El layout lo inyecta como `--brand`; para el modo oscuro se calcula una
+versión más clara y el color de texto con mejor contraste (`src/lib/theme.ts`).
+
+**Moneda:** todos los montos se muestran en dólares (US$), p. ej. `$1,234.56`.
 
 Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el servidor MCP
 `heroui-react` en `.mcp.json` (raíz del repo); Claude Code pide aprobarlo la primera vez.
@@ -83,7 +97,7 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   costo por lead por semana; leads por responsable y por programa; tendencia de un
   indicador del Scorecard contra su meta; y carreras más lejos de su meta. Filtros por
   rango de fechas, programa, responsable, nivel y carrera; cada gráfica tiene vista en tabla.
-- **Ajustes** (`/ajustes`): índice de configuraciones.
+- **Ajustes** (`/ajustes`): índice de configuraciones (Equipo, Apariencia, Hitos, Anuncios, Demo, Diagnóstico, Exportar).
   - **Equipo** (`/ajustes/equipo`): personas, accesos y nombre del equipo.
   - **Hitos de Control de carrera** (`/ajustes/hitos`, administradores): editar, renombrar,
     eliminar, agregar y reordenar hitos; etapa, duración, dependencias y lanzamiento.

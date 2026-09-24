@@ -1,5 +1,8 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Button, Card, Chip, Input, TextArea } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { buildPlan, CONTROL_STAGES, type ControlPlan, type StageKey } from "@/lib/domain/career-control";
@@ -66,22 +69,21 @@ function MilestoneEditor({
       <div className="grid gap-2 sm:grid-cols-[1fr_180px_110px]">
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
           Nombre
-          <input className="eos-input" required value={label} onChange={(e) => setLabel(e.target.value)} />
+          <Input fullWidth required value={label} onChange={(e) => setLabel(e.target.value)} />
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
           Etapa
-          <select className="eos-input" value={stage} onChange={(e) => setStage(e.target.value as StageKey)}>
+          <AppSelect fullWidth value={stage} onChange={(e) => setStage(e.target.value as StageKey)}>
             {CONTROL_STAGES.map((s) => (
               <option key={s.key} value={s.key}>
                 {s.label}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
           Duración (días)
-          <input
-            className="eos-input"
+          <Input fullWidth
             type="number"
             min={0}
             max={365}
@@ -93,11 +95,11 @@ function MilestoneEditor({
       </div>
       <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
         Subacciones principales
-        <textarea className="eos-input min-h-16" value={actions} onChange={(e) => setActions(e.target.value)} />
+        <TextArea fullWidth className="min-h-16" value={actions} onChange={(e) => setActions(e.target.value)} />
       </label>
       <label className="flex flex-col gap-1 text-xs font-semibold text-muted">
         Se considera completo cuando…
-        <textarea className="eos-input min-h-12" value={doneWhen} onChange={(e) => setDoneWhen(e.target.value)} />
+        <TextArea fullWidth className="min-h-12" value={doneWhen} onChange={(e) => setDoneWhen(e.target.value)} />
       </label>
       <fieldset className="flex flex-col gap-1">
         <legend className="mb-1 text-xs font-semibold text-muted">
@@ -108,35 +110,34 @@ function MilestoneEditor({
         ) : (
           <div className="flex flex-wrap gap-x-4 gap-y-1">
             {candidates.map((c) => (
-              <label key={c.key} className="flex items-center gap-1.5 text-sm">
-                <input
-                  type="checkbox"
-                  checked={deps.has(c.key)}
-                  onChange={(e) => {
-                    const next = new Set(deps);
-                    if (e.target.checked) next.add(c.key);
-                    else next.delete(c.key);
-                    setDeps(next);
-                  }}
-                />
+              <AppCheckbox
+                key={c.key}
+                checked={deps.has(c.key)}
+                onChange={(e) => {
+                  const next = new Set(deps);
+                  if (e.target.checked) next.add(c.key);
+                  else next.delete(c.key);
+                  setDeps(next);
+                }}
+                className="flex items-center gap-1.5 text-sm"
+              >
                 {plan.milestones.indexOf(c) + 1}. {c.label}
-              </label>
+              </AppCheckbox>
             ))}
           </div>
         )}
       </fieldset>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={isLaunch} onChange={(e) => setIsLaunch(e.target.checked)} />
+      <AppCheckbox checked={isLaunch} onChange={(e) => setIsLaunch(e.target.checked)} className="flex items-center gap-2 text-sm">
         Este hito marca la fecha de <b>lanzamiento</b>
-      </label>
+      </AppCheckbox>
       {result && !result.ok && <p className="text-sm text-red">{result.message}</p>}
       <div className="flex gap-2">
-        <button type="submit" className="eos-btn eos-btn-primary text-xs" disabled={pending}>
+        <Button variant="primary" size="sm" type="submit" isDisabled={pending}>
           {pending ? "Guardando..." : "Guardar hito"}
-        </button>
-        <button type="button" className="eos-btn eos-btn-secondary text-xs" onClick={onClose}>
+        </Button>
+        <Button variant="outline" size="sm" type="button" onPress={onClose}>
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -159,16 +160,16 @@ function AddMilestoneForm({ stage }: { stage: StageKey }) {
         });
       }}
     >
-      <input
-        className="eos-input text-sm"
+      <Input fullWidth
+        className="text-sm"
         placeholder="+ Nuevo hito en esta etapa"
         value={label}
         onChange={(e) => setLabel(e.target.value)}
         aria-label={`Nuevo hito en ${stage}`}
       />
-      <button type="submit" className="eos-btn eos-btn-secondary text-xs" disabled={pending}>
+      <Button variant="outline" size="sm" type="submit" isDisabled={pending}>
         Agregar
-      </button>
+      </Button>
     </form>
   );
 }
@@ -196,7 +197,7 @@ export function MilestoneSettings({
 
   return (
     <div className={`flex flex-col gap-4 ${pending ? "opacity-70" : ""}`}>
-      <div className="eos-card grid gap-3 p-4 sm:grid-cols-3">
+      <Card className="grid gap-3 p-4 sm:grid-cols-3">
         <div>
           <p className="text-xs font-semibold uppercase text-muted">Hitos</p>
           <p className="text-2xl font-bold">{milestones.length}</p>
@@ -219,7 +220,7 @@ export function MilestoneSettings({
             .map((m) => m.label)
             .join(" → ") || "—"}
         </p>
-      </div>
+      </Card>
 
       {!canEdit && (
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
@@ -256,10 +257,10 @@ export function MilestoneSettings({
                           <p className="font-semibold">
                             {m.label}
                             {plan.critical.has(m.key) && (
-                              <span className="ml-2 eos-badge bg-red-bg text-red">Ruta crítica</span>
+                              <Chip size="sm" color="danger" variant="soft" className="ml-2">Ruta crítica</Chip>
                             )}
                             {plan.launchKey === m.key && (
-                              <span className="ml-2 eos-badge bg-primary/10 text-primary">Lanzamiento</span>
+                              <Chip size="sm" color="accent" variant="soft" className="ml-2">Lanzamiento</Chip>
                             )}
                           </p>
                           <p className="text-xs text-muted">
@@ -274,31 +275,31 @@ export function MilestoneSettings({
                         </div>
                         {canEdit && (
                           <div className="flex items-center gap-1 text-sm">
-                            <button
-                              className="rounded px-1.5 text-muted hover:bg-background disabled:opacity-30"
+                            <Button size="sm" variant="ghost"
+                              className="text-muted"
                               aria-label={`Subir ${m.label}`}
-                              disabled={i === 0}
-                              onClick={() => run(() => moveMilestoneAction(original.id, -1))}
+                              isDisabled={i === 0}
+                              onPress={() => run(() => moveMilestoneAction(original.id, -1))}
                             >
                               ↑
-                            </button>
-                            <button
-                              className="rounded px-1.5 text-muted hover:bg-background disabled:opacity-30"
+                            </Button>
+                            <Button size="sm" variant="ghost"
+                              className="text-muted"
                               aria-label={`Bajar ${m.label}`}
-                              disabled={i === items.length - 1}
-                              onClick={() => run(() => moveMilestoneAction(original.id, 1))}
+                              isDisabled={i === items.length - 1}
+                              onPress={() => run(() => moveMilestoneAction(original.id, 1))}
                             >
                               ↓
-                            </button>
-                            <button
-                              className="px-1.5 text-xs font-medium text-primary underline"
-                              onClick={() => setEditing(original.id)}
+                            </Button>
+                            <Button size="sm" variant="ghost"
+                              className="text-xs text-primary"
+                              onPress={() => setEditing(original.id)}
                             >
                               Editar
-                            </button>
-                            <button
-                              className="px-1.5 text-xs font-medium text-red underline"
-                              onClick={() => {
+                            </Button>
+                            <Button size="sm" variant="ghost"
+                              className="text-xs text-red"
+                              onPress={() => {
                                 const done = completions[m.key] ?? 0;
                                 const warning = done
                                   ? `\n\n${done} carrera(s) lo tienen completado; ese avance se borra.`
@@ -309,7 +310,7 @@ export function MilestoneSettings({
                               }}
                             >
                               Eliminar
-                            </button>
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -324,9 +325,9 @@ export function MilestoneSettings({
       })}
 
       {canEdit && (
-        <button
-          className="eos-btn eos-btn-secondary self-start text-xs"
-          onClick={() => {
+        <Button variant="outline" size="sm"
+          className="self-start"
+          onPress={() => {
             if (
               confirm(
                 "¿Restaurar los 12 hitos predeterminados? Se pierden los cambios y el avance de los hitos agregados."
@@ -337,7 +338,7 @@ export function MilestoneSettings({
           }}
         >
           Restaurar hitos predeterminados
-        </button>
+        </Button>
       )}
     </div>
   );

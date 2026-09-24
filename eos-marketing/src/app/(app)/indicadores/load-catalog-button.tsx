@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@heroui/react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { loadCareerCatalogAction, type ActionResult } from "./actions";
@@ -11,10 +12,9 @@ export function LoadCatalogButton() {
 
   return (
     <div className="flex flex-col items-start gap-2">
-      <button
-        className="eos-btn eos-btn-primary"
-        disabled={pending}
-        onClick={() =>
+      <Button variant="primary"
+        isDisabled={pending}
+        onPress={() =>
           startTransition(async () => {
             setResult(await loadCareerCatalogAction());
             router.refresh();
@@ -22,7 +22,7 @@ export function LoadCatalogButton() {
         }
       >
         {pending ? "Cargando..." : "Cargar las 117 carreras del equipo de marketing"}
-      </button>
+      </Button>
       {result && <p className={`text-sm ${result.ok ? "text-green" : "text-red"}`}>{result.message}</p>}
     </div>
   );

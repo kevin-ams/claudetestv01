@@ -1,3 +1,4 @@
+import { Button, Card, Chip, Input } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { listTeamMembersDetailed } from "@/lib/domain/users";
 import { getTeam } from "@/lib/domain/teams";
@@ -22,20 +23,20 @@ export default async function TeamSettingsPage() {
       </div>
 
       {session.role === "admin" && (
-        <form action={renameTeamAction} className="eos-card mb-6 flex items-center gap-2 p-4">
-          <input
+        <form action={renameTeamAction} className="card card--default mb-6 flex flex-row items-center gap-2 p-4">
+          <Input fullWidth
             name="name"
             defaultValue={team?.name}
-            className="eos-input flex-1"
+            className="flex-1"
             placeholder="Nombre del equipo"
           />
-          <button type="submit" className="eos-btn eos-btn-secondary">
+          <Button variant="outline" type="submit">
             Guardar
-          </button>
+          </Button>
         </form>
       )}
 
-      <div className="eos-card mb-6 p-4">
+      <Card className="block gap-0 mb-6 p-4">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           Miembros ({members.length})
         </h2>
@@ -56,22 +57,22 @@ export default async function TeamSettingsPage() {
                 {session.role === "admin" && m.id !== session.userId && (
                   <EditAccessForm userId={m.id} name={m.name} email={m.email} />
                 )}
-                <span className="eos-badge bg-background text-muted">
+                <Chip size="sm" variant="soft">
                   {m.role === "admin" ? "Admin" : "Miembro"}
-                </span>
+                </Chip>
               </div>
             </li>
           ))}
         </ul>
-      </div>
+      </Card>
 
       {session.role === "admin" ? (
-        <div className="eos-card p-4">
+        <Card className="block gap-0 p-4">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
             Agregar persona
           </h2>
           <AddTeammateForm />
-        </div>
+        </Card>
       ) : (
         <p className="text-sm text-muted">
           Solo un administrador puede agregar nuevas personas al equipo.

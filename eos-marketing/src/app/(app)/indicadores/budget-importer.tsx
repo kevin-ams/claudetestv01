@@ -1,5 +1,8 @@
 "use client";
 
+import { buttonVariants } from "@heroui/styles";
+import { Button, Card, CloseButton, Input } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Career } from "@/lib/domain/types";
@@ -109,8 +112,7 @@ export function BudgetImporter({
   const colSelect = (kind: ColumnKind, label: string, optional = false) => (
     <label className="flex flex-col gap-1 text-xs font-medium text-muted">
       {label}
-      <select
-        className="eos-input"
+      <AppSelect fullWidth
         value={cols[kind]}
         onChange={(e) => setCols({ ...cols, [kind]: Number(e.target.value) })}
       >
@@ -120,12 +122,12 @@ export function BudgetImporter({
             {h || `Columna ${i + 1}`}
           </option>
         ))}
-      </select>
+      </AppSelect>
     </label>
   );
 
   return (
-    <div className="eos-card flex flex-col gap-4 p-4">
+    <Card className="flex flex-col gap-4 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-bold">Importar consumo semanal (CSV de Meta)</h2>
@@ -136,20 +138,23 @@ export function BudgetImporter({
             que no se reconozcan las puedes asignar a mano y el sistema las recordará.
           </p>
         </div>
-        <button className="text-sm text-muted" onClick={onClose} aria-label="Cerrar importador">
-          ✕
-        </button>
+        <CloseButton onPress={onClose} aria-label="Cerrar importador" />
       </div>
 
-      <input
-        type="file"
-        accept=".csv,text/csv"
-        className="text-sm"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) void onFile(file);
-        }}
-      />
+      <label className={`${buttonVariants({ variant: "outline" })} cursor-pointer self-start`}>
+        {parsed ? `Archivo: ${parsed.fileName} · elegir otro` : "Elegir archivo CSV"}
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          className="sr-only"
+          aria-label="Archivo CSV de Meta"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            e.target.value = "";
+            if (file) void onFile(file);
+          }}
+        />
+      </label>
 
       {parsed && (
         <>
@@ -159,19 +164,18 @@ export function BudgetImporter({
             {colSelect("code", "Código de carrera", true)}
             <label className="flex flex-col gap-1 text-xs font-medium text-muted">
               Semana (lunes)
-              <input
+              <Input fullWidth
                 type="date"
-                className="eos-input"
                 value={targetWeek}
                 onChange={(e) => e.target.value && setTargetWeek(shiftWeek(e.target.value, 0))}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs font-medium text-muted">
               Si ya hay consumo esa semana
-              <select className="eos-input" value={mode} onChange={(e) => setMode(e.target.value as "replace" | "add")}>
+              <AppSelect fullWidth value={mode} onChange={(e) => setMode(e.target.value as "replace" | "add")}>
                 <option value="replace">Reemplazarlo</option>
                 <option value="add">Sumarlo</option>
-              </select>
+              </AppSelect>
             </label>
           </div>
 
@@ -200,8 +204,8 @@ export function BudgetImporter({
                         {skip ? (
                           <span className="text-xs">Se omite</span>
                         ) : (
-                          <select
-                            className="eos-input py-1 text-xs"
+                          <AppSelect fullWidth
+                            className="py-1 text-xs"
                             value={l.careerId === null ? IGNORE : String(l.careerId)}
                             onChange={(e) => setOverrides({ ...overrides, [l.i]: e.target.value })}
                           >
@@ -211,7 +215,7 @@ export function BudgetImporter({
                                 {careerLabel(c)}
                               </option>
                             ))}
-                          </select>
+                          </AppSelect>
                         )}
                       </td>
                     </tr>
@@ -226,18 +230,18 @@ export function BudgetImporter({
               <b>{assigned.length}</b> de {usable.length} filas asignadas · {careersTouched} carreras ·
               total <b>{money(total)}</b>
             </p>
-            <button
-              className="eos-btn eos-btn-primary ml-auto"
-              disabled={pending || assigned.length === 0 || cols.spend === -1}
-              onClick={submit}
+            <Button variant="primary"
+              className="ml-auto"
+              isDisabled={pending || assigned.length === 0 || cols.spend === -1}
+              onPress={submit}
             >
               {pending ? "Importando..." : `Importar a la semana del ${targetWeek}`}
-            </button>
+            </Button>
           </div>
         </>
       )}
 
       {result && <p className={`text-sm ${result.ok ? "text-green" : "text-red"}`}>{result.message}</p>}
-    </div>
+    </Card>
   );
 }

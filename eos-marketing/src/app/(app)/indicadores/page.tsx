@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { listAliases, listCareers, listRecentImports, listWeekly, weeklyGoals } from "@/lib/domain/careers";
 import { mergeWeekly, money, num } from "@/lib/domain/careers-shared";
@@ -55,19 +56,19 @@ export default async function IndicadoresPage({
       />
 
       {careers.length === 0 ? (
-        <div className="eos-card flex flex-col gap-3 p-6">
+        <Card className="flex flex-col gap-3 p-6">
           <p className="text-sm text-muted">
             Este equipo todavía no tiene carreras. Carga el catálogo del equipo de marketing
             (carreras, responsables y el Rock de Kevin) o agrégalas una por una con &quot;+ Carrera&quot;.
           </p>
           <LoadCatalogButton />
-        </div>
+        </Card>
       ) : (
         <CareerBoard rows={rows} members={members} week={week} />
       )}
 
       {imports.length > 0 && (
-        <div className="eos-card p-4">
+        <Card className="block gap-0 p-4">
           <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-muted">Últimas actualizaciones</h2>
           <ul className="flex flex-col gap-1 text-sm">
             {imports.map((imp) => (
@@ -87,7 +88,7 @@ export default async function IndicadoresPage({
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
     </div>
   );

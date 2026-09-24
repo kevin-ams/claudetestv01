@@ -1,5 +1,7 @@
 "use client";
 
+import { Button, Input, TextArea } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState } from "react";
 import type { PublicUser } from "@/lib/domain/types";
 import { createIssueAction } from "./actions";
@@ -9,9 +11,9 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
 
   if (!open) {
     return (
-      <button className="eos-btn eos-btn-primary" onClick={() => setOpen(true)}>
+      <Button variant="primary" onPress={() => setOpen(true)}>
         + Nuevo Issue
-      </button>
+      </Button>
     );
   }
 
@@ -21,32 +23,32 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
         await createIssueAction(fd);
         setOpen(false);
       }}
-      className="eos-card flex max-w-xl flex-col gap-2 p-4"
+      className="card card--default flex max-w-xl flex-col gap-2 p-4"
     >
-      <input name="title" required className="eos-input" placeholder="Título del issue" />
-      <textarea name="description" className="eos-input min-h-16" placeholder="Detalle (opcional)" />
+      <Input fullWidth name="title" required placeholder="Título del issue" />
+      <TextArea fullWidth name="description" className="min-h-16" placeholder="Detalle (opcional)" />
       <div className="flex gap-2">
-        <select name="ownerId" defaultValue="none" className="eos-input">
+        <AppSelect fullWidth name="ownerId" defaultValue="none">
           <option value="none">Sin dueño</option>
           {members.map((m) => (
             <option key={m.id} value={m.id}>
               {m.name}
             </option>
           ))}
-        </select>
-        <select name="term" defaultValue="short_term" className="eos-input">
+        </AppSelect>
+        <AppSelect fullWidth name="term" defaultValue="short_term">
           <option value="short_term">Corto plazo</option>
           <option value="long_term">Largo plazo</option>
-        </select>
-        <input type="date" name="dueDate" className="eos-input" aria-label="Fecha" title="Fecha específica (opcional)" />
+        </AppSelect>
+        <Input fullWidth type="date" name="dueDate" aria-label="Fecha" title="Fecha específica (opcional)" />
       </div>
       <div className="flex gap-2">
-        <button type="submit" className="eos-btn eos-btn-primary">
+        <Button variant="primary" type="submit">
           Agregar
-        </button>
-        <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setOpen(false)}>
+        </Button>
+        <Button variant="outline" type="button" onPress={() => setOpen(false)}>
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );

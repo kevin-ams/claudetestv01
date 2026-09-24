@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import type { PublicUser } from "@/lib/domain/types";
 import type { TrackRow } from "@/lib/domain/career-tracks";
 import { shortDate, stageInfo, type ControlPlan, type TrackSummary } from "@/lib/domain/career-control";
@@ -20,25 +21,26 @@ export function StatusToggle({
   onChange: (status: TrackRow["status"]) => void;
 }) {
   return (
-    <span className="inline-flex overflow-hidden rounded-md border border-border text-[11px] font-semibold">
-      {(
-        [
-          ["on_track", "On track", "bg-green text-white"],
-          ["off_track", "Off track", "bg-red text-white"],
-        ] as const
-      ).map(([key, label, active]) => (
-        <button
-          key={key}
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (status !== key) onChange(key);
-          }}
-          className={`px-2 py-0.5 ${status === key ? active : "bg-card text-muted hover:bg-background"}`}
-        >
-          {label}
-        </button>
-      ))}
+    // El contenedor frena el clic para no abrir la tarjeta al cambiar el estado.
+    <span onClick={(e) => e.stopPropagation()}>
+      <ToggleButtonGroup
+        aria-label="On track u off track"
+        size="sm"
+        disallowEmptySelection
+        selectedKeys={[status]}
+        onSelectionChange={(keys) => {
+          const key = [...keys][0] as TrackRow["status"] | undefined;
+          if (key && key !== status) onChange(key);
+        }}
+      >
+        <ToggleButton id="on_track" className="h-6 px-2 text-[11px] data-[selected=true]:bg-success data-[selected=true]:text-success-foreground">
+          On track
+        </ToggleButton>
+        <ToggleButton id="off_track" className="h-6 px-2 text-[11px] data-[selected=true]:bg-danger data-[selected=true]:text-danger-foreground">
+          <ToggleButtonGroup.Separator />
+          Off track
+        </ToggleButton>
+      </ToggleButtonGroup>
     </span>
   );
 }
@@ -150,33 +152,31 @@ export function TrackCard({
         </div>
 
         <div className="flex justify-between border-t border-border pt-1.5">
-          <button
-            type="button"
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
             aria-label="Mover al hito anterior"
-            className="rounded px-1.5 text-xs text-muted hover:bg-background disabled:opacity-30"
-            disabled={summary.doneCount === 0}
-            onClick={(e) => {
-              e.stopPropagation();
-              onStep(-1);
-            }}
+            className="h-6 w-6 text-xs text-muted"
+            isDisabled={summary.doneCount === 0}
+            onPress={() => onStep(-1)}
           >
             ◀
-          </button>
+          </Button>
           <span className="text-[10px] text-muted">
             {current ? `Hito ${currentIdx + 1}: ${plan.milestones[currentIdx].label}` : "Completado"}
           </span>
-          <button
-            type="button"
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
             aria-label="Marcar hito y avanzar"
-            className="rounded px-1.5 text-xs text-muted hover:bg-background disabled:opacity-30"
-            disabled={!current}
-            onClick={(e) => {
-              e.stopPropagation();
-              onStep(1);
-            }}
+            className="h-6 w-6 text-xs text-muted"
+            isDisabled={!current}
+            onPress={() => onStep(1)}
           >
             ▶
-          </button>
+          </Button>
         </div>
       </div>
     </div>

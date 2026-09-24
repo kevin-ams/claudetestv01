@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input, Tabs } from "@heroui/react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type {
@@ -44,8 +45,8 @@ function EditableCell({
   const [, startTransition] = useTransition();
 
   return (
-    <input
-      className={`w-16 rounded border border-transparent bg-transparent px-1 py-1 text-center text-sm outline-none focus:border-primary ${className}`}
+    <Input
+      className={`shadow-none w-16 rounded border border-transparent bg-transparent px-1 py-1 text-center text-sm outline-none focus:border-primary ${className}`}
       value={local}
       onChange={(e) => setLocal(e.target.value)}
       onBlur={() => {
@@ -75,8 +76,8 @@ function TargetCell({
   const [, startTransition] = useTransition();
 
   return (
-    <input
-      className="w-16 rounded border border-border bg-card px-1 py-1 text-center text-sm font-semibold outline-none focus:border-primary"
+    <Input
+      className="shadow-none w-16 rounded border border-border bg-card px-1 py-1 text-center text-sm font-semibold outline-none focus:border-primary"
       value={local}
       onChange={(e) => setLocal(e.target.value)}
       onBlur={() => {
@@ -120,22 +121,23 @@ export function ScorecardTable({
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {owners.map((o) => (
-          <button
-            key={o.id}
-            onClick={() => setActiveOwnerId(o.id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-              activeOwner.id === o.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted hover:text-foreground"
-            }`}
-          >
-            {o.name}
-            {o.is_rollup && " (rollup)"}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        className="mb-4"
+        selectedKey={String(activeOwner.id)}
+        onSelectionChange={(key) => setActiveOwnerId(Number(key))}
+      >
+        <Tabs.ListContainer>
+          <Tabs.List aria-label="Dueño del Scorecard">
+            {owners.map((o) => (
+              <Tabs.Tab key={o.id} id={String(o.id)}>
+                {o.name}
+                {o.is_rollup && " (rollup)"}
+                <Tabs.Indicator />
+              </Tabs.Tab>
+            ))}
+          </Tabs.List>
+        </Tabs.ListContainer>
+      </Tabs>
 
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full min-w-[900px] border-collapse text-sm">
@@ -172,13 +174,13 @@ export function ScorecardTable({
                       {m.direction === "higher_better" ? "Mayor mejor" : "Menor mejor"}
                     </p>
                     {onRaiseIssue && (
-                      <button
+                      <Button size="sm" variant="outline"
                         type="button"
-                        className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
-                        onClick={() => onRaiseIssue(m, activeOwner.name)}
+                        className="text-[11px] text-red h-6 px-2"
+                        onPress={() => onRaiseIssue(m, activeOwner.name)}
                       >
                         → Issue
-                      </button>
+                      </Button>
                     )}
                   </td>
                   <td className="px-2 py-2 text-center">

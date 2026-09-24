@@ -1,5 +1,7 @@
 "use client";
 
+import { Button, Card, Input, TextArea } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState } from "react";
 import type { Seat } from "@/lib/domain/types";
 import type { PublicUser } from "@/lib/domain/types";
@@ -23,10 +25,9 @@ function UserSelect({
   defaultValue?: number | null;
 }) {
   return (
-    <select
+    <AppSelect fullWidth
       name="userId"
       defaultValue={defaultValue ?? "none"}
-      className="eos-input"
     >
       <option value="none">Sin asignar</option>
       {members.map((m) => (
@@ -34,7 +35,7 @@ function UserSelect({
           {m.name}
         </option>
       ))}
-    </select>
+    </AppSelect>
   );
 }
 
@@ -62,27 +63,26 @@ function SeatForm({
       }}
       className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-3"
     >
-      <input
+      <Input fullWidth
         name="title"
         required
-        className="eos-input"
         placeholder="Nombre del asiento (ej. Visionario, Integrador, Ventas)"
         defaultValue={seat?.title}
       />
       <UserSelect members={members} defaultValue={seat?.user_id} />
-      <textarea
+      <TextArea fullWidth
         name="roles"
-        className="eos-input min-h-20"
+        className="min-h-20"
         placeholder={"Roles / responsabilidades, una por línea"}
         defaultValue={(seat?.roles ?? []).join("\n")}
       />
       <div className="flex gap-2">
-        <button type="submit" className="eos-btn eos-btn-primary">
+        <Button variant="primary" type="submit">
           Guardar
-        </button>
-        <button type="button" className="eos-btn eos-btn-secondary" onClick={onDone}>
+        </Button>
+        <Button variant="outline" type="button" onPress={onDone}>
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -103,7 +103,7 @@ function SeatNode({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="eos-card w-72 p-4 text-center">
+      <Card className="block gap-0 w-72 p-4 text-center">
         {editing ? (
           <SeatForm
             members={members}
@@ -123,32 +123,32 @@ function SeatNode({
               </ul>
             )}
             <div className="mt-3 flex justify-center gap-3 text-xs">
-              <button
-                className="font-medium text-primary underline"
-                onClick={() => setEditing(true)}
+              <Button size="sm" variant="ghost"
+                className="text-primary"
+                onPress={() => setEditing(true)}
               >
                 Editar
-              </button>
-              <button
-                className="font-medium text-primary underline"
-                onClick={() => setAddingChild((v) => !v)}
+              </Button>
+              <Button size="sm" variant="ghost"
+                className="text-primary"
+                onPress={() => setAddingChild((v) => !v)}
               >
                 + Asiento debajo
-              </button>
-              <button
-                className="font-medium text-red underline"
-                onClick={async () => {
+              </Button>
+              <Button size="sm" variant="ghost"
+                className="text-red"
+                onPress={async () => {
                   if (confirm(`¿Eliminar el asiento "${seat.title}"?`)) {
                     await deleteSeatAction(seat.id);
                   }
                 }}
               >
                 Eliminar
-              </button>
+              </Button>
             </div>
           </>
         )}
-      </div>
+      </Card>
 
       {addingChild && (
         <div className="mt-3 w-72">
@@ -178,9 +178,9 @@ export function SeatTree({ seats, members }: Props) {
   return (
     <div>
       <div className="mb-6 flex justify-end">
-        <button className="eos-btn eos-btn-secondary" onClick={() => setAddingRoot((v) => !v)}>
+        <Button variant="outline" onPress={() => setAddingRoot((v) => !v)}>
           + Agregar asiento raíz
-        </button>
+        </Button>
       </div>
 
       {addingRoot && (

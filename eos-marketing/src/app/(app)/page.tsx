@@ -1,3 +1,5 @@
+import { Chip } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { getActiveMeeting, listMeetings, listRecentHeadlines } from "@/lib/domain/meetings";
@@ -20,7 +22,7 @@ function StatCard({
   tone?: "red" | "green";
 }) {
   return (
-    <Link href={href} className="eos-card flex flex-col gap-1 p-5 hover:border-primary">
+    <Link href={href} className="card card--default flex flex-col gap-1 p-5 hover:border-primary">
       <span className="text-xs font-semibold uppercase tracking-wide text-muted">
         {label}
       </span>
@@ -94,14 +96,14 @@ export default async function DashboardPage() {
       {activeMeeting && (
         <Link
           href={`/meeting/${activeMeeting.id}`}
-          className="eos-card mb-6 flex items-center justify-between border-primary bg-primary/5 p-4"
+          className="card card--default gap-0 mb-6 flex flex-row items-center justify-between border-primary bg-primary/5 p-4"
         >
           <span className="font-medium">Hay una Reunión Level 10 en curso</span>
-          <span className="eos-btn eos-btn-primary">Continuar →</span>
+          <span className={buttonVariants({ variant: "primary" })}>Continuar →</span>
         </Link>
       )}
 
-      <section className="eos-card mb-6 p-5">
+      <section className="card card--default block gap-0 mb-6 p-5">
         <div className="mb-3 flex items-baseline justify-between gap-2">
           <h2 className="font-semibold">📣 Noticias</h2>
           <span className="text-xs text-muted">Compartidas en la Reunión L10</span>
@@ -114,11 +116,9 @@ export default async function DashboardPage() {
           <ul className="flex flex-col divide-y divide-border">
             {news.map((n) => (
               <li key={n.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
-                <span
-                  className={`eos-badge ${n.type === "customer" ? "bg-primary/10 text-primary" : "bg-green-bg text-green"}`}
-                >
+                <Chip size="sm" variant="soft" color={n.type === "customer" ? "accent" : "success"}>
                   {n.type === "customer" ? "Externa" : "Equipo"}
-                </span>
+                </Chip>
                 <span className="min-w-0 flex-1">{n.content}</span>
                 <span className="text-xs text-muted">
                   {n.author_name ?? "—"} ·{" "}
@@ -162,15 +162,15 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <Link href="/vto" className="eos-card p-5 hover:border-primary">
+        <Link href="/vto" className="card card--default block gap-0 p-5 hover:border-primary">
           <p className="font-semibold">V/TO</p>
           <p className="mt-1 text-sm text-muted">Tu visión y plan de tracción de una página.</p>
         </Link>
-        <Link href="/accountability" className="eos-card p-5 hover:border-primary">
+        <Link href="/accountability" className="card card--default block gap-0 p-5 hover:border-primary">
           <p className="font-semibold">Organigrama</p>
           <p className="mt-1 text-sm text-muted">Quién es dueño de qué en tu organización.</p>
         </Link>
-        <Link href="/meeting" className="eos-card p-5 hover:border-primary">
+        <Link href="/meeting" className="card card--default block gap-0 p-5 hover:border-primary">
           <p className="font-semibold">Reunión Level 10</p>
           <p className="mt-1 text-sm text-muted">Corre tu reunión semanal de 90 minutos.</p>
         </Link>

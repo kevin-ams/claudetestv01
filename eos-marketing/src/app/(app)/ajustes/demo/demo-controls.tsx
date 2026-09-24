@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@heroui/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/progress-bar";
@@ -79,30 +80,29 @@ export function DemoControls({
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         {!hasDemo && canEdit && (
-          <button className="eos-btn eos-btn-primary" disabled={busy} onClick={create}>
+          <Button variant="primary" isDisabled={busy} onPress={create}>
             Ver plataforma con información demo
-          </button>
+          </Button>
         )}
         {hasDemo && !inDemo && (
-          <button className="eos-btn eos-btn-primary" disabled={busy} onClick={enter}>
+          <Button variant="primary" isDisabled={busy} onPress={enter}>
             Ir a la demo
-          </button>
+          </Button>
         )}
         {hasDemo && canEdit && (
-          <button
-            className="eos-btn eos-btn-secondary"
-            disabled={busy}
-            onClick={() => {
+          <Button variant="outline"
+            isDisabled={busy}
+            onPress={() => {
               if (confirm("¿Regenerar la demo? Se borran los cambios hechos dentro de ella.")) void create();
             }}
           >
             Regenerar demo
-          </button>
+          </Button>
         )}
         {hasDemo && (
-          <button className="eos-btn eos-btn-danger" disabled={busy} onClick={stop}>
+          <Button variant="danger-soft" isDisabled={busy} onPress={stop}>
             Desactivar información demo
-          </button>
+          </Button>
         )}
       </div>
 

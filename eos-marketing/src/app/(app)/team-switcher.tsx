@@ -1,5 +1,6 @@
 "use client";
 
+import { AppSelect } from "@/components/ui/select";
 import { useTransition } from "react";
 import { switchTeamAction } from "@/lib/auth/actions";
 
@@ -13,11 +14,11 @@ export function TeamSwitcher({
 }) {
   const [pending, startTransition] = useTransition();
   return (
-    <select
+    <AppSelect
       value={currentTeamId}
       disabled={pending}
       aria-label="Cambiar de equipo"
-      className="eos-input ml-2 !w-auto text-xs"
+      className="ml-2 w-auto text-xs"
       onChange={(e) => {
         const teamId = Number(e.target.value);
         startTransition(() => switchTeamAction(teamId));
@@ -28,6 +29,6 @@ export function TeamSwitcher({
           {t.name}
         </option>
       ))}
-    </select>
+    </AppSelect>
   );
 }

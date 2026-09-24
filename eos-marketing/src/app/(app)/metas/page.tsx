@@ -35,7 +35,7 @@ export default async function MetasPage({
         </p>
       </div>
       {careers.length === 0 ? (
-        <p className="eos-card p-6 text-sm text-muted">Todavía no hay carreras. Agrégalas en Indicadores de carrera.</p>
+        <p className="card card--default block gap-0 p-6 text-sm text-muted">Todavía no hay carreras. Agrégalas en Indicadores de carrera.</p>
       ) : (
         <GoalsGrid year={year} months={months} careers={careers} goals={goals} members={members} />
       )}

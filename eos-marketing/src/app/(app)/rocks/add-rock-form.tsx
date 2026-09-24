@@ -1,5 +1,8 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Button, Input, TextArea } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState } from "react";
 import type { PublicUser } from "@/lib/domain/types";
 import { createRockAction } from "./actions";
@@ -17,9 +20,9 @@ export function AddRockForm({
 
   if (!open) {
     return (
-      <button className="eos-btn eos-btn-primary" onClick={() => setOpen(true)}>
+      <Button variant="primary" onPress={() => setOpen(true)}>
         + Nuevo Rock
-      </button>
+      </Button>
     );
   }
 
@@ -29,36 +32,35 @@ export function AddRockForm({
         await createRockAction(fd);
         setOpen(false);
       }}
-      className="eos-card flex w-full max-w-xl flex-col gap-2 p-4"
+      className="card card--default flex w-full max-w-xl flex-col gap-2 p-4"
     >
       <input type="hidden" name="quarter" value={quarter} />
       <input type="hidden" name="year" value={year} />
-      <input name="title" required className="eos-input" placeholder="Título del Rock" />
-      <textarea
+      <Input fullWidth name="title" required placeholder="Título del Rock" />
+      <TextArea fullWidth
         name="description"
-        className="eos-input min-h-16"
+        className="min-h-16"
         placeholder="Descripción / criterio de éxito"
       />
-      <select name="ownerId" defaultValue="none" className="eos-input">
+      <AppSelect fullWidth name="ownerId" defaultValue="none">
         <option value="none">Sin dueño</option>
         {members.map((m) => (
           <option key={m.id} value={m.id}>
             {m.name}
           </option>
         ))}
-      </select>
-      <input type="date" name="dueDate" className="eos-input" />
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="isCompanyRock" />
+      </AppSelect>
+      <Input fullWidth type="date" name="dueDate" />
+      <AppCheckbox name="isCompanyRock" className="flex items-center gap-2 text-sm">
         Rock de la empresa
-      </label>
+      </AppCheckbox>
       <div className="flex gap-2">
-        <button type="submit" className="eos-btn eos-btn-primary">
+        <Button variant="primary" type="submit">
           Crear Rock
-        </button>
-        <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setOpen(false)}>
+        </Button>
+        <Button variant="outline" type="button" onPress={() => setOpen(false)}>
           Cancelar
-        </button>
+        </Button>
       </div>
     </form>
   );

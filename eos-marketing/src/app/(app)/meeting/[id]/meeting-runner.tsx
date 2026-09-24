@@ -1,5 +1,8 @@
 "use client";
 
+import { Segmented } from "@/components/ui/segmented";
+import { Button, Card, Input } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -68,15 +71,15 @@ function HeadlinesPanel({
         <h4 className="mb-2 text-sm font-semibold">Noticias externas</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "customer").map((h) => (
-            <li key={h.id} className="eos-card flex items-start justify-between gap-2 p-2">
+            <li key={h.id} className="card card--default flex flex-row items-start justify-between gap-2 p-2">
               <span>{h.content}</span>
-              <button
+              <Button size="sm" variant="outline"
                 type="button"
-                className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
-                onClick={() => onRaiseIssue(h)}
+                className="shrink-0 text-[11px] text-red h-6 px-2"
+                onPress={() => onRaiseIssue(h)}
               >
                 → Issue
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -87,30 +90,29 @@ function HeadlinesPanel({
             setCustomer("");
           }}
         >
-          <input
-            className="eos-input"
+          <Input fullWidth
             value={customer}
             onChange={(e) => setCustomer(e.target.value)}
             placeholder="Nueva noticia externa (estudiantes, mercado, universidad)"
           />
-          <button type="submit" className="eos-btn eos-btn-secondary">
+          <Button variant="outline" type="submit">
             +
-          </button>
+          </Button>
         </form>
       </div>
       <div>
         <h4 className="mb-2 text-sm font-semibold">Noticias del equipo</h4>
         <ul className="mb-3 flex flex-col gap-1 text-sm">
           {headlines.filter((h) => h.type === "employee").map((h) => (
-            <li key={h.id} className="eos-card flex items-start justify-between gap-2 p-2">
+            <li key={h.id} className="card card--default flex flex-row items-start justify-between gap-2 p-2">
               <span>{h.content}</span>
-              <button
+              <Button size="sm" variant="outline"
                 type="button"
-                className="shrink-0 rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
-                onClick={() => onRaiseIssue(h)}
+                className="shrink-0 text-[11px] text-red h-6 px-2"
+                onPress={() => onRaiseIssue(h)}
               >
                 → Issue
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -121,15 +123,14 @@ function HeadlinesPanel({
             setEmployee("");
           }}
         >
-          <input
-            className="eos-input"
+          <Input fullWidth
             value={employee}
             onChange={(e) => setEmployee(e.target.value)}
             placeholder="Nueva noticia del equipo"
           />
-          <button type="submit" className="eos-btn eos-btn-secondary">
+          <Button variant="outline" type="submit">
             +
-          </button>
+          </Button>
         </form>
       </div>
     </div>
@@ -152,27 +153,21 @@ function RatingPanel({
       : null;
 
   return (
-    <div className="eos-card p-5">
+    <Card className="block gap-0 p-5">
       <h4 className="mb-2 font-semibold">Califica esta reunión (1-10)</h4>
-      <div className="flex flex-wrap gap-1.5">
-        {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-          <button
-            key={n}
-            className={`h-9 w-9 rounded-lg text-sm font-semibold ${
-              myRating === n
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted hover:bg-border"
-            }`}
-            onClick={() => rateMeetingAction(meetingId, n)}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        aria-label="Calificación"
+        detached
+        size="md"
+        className="flex-wrap"
+        options={Array.from({ length: 10 }, (_, i) => ({ id: i + 1, label: String(i + 1) }))}
+        value={myRating}
+        onChange={(n) => rateMeetingAction(meetingId, n)}
+      />
       <p className="mt-3 text-sm text-muted">
         {ratings.length} calificación(es){avg && ` · Promedio: ${avg}`}
       </p>
-    </div>
+    </Card>
   );
 }
 
@@ -238,7 +233,7 @@ export function MeetingRunner({
           Duró {formatClock(totalElapsed)} · Calificación promedio:{" "}
           {meeting.avg_rating ? Number(meeting.avg_rating).toFixed(1) : "-"}/10
         </p>
-        <Link href="/meeting" className="eos-btn eos-btn-primary mt-6 inline-flex">
+        <Link href="/meeting" className={`${buttonVariants({ variant: "primary" })} mt-6 inline-flex`}>
           Volver al historial
         </Link>
       </div>
@@ -272,7 +267,7 @@ export function MeetingRunner({
         ))}
       </div>
 
-      <div className="eos-card mb-6 flex flex-wrap items-center justify-between gap-4 p-5">
+      <Card className="mb-6 flex flex-row flex-wrap items-center justify-between gap-4 p-5">
         <div>
           <h2 className="text-xl font-bold">{segment.label}</h2>
           <p className="text-sm text-muted">{segment.description}</p>
@@ -286,30 +281,28 @@ export function MeetingRunner({
             {formatClock(remaining)}
           </span>
           {upcoming ? (
-            <button
-              className="eos-btn eos-btn-primary"
-              onClick={() => advanceSegmentAction(meeting.id, upcoming.key)}
+            <Button variant="primary"
+              onPress={() => advanceSegmentAction(meeting.id, upcoming.key)}
             >
               Siguiente: {upcoming.label} →
-            </button>
+            </Button>
           ) : (
-            <button
-              className="eos-btn eos-btn-primary"
-              onClick={() => completeMeetingAction(meeting.id)}
+            <Button variant="primary"
+              onPress={() => completeMeetingAction(meeting.id)}
             >
               Finalizar reunión ✓
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
 
       <QuickCreateBar onCreate={setDraft} />
       {toast && (
         <div className="mb-4 flex items-center justify-between gap-2 rounded-lg bg-green-bg px-3 py-2 text-sm text-green">
           <span>✓ {toast}</span>
-          <button className="underline" onClick={() => setToast(null)}>
+          <Button size="sm" variant="ghost" onPress={() => setToast(null)}>
             Cerrar
-          </button>
+          </Button>
         </div>
       )}
       {draft && (
@@ -328,11 +321,11 @@ export function MeetingRunner({
 
       <div className="mb-10">
         {segment.key === "segue" && (
-          <div className="eos-card p-6 text-sm text-muted">
+          <Card className="block gap-0 p-6 text-sm text-muted">
             Cada persona comparte una buena noticia personal y una del negocio.
             No hay datos que revisar en este segmento. Cuando terminen, avancen
             al Scorecard.
-          </div>
+          </Card>
         )}
 
         {segment.key === "scorecard" && (
@@ -449,10 +442,10 @@ export function MeetingRunner({
 
         {segment.key === "conclude" && (
           <div className="flex flex-col gap-4">
-            <div className="eos-card p-5 text-sm text-muted">
+            <Card className="block gap-0 p-5 text-sm text-muted">
               Recapitulen los nuevos to-dos y qué mensajes se deben cascadear al
               resto de la organización.
-            </div>
+            </Card>
             <RatingPanel meetingId={meeting.id} session={session} ratings={ratings} />
           </div>
         )}

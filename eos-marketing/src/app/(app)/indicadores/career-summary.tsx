@@ -1,3 +1,4 @@
+import { Button, Card, Chip } from "@heroui/react";
 import Link from "next/link";
 import type { PublicUser } from "@/lib/domain/types";
 import {
@@ -9,6 +10,7 @@ import {
   num,
   pct,
   totalsFor,
+  TONE_CHIP,
   TONE_CLASS,
   type CareerRow,
 } from "@/lib/domain/careers-shared";
@@ -117,17 +119,17 @@ export function GroupTable({
                   {num(leads)} / {num(t.leadsGoal)}
                 </td>
                 <td className="px-2 text-right">
-                  <span className={`eos-badge ${TONE_CLASS[leadsTone(leads, t.leadsGoal)]}`}>
+                  <Chip size="sm" variant="soft" color={TONE_CHIP[leadsTone(leads, t.leadsGoal)]}>
                     {pct(leads, t.leadsGoal)}
-                  </span>
+                  </Chip>
                 </td>
                 <td className="px-2 text-right tabular-nums">
                   {money(spent)} / {money(t.budgetGoal)}
                 </td>
                 <td className="px-2 text-right">
-                  <span className={`eos-badge ${TONE_CLASS[budgetTone(spent, t.budgetGoal)]}`}>
+                  <Chip size="sm" variant="soft" color={TONE_CHIP[budgetTone(spent, t.budgetGoal)]}>
                     {pct(spent, t.budgetGoal)}
-                  </span>
+                  </Chip>
                 </td>
                 <td className={`px-2 text-right ${t.leadsRed > 0 ? "font-semibold text-red" : "text-muted"}`}>
                   {t.leadsRed}
@@ -174,11 +176,11 @@ export function CareerSummary({
         </Link>
       </div>
       <SummaryTiles rows={rows} />
-      <div className="eos-card p-4">
+      <Card className="block gap-0 p-4">
         <GroupTable rows={rows} by="owner" members={members} />
-      </div>
+      </Card>
       {offTrack.length > 0 && (
-        <div className="eos-card p-4">
+        <Card className="block gap-0 p-4">
           <p className="mb-2 text-sm font-semibold">
             Carreras más lejos de su meta de leads (candidatas a Issue)
           </p>
@@ -196,15 +198,15 @@ export function CareerSummary({
                     {num(r.leads ?? 0)} / {num(r.leads_goal)}
                   </span>
                   {onRaiseIssue && (
-                    <button type="button" className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg" onClick={() => onRaiseIssue(r)}>
+                    <Button size="sm" variant="outline" type="button" className="text-[11px] text-red h-6 px-2" onPress={() => onRaiseIssue(r)}>
                       → Issue
-                    </button>
+                    </Button>
                   )}
                 </span>
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
     </section>
   );

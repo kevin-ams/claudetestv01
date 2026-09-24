@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@heroui/react";
 import { useEffect, useState } from "react";
 
 export type PopupAd = { slot: number; title: string; link_url: string; version: string };
@@ -10,33 +11,19 @@ export function adImageUrl(ad: Pick<PopupAd, "slot" | "version">) {
 
 /** Ventana con la imagen del anuncio. */
 export function AnnouncementModal({ ad, onClose }: { ad: PopupAd; onClose: () => void }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const image = (
     // eslint-disable-next-line @next/next/no-img-element -- imagen servida desde la base, tamaño variable
     <img src={adImageUrl(ad)} alt={ad.title || "Anuncio"} className="max-h-[75vh] w-auto max-w-full rounded-lg object-contain" />
   );
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={ad.title || "Anuncio"}
-    >
-      <div className="relative flex max-w-3xl flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
-        <button
-          onClick={onClose}
-          aria-label="Cerrar anuncio"
-          className="absolute -right-2 -top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card text-lg font-bold shadow-lg"
+    <Modal.Backdrop isOpen onOpenChange={(open) => !open && onClose()} className="z-[60]">
+      <Modal.Container size="lg">
+        <Modal.Dialog
+          aria-label={ad.title || "Anuncio"}
+          className="relative flex max-w-3xl flex-col items-center gap-3 overflow-visible bg-transparent p-0 shadow-none"
         >
-          ✕
-        </button>
+        <Modal.CloseTrigger aria-label="Cerrar anuncio" className="absolute -right-3 -top-3 z-10 bg-surface shadow-lg" />
         {ad.link_url ? (
           <a href={ad.link_url} target="_blank" rel="noreferrer">
             {image}
@@ -45,8 +32,9 @@ export function AnnouncementModal({ ad, onClose }: { ad: PopupAd; onClose: () =>
           image
         )}
         {ad.title && <p className="rounded-full bg-card px-4 py-1 text-sm font-semibold shadow">{ad.title}</p>}
-      </div>
-    </div>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
   );
 }
 

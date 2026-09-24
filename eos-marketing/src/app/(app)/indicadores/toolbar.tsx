@@ -1,5 +1,7 @@
 "use client";
 
+import { Button, Chip, Input, Tooltip } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -61,35 +63,39 @@ export function Toolbar({
         )}
 
         <div className="ml-auto flex flex-wrap gap-2">
-          <button
-            className="eos-btn eos-btn-secondary"
-            disabled={syncing}
-            title={acConfigured ? "Traer los leads de la semana desde ActiveCampaign" : "Integración pendiente de conectar"}
-            onClick={() =>
-              startSync(async () => {
-                setSyncResult(await syncActiveCampaignAction(week));
-                router.refresh();
-              })
-            }
-          >
-            {syncing ? "Actualizando..." : "↻ Actualizar leads desde ActiveCampaign"}
-            {!acConfigured && <span className="eos-badge bg-yellow-bg text-yellow">Pendiente</span>}
-          </button>
-          <button className="eos-btn eos-btn-secondary" onClick={() => setPanel(panel === "import" ? null : "import")}>
+          <Tooltip delay={300}>
+            <Button variant="outline"
+              className="h-auto min-h-9 max-w-full whitespace-normal py-1.5 text-left"
+              isDisabled={syncing}
+              onPress={() =>
+                startSync(async () => {
+                  setSyncResult(await syncActiveCampaignAction(week));
+                  router.refresh();
+                })
+              }
+            >
+              {syncing ? "Actualizando..." : "↻ Actualizar leads desde ActiveCampaign"}
+              {!acConfigured && <Chip size="sm" color="warning" variant="soft">Pendiente</Chip>}
+            </Button>
+            <Tooltip.Content>
+              <p>{acConfigured ? "Traer los leads de la semana desde ActiveCampaign" : "Integración pendiente de conectar"}</p>
+            </Tooltip.Content>
+          </Tooltip>
+          <Button variant="outline" onPress={() => setPanel(panel === "import" ? null : "import")}>
             ⇪ Importar consumo (CSV)
-          </button>
-          <button className="eos-btn eos-btn-primary" onClick={() => setPanel(panel === "add" ? null : "add")}>
+          </Button>
+          <Button variant="primary" onPress={() => setPanel(panel === "add" ? null : "add")}>
             + Carrera
-          </button>
+          </Button>
         </div>
       </div>
 
       {syncResult && (
         <div className={`rounded-lg px-3 py-2 text-sm ${syncResult.ok ? "bg-green-bg text-green" : "bg-yellow-bg text-yellow"}`}>
           {syncResult.message}
-          <button className="ml-3 underline" onClick={() => setSyncResult(null)}>
+          <Button size="sm" variant="ghost" className="ml-3" onPress={() => setSyncResult(null)}>
             Cerrar
-          </button>
+          </Button>
         </div>
       )}
 
@@ -104,36 +110,36 @@ export function Toolbar({
             setPanel(null);
             router.refresh();
           }}
-          className="eos-card grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6"
+          className="card card--default grid gap-2 p-4 sm:grid-cols-3 lg:grid-cols-6"
         >
-          <input name="program" list="new-career-programs" required className="eos-input" placeholder="Programa (ej. FISICC)" />
+          <Input fullWidth name="program" list="new-career-programs" required placeholder="Programa (ej. FISICC)" />
           <datalist id="new-career-programs">
             {programs.map((p) => (
               <option key={p} value={p} />
             ))}
           </datalist>
-          <input name="code" className="eos-input" placeholder="Código" />
-          <input name="name" required className="eos-input sm:col-span-2" placeholder="Nombre de la carrera" />
-          <select name="level" className="eos-input" defaultValue="Pregrado">
+          <Input fullWidth name="code" placeholder="Código" />
+          <Input fullWidth name="name" required className="sm:col-span-2" placeholder="Nombre de la carrera" />
+          <AppSelect fullWidth name="level" defaultValue="Pregrado">
             {CAREER_LEVELS.map((l) => (
               <option key={l}>{l}</option>
             ))}
-          </select>
-          <select name="ownerId" className="eos-input" defaultValue="none">
+          </AppSelect>
+          <AppSelect fullWidth name="ownerId" defaultValue="none">
             <option value="none">Sin responsable</option>
             {members.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.name}
               </option>
             ))}
-          </select>
+          </AppSelect>
           <div className="flex gap-2 sm:col-span-3 lg:col-span-6">
-            <button type="submit" className="eos-btn eos-btn-primary">
+            <Button variant="primary" type="submit">
               Agregar carrera
-            </button>
-            <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setPanel(null)}>
+            </Button>
+            <Button variant="outline" type="button" onPress={() => setPanel(null)}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </form>
       )}

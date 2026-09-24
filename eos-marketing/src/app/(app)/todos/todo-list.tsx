@@ -1,5 +1,8 @@
 "use client";
 
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Button, Chip, Input, TextArea } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
 import { useState, useTransition } from "react";
 import type { Todo, PublicUser } from "@/lib/domain/types";
 import { ClickUpButton } from "@/components/clickup-button";
@@ -21,14 +24,14 @@ function isOverdue(todo: Todo) {
 
 function OwnerSelect({ members, defaultValue }: { members: PublicUser[]; defaultValue: number | null }) {
   return (
-    <select name="ownerId" defaultValue={defaultValue ?? "none"} className="eos-input !w-auto">
+    <AppSelect name="ownerId" defaultValue={defaultValue ?? "none"} className="w-auto">
       <option value="none">Sin dueño</option>
       {members.map((m) => (
         <option key={m.id} value={m.id}>
           {m.name}
         </option>
       ))}
-    </select>
+    </AppSelect>
   );
 }
 
@@ -40,26 +43,26 @@ function AddTodoForm({ members }: { members: PublicUser[] }) {
         await createTodoAction(fd);
         setShowDescription(false);
       }}
-      className="eos-card flex flex-col gap-2 p-4"
+      className="card card--default flex flex-col gap-2 p-4"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <input name="title" required className="eos-input min-w-[200px] flex-1" placeholder="Nuevo to-do" />
+        <Input fullWidth name="title" required className="min-w-[200px] flex-1" placeholder="Nuevo to-do" />
         <OwnerSelect members={members} defaultValue={null} />
-        <input type="date" name="dueDate" className="eos-input !w-auto" aria-label="Fecha límite" />
-        <button type="submit" className="eos-btn eos-btn-primary">
+        <Input type="date" name="dueDate" className="w-auto" aria-label="Fecha límite" />
+        <Button variant="primary" type="submit">
           Agregar
-        </button>
+        </Button>
       </div>
       {showDescription ? (
-        <textarea name="description" className="eos-input min-h-16" placeholder="Descripción del to-do" autoFocus />
+        <TextArea fullWidth name="description" className="min-h-16" placeholder="Descripción del to-do" autoFocus />
       ) : (
-        <button
+        <Button size="sm" variant="ghost"
           type="button"
-          className="self-start text-xs font-medium text-primary underline"
-          onClick={() => setShowDescription(true)}
+          className="self-start text-xs text-primary"
+          onPress={() => setShowDescription(true)}
         >
           + Agregar descripción
-        </button>
+        </Button>
       )}
     </form>
   );
@@ -81,7 +84,7 @@ function TodoItem({
 
   if (editing) {
     return (
-      <li className="eos-card p-3">
+      <li className="card card--default block gap-0 p-3">
         <form
           action={async (fd) => {
             await updateTodoAction(todo.id, fd);
@@ -89,22 +92,22 @@ function TodoItem({
           }}
           className="flex flex-col gap-2"
         >
-          <input name="title" required className="eos-input" defaultValue={todo.title} />
-          <textarea
+          <Input fullWidth name="title" required defaultValue={todo.title} />
+          <TextArea fullWidth
             name="description"
-            className="eos-input min-h-20"
+            className="min-h-20"
             defaultValue={todo.description}
             placeholder="Descripción del to-do"
           />
           <div className="flex flex-wrap gap-2">
             <OwnerSelect members={members} defaultValue={todo.owner_id} />
-            <input type="date" name="dueDate" className="eos-input !w-auto" defaultValue={todo.due_date ?? ""} />
-            <button type="submit" className="eos-btn eos-btn-primary">
+            <Input type="date" name="dueDate" className="w-auto" defaultValue={todo.due_date ?? ""} />
+            <Button variant="primary" type="submit">
               Guardar
-            </button>
-            <button type="button" className="eos-btn eos-btn-secondary" onClick={() => setEditing(false)}>
+            </Button>
+            <Button variant="outline" type="button" onPress={() => setEditing(false)}>
               Cancelar
-            </button>
+            </Button>
           </div>
         </form>
       </li>
@@ -112,10 +115,10 @@ function TodoItem({
   }
 
   return (
-    <li className="eos-card flex items-start gap-3 p-3">
-      <input
-        type="checkbox"
-        className="mt-1"
+    <li className="card card--default flex flex-row items-start gap-3 p-3">
+      <AppCheckbox
+        className="mt-0.5"
+        aria-label={`Completar ${todo.title}`}
         onChange={(e) => startTransition(() => completeTodoAction(todo.id, e.target.checked))}
       />
       <div className="min-w-0 flex-1">
@@ -134,27 +137,27 @@ function TodoItem({
             onSend={() => sendTodoToClickUpAction(todo.id)}
           />
           {onRaiseIssue && (
-            <button
+            <Button size="sm" variant="outline"
               type="button"
-              className="rounded border border-border px-1.5 py-0.5 text-[11px] font-semibold text-red hover:bg-red-bg"
-              onClick={() => onRaiseIssue(todo)}
+              className="text-[11px] text-red h-6 px-2"
+              onPress={() => onRaiseIssue(todo)}
             >
               → Issue
-            </button>
+            </Button>
           )}
-          <button className="font-medium text-primary underline" onClick={() => setEditing(true)}>
+          <Button size="sm" variant="ghost" className="text-primary" onPress={() => setEditing(true)}>
             Editar
-          </button>
+          </Button>
         </div>
       </div>
-      {isOverdue(todo) && <span className="eos-badge bg-red-bg text-red">Vencido</span>}
-      <button
+      {isOverdue(todo) && <Chip size="sm" color="danger" variant="soft">Vencido</Chip>}
+      <Button size="sm" variant="ghost"
         className="text-xs text-red"
         aria-label={`Eliminar ${todo.title}`}
-        onClick={() => startTransition(() => deleteTodoAction(todo.id))}
+        onPress={() => startTransition(() => deleteTodoAction(todo.id))}
       >
         ✕
-      </button>
+      </Button>
     </li>
   );
 }
@@ -206,10 +209,10 @@ export function TodoList({
         </h2>
         <ul className="flex flex-col gap-2">
           {done.map((t) => (
-            <li key={t.id} className="eos-card flex items-center gap-3 p-3 opacity-70">
-              <input
-                type="checkbox"
+            <li key={t.id} className="card card--default flex flex-row items-center gap-3 p-3 opacity-70">
+              <AppCheckbox
                 defaultChecked
+                aria-label={`Reabrir ${t.title}`}
                 onChange={(e) => startTransition(() => completeTodoAction(t.id, e.target.checked))}
               />
               <p className="flex-1 font-medium line-through">{t.title}</p>
