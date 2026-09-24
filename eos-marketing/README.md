@@ -64,9 +64,20 @@ de administrador. Al terminar el setup se cargan automáticamente:
   tarjetas se arrastran entre hitos, llevan etiquetas, responsable y estado on/off track.
   Ruta crítica (CPM) con duraciones y dependencias por hito: fechas planeadas, holgura,
   hitos atrasados y fecha de lanzamiento prevista.
-- **Ajustes** (`/ajustes`, solo administradores): editar, renombrar, eliminar, agregar y
-  reordenar los hitos de Control de carrera; cambiar su etapa, duración, dependencias y
-  cuál marca el lanzamiento. Opción de restaurar los 12 hitos predeterminados.
+- **Análisis** (`/analisis`): gráficas de leads contra meta, consumo contra presupuesto y
+  costo por lead por semana; leads por responsable y por programa; tendencia de un
+  indicador del Scorecard contra su meta; y carreras más lejos de su meta. Filtros por
+  rango de fechas, programa, responsable, nivel y carrera; cada gráfica tiene vista en tabla.
+- **Ajustes** (`/ajustes`): índice de configuraciones.
+  - **Equipo** (`/ajustes/equipo`): personas, accesos y nombre del equipo.
+  - **Hitos de Control de carrera** (`/ajustes/hitos`, administradores): editar, renombrar,
+    eliminar, agregar y reordenar hitos; etapa, duración, dependencias y lanzamiento.
+  - **Anuncios** (`/ajustes/anuncios`, administradores): hasta 5 imágenes (PNG, JPG, WEBP o
+    GIF, máx. 5 MB) que aparecen como popup a todo el equipo cada N minutos (5 por
+    defecto), en rotación; se pueden activar/desactivar en general o por imagen.
+  - **Exportar datos** (`/ajustes/exportar`): Scorecard e Indicadores de carrera en Excel
+    `.xlsm` (libro habilitado para macros, sin macros incluidas) o `.xlsx`, por rango de
+    semanas. También desde los botones "Exportar Excel" de Scorecard e Indicadores.
 - **Indicadores de carrera** (`/indicadores`): leads y consumo de presupuesto de la
   semana contra la meta (prorrateada desde la meta mensual según los días de la semana
   en cada mes), con semáforo, costo por lead y totales. Filtros por

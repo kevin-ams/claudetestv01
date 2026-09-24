@@ -9,7 +9,14 @@ import type {
   LeadsSource,
   BudgetSource,
 } from "./types";
-import { monthsOfWeek, prorateWeeklyGoals, type WeeklyGoal } from "./careers-shared";
+import {
+  mergeWeekly,
+  monthsOfWeek,
+  prorateWeeklyGoals,
+  type CareerRow,
+  type WeeklyGoal,
+} from "./careers-shared";
+import { shiftWeek } from "@/lib/utils/dates";
 
 export async function listCareers(teamId: number): Promise<Career[]> {
   const rows = await db().sql`
@@ -241,4 +248,50 @@ export async function copyMonthlyGoals(input: {
 export async function weeklyGoals(teamId: number, weekStart: string): Promise<Record<number, WeeklyGoal>> {
   const goals = await listMonthlyGoals(teamId, monthsOfWeek(weekStart));
   return prorateWeeklyGoals(weekStart, goals);
+}
+
+// --- Historial (exportación y análisis) ------------------------------------
+
+export type CareerHistory = {
+  weeks: string[];
+  careers: Career[];
+  /** Filas por semana (misma forma que la vista semanal de Indicadores). */
+  byWeek: Record<string, CareerRow[]>;
+};
+
+/** Semanas (lunes) entre dos fechas, inclusive. Máximo 104 semanas. */
+export function weeksBetween(from: string, to: string): string[] {
+  const weeks: string[] = [];
+  let w = shiftWeek(from, 0);
+  const last = shiftWeek(to, 0);
+  while (w <= last && weeks.length < 104) {
+    weeks.push(w);
+    w = shiftWeek(w, 1);
+  }
+  return weeks;
+}
+
+export async function careerHistory(teamId: number, from: string, to: string): Promise<CareerHistory> {
+  const weeks = weeksBetween(from, to);
+  const careers = await listCareers(teamId);
+  if (weeks.length === 0) return { weeks, careers, byWeek: {} };
+
+  const weekly = (await db().sql`
+    SELECT cw.*
+    FROM career_weekly cw
+    JOIN careers c ON c.id = cw.career_id
+    WHERE c.team_id = ${teamId} AND cw.week_start = ANY(${weeks}::date[])
+  `) as CareerWeekly[];
+  const months = [...new Set(weeks.flatMap((w) => monthsOfWeek(w)))];
+  const goals = await listMonthlyGoals(teamId, months);
+
+  const byWeek: Record<string, CareerRow[]> = {};
+  for (const w of weeks) {
+    byWeek[w] = mergeWeekly(
+      careers,
+      weekly.filter((x) => x.week_start === w),
+      prorateWeeklyGoals(w, goals)
+    );
+  }
+  return { weeks, careers, byWeek };
 }

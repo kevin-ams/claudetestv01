@@ -25,7 +25,7 @@ function checkStage(stage: string): StageKey {
 }
 
 function refresh() {
-  revalidatePath("/ajustes");
+  revalidatePath("/ajustes/hitos");
   revalidatePath("/control");
 }
 

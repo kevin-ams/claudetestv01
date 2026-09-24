@@ -6,6 +6,7 @@ import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { formatWeekRange, lastClosedWeek, shiftWeek } from "@/lib/utils/dates";
 import { CareerBoard } from "./career-board";
 import { Toolbar } from "./toolbar";
+import { ExportButton } from "@/components/export-button";
 import { LoadCatalogButton } from "./load-catalog-button";
 
 export default async function IndicadoresPage({
@@ -32,11 +33,14 @@ export default async function IndicadoresPage({
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <div>
-        <h1 className="text-2xl font-bold">Indicadores de carrera</h1>
-        <p className="text-sm text-muted">
-          Leads recibidos y consumo de presupuesto por carrera, contra la meta semanal.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Indicadores de carrera</h1>
+          <p className="text-sm text-muted">
+            Leads recibidos y consumo de presupuesto por carrera, contra la meta semanal.
+          </p>
+        </div>
+        <ExportButton kind="indicadores" defaultFrom={shiftWeek(week, -11)} defaultTo={week} />
       </div>
 
       <Toolbar

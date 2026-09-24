@@ -141,7 +141,7 @@ export async function loadCareerCatalogAction(): Promise<ActionResult> {
   const { careers } = await seedMarketingTeam(session.teamId);
   refresh();
   revalidatePath("/rocks");
-  revalidatePath("/settings/team");
+  revalidatePath("/ajustes/equipo");
   return careers > 0
     ? { ok: true, message: `Se cargaron ${careers} carreras con su responsable.` }
     : { ok: false, message: "El equipo ya tenía carreras; no se cargó nada." };

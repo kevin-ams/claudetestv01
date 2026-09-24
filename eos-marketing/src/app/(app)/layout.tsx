@@ -4,6 +4,8 @@ import { getTeam } from "@/lib/domain/teams";
 import { getUserTeams, isUserInTeam } from "@/lib/domain/users";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { activeAnnouncements } from "@/lib/domain/announcements";
+import { AnnouncementPopup } from "@/components/announcement-popup";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await getSession();
@@ -12,9 +14,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // o una base reiniciada): si el usuario ya no está en ese equipo, se cierra.
   if (!(await isUserInTeam(session.userId, session.teamId))) redirect("/salir");
 
-  const [team, teams] = await Promise.all([
+  const [team, teams, announcements] = await Promise.all([
     getTeam(session.teamId),
     getUserTeams(session.userId),
+    activeAnnouncements(session.teamId),
   ]);
 
   return (
@@ -27,6 +30,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           teams={teams}
         />
         <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        {announcements.ads.length > 0 && (
+          <AnnouncementPopup
+            teamId={session.teamId}
+            ads={announcements.ads}
+            intervalMinutes={announcements.intervalMinutes}
+          />
+        )}
       </div>
     </div>
   );

@@ -38,7 +38,7 @@ export async function addTeammateAction(
   }
 
   await addTeamMember(session.teamId, user.id, seatTitle || undefined);
-  revalidatePath("/settings/team");
+  revalidatePath("/ajustes/equipo");
   return { error: null, success: `${name} fue agregado(a) al equipo.` };
 }
 
@@ -48,7 +48,7 @@ export async function renameTeamAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
   await renameTeam(session.teamId, name);
-  revalidatePath("/settings/team");
+  revalidatePath("/ajustes/equipo");
 }
 
 export async function updateAccessAction(
@@ -77,6 +77,6 @@ export async function updateAccessAction(
   if (other && other.id !== userId) return { error: "Ya existe una cuenta con ese correo" };
 
   await updateUserAccess(userId, { name, email, password: password || null });
-  revalidatePath("/settings/team");
+  revalidatePath("/ajustes/equipo");
   return { error: null, success: "Acceso actualizado." };
 }

@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   turbopack: { root: __dirname },
   // PGlite carga su propio WASM; se ejecuta con el require nativo de Node.
   serverExternalPackages: ["@electric-sql/pglite"],
+  experimental: {
+    // Imágenes de anuncios (hasta 5 MB) se suben con Server Actions.
+    serverActions: { bodySizeLimit: "6mb" },
+  },
 };
 
 export default nextConfig;

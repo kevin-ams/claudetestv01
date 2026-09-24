@@ -21,7 +21,7 @@ export function lastNWeeks(n: number, from: string = weekStartISO()): string[] {
 
 export function formatWeekLabel(weekStart: string): string {
   const d = parseISO(weekStart);
-  return format(d, "d MMM");
+  return format(d, "d MMM", { locale: es });
 }
 
 export function currentQuarter(date: Date = new Date()): { quarter: number; year: number } {

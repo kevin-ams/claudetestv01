@@ -9,6 +9,7 @@ import { buildScorecardGrid } from "@/lib/domain/scorecard-shared";
 import { lastNWeeks } from "@/lib/utils/dates";
 import { ScorecardTable } from "./scorecard-table";
 import { ScorecardAdmin } from "./scorecard-admin";
+import { ExportButton } from "@/components/export-button";
 
 export default async function ScorecardPage() {
   const session = await getSession();
@@ -27,11 +28,14 @@ export default async function ScorecardPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Scorecard</h1>
-        <p className="text-sm text-muted">
-          Los 5 a 15 números que predicen el desempeño de tu negocio, revisados cada semana.
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Scorecard</h1>
+          <p className="text-sm text-muted">
+            Los 5 a 15 números que predicen el desempeño de tu negocio, revisados cada semana.
+          </p>
+        </div>
+        <ExportButton kind="scorecard" defaultFrom={weeks[0]} defaultTo={weeks[weeks.length - 1]} />
       </div>
 
       {metrics.length === 0 || owners.length === 0 ? (
