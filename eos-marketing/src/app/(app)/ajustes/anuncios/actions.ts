@@ -41,22 +41,27 @@ export async function saveAdSettingsAction(enabled: boolean, intervalMinutes: nu
 }
 
 export async function uploadAdImageAction(slot: number, formData: FormData): Promise<AdResult> {
-  const session = await requireAdmin();
-  const file = formData.get("image");
-  if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Elige una imagen." };
-  const mime = imageMime(file);
-  if (!mime) {
-    return {
-      ok: false,
-      message: /\.hei[cf]$/i.test(file.name)
-        ? "Las fotos HEIC de iPhone no se pueden mostrar en el navegador. Guárdala como JPG o PNG."
-        : "Formato no permitido. Usa PNG, JPG, WEBP o GIF.",
-    };
+  try {
+    const session = await requireAdmin();
+    const file = formData.get("image");
+    if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Elige una imagen." };
+    const mime = imageMime(file);
+    if (!mime) {
+      return {
+        ok: false,
+        message: /\.hei[cf]$/i.test(file.name)
+          ? "Las fotos HEIC de iPhone no se pueden mostrar en el navegador. Guárdala como JPG o PNG."
+          : `Formato no permitido (${file.type || file.name}). Usa PNG, JPG, WEBP o GIF.`,
+      };
+    }
+    if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "La imagen pesa más de 5 MB." };
+    await setSlotImage(session.teamId, checkSlot(slot), new Uint8Array(await file.arrayBuffer()), mime);
+    refresh();
+    return { ok: true, message: "Imagen guardada." };
+  } catch (err) {
+    console.error("[anuncios] No se pudo guardar la imagen:", err);
+    return { ok: false, message: `No se pudo guardar la imagen: ${err instanceof Error ? err.message : String(err)}` };
   }
-  if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "La imagen pesa más de 5 MB." };
-  await setSlotImage(session.teamId, checkSlot(slot), new Uint8Array(await file.arrayBuffer()), mime);
-  refresh();
-  return { ok: true, message: "Imagen guardada." };
 }
 
 export async function saveAdDetailsAction(

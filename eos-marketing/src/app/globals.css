@@ -104,3 +104,15 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
 }
+
+/* Barra de carga indeterminada */
+@keyframes progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+.progress-indeterminate {
+  animation: progress-slide 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-indeterminate { animation-duration: 3s; }
+}

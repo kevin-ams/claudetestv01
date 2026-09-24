@@ -35,6 +35,10 @@ de administrador. Al terminar el setup se cargan automáticamente:
 
 **Volver a cero:** detén la app y borra la carpeta `.data/`.
 
+**Actualizar:** reemplaza los archivos (conserva `.data/`) y corre `npm install`. Las
+actualizaciones de la base (`db/migrations`) se aplican solas, incluso si `npm run dev`
+estaba corriendo.
+
 ## Variables de entorno (opcionales)
 
 | Variable       | Descripción                                                     |
@@ -79,6 +83,9 @@ de administrador. Al terminar el setup se cargan automáticamente:
     "… · DEMO" con datos de ejemplo en todos los módulos y cambia tu vista a él; tu
     información real no se toca y el resto del equipo no la ve. "Desactivar" borra la
     demo completa y regresa al equipo real.
+  - **Diagnóstico** (`/ajustes/diagnostico`): prueba lectura y escritura de la base,
+    migraciones aplicadas, la carpeta de imágenes y cada anuncio guardado, y muestra el
+    error exacto si algo falla.
   - **Exportar datos** (`/ajustes/exportar`): Scorecard e Indicadores de carrera en Excel
     `.xlsm` (libro habilitado para macros, sin macros incluidas) o `.xlsx`, por rango de
     semanas. También desde los botones "Exportar Excel" de Scorecard e Indicadores.

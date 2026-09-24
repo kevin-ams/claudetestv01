@@ -32,6 +32,12 @@ const SECTIONS = [
     description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
   },
   {
+    href: "/ajustes/diagnostico",
+    icon: "🩺",
+    title: "Diagnóstico",
+    description: "Revisa si la base de datos y la carpeta de imágenes funcionan, y muestra el error si algo falla.",
+  },
+  {
     href: "/ajustes/exportar",
     icon: "📤",
     title: "Exportar datos",
@@ -59,6 +65,7 @@ export default async function AjustesIndexPage() {
       ? `Activos · ${activeAds} imagen(es) · cada ${adSettings.interval_minutes} min`
       : "Desactivados",
     "/ajustes/exportar": "Scorecard · Indicadores · Metas",
+    "/ajustes/diagnostico": "Pruebas de base de datos e imágenes",
     "/ajustes/demo": team?.is_demo ? "Estás viendo la demo" : demo ? "Demo creada" : "Desactivada",
   };
 

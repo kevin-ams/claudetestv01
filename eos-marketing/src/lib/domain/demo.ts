@@ -59,7 +59,7 @@ export async function deleteDemoFor(userId: number) {
   `;
 }
 
-/** Crea un equipo demo completo para la persona y devuelve su id. */
+/** Paso 1 de la demo: el equipo, sus personas y las carreras. Devuelve el id del equipo. */
 export async function createDemoTeam(userId: number, realTeamName: string): Promise<number> {
   await deleteDemoFor(userId);
   const rows = (await db().sql`
@@ -70,23 +70,52 @@ export async function createDemoTeam(userId: number, realTeamName: string): Prom
   const teamId = rows[0].id;
   await seedNewTeam(teamId);
   await addTeamMember(teamId, userId, "Dirección de marketing");
-  const { userIdByName } = await seedMarketingTeam(teamId, DEMO_EMAIL_DOMAIN);
-  await seedDemoContent(teamId, userIdByName);
+  await seedMarketingTeam(teamId, DEMO_EMAIL_DOMAIN);
   return teamId;
 }
 
-async function seedDemoContent(teamId: number, people: Map<RosterName, number>) {
-  const rand = rng(20260924);
-  const pick = <T,>(list: T[]) => list[Math.floor(rand() * list.length)];
-  const between = (min: number, max: number) => min + rand() * (max - min);
-  const person = (name: RosterName) => people.get(name) ?? null;
-  const today = new Date();
-  const todayIso = iso(today);
+type DemoContext = Awaited<ReturnType<typeof demoContext>>;
 
+/** Datos comunes a todos los pasos (personas, semanas, trimestre) y azar con semilla. */
+async function demoContext(teamId: number, seed: number) {
+  const rand = rng(seed);
+  const members = (await db().sql`
+    SELECT u.id, u.name FROM users u JOIN team_members tm ON tm.user_id = u.id WHERE tm.team_id = ${teamId}
+  `) as { id: number; name: string }[];
+  const people = new Map<string, number>(
+    members.map((m) => [m.name.trim().split(/\s+/)[0].toLowerCase(), m.id])
+  );
+  const today = new Date();
+  const lastWeek = lastClosedWeek();
+  const { quarter, year } = currentQuarter();
+  return {
+    teamId,
+    rand,
+    pick: <T,>(list: T[]) => list[Math.floor(rand() * list.length)],
+    between: (min: number, max: number) => min + rand() * (max - min),
+    person: (name: RosterName) => people.get(name.toLowerCase()) ?? null,
+    today,
+    todayIso: iso(today),
+    lastWeek,
+    weeks: Array.from({ length: 12 }, (_, i) => shiftWeek(lastWeek, i - 11)),
+    quarter,
+    year,
+    ownerNames: ["Kevin", "Lucero", "Luis", "Andrea", "Patty"] as RosterName[],
+  };
+}
+
+/** Inserta muchas filas en una sola consulta (mucho más rápido que una por una). */
+async function insertMany(table: string, columns: string[], types: string[], rows: unknown[][]) {
+  if (rows.length === 0) return;
+  const cols = columns.map((_, i) => rows.map((r) => r[i]));
+  const selects = types.map((t, i) => `$${i + 1}::${t}[]`).join(", ");
+  await db().query(`INSERT INTO ${table} (${columns.join(", ")}) SELECT * FROM unnest(${selects})`, cols);
+}
+
+async function seedIndicators(ctx: DemoContext) {
+  const { teamId, rand, between, weeks } = ctx;
   // --- Indicadores y metas de carrera -------------------------------------
   const careers = await listCareers(teamId);
-  const lastWeek = lastClosedWeek();
-  const weeks = Array.from({ length: 12 }, (_, i) => shiftWeek(lastWeek, i - 11));
   const firstMonth = parseISO(`${weeks[0].slice(0, 7)}-01`);
   const months = Array.from({ length: 7 }, (_, i) => iso(new Date(firstMonth.getFullYear(), firstMonth.getMonth() + i, 1)));
 
@@ -98,45 +127,51 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
   };
   const goals: CareerMonthlyGoal[] = [];
   const performance = new Map<number, number>(); // qué tan bien le va a cada carrera
-  for (const c of careers) {
-    const [min, max] = baseLeads[c.level] ?? [20, 60];
+  for (const career of careers) {
+    const [min, max] = baseLeads[career.level] ?? [20, 60];
     const monthly = Math.round(between(min, max));
     const cpl = between(35, 75);
-    performance.set(c.id, rand() < 0.25 ? between(0.55, 0.8) : between(0.85, 1.2));
+    performance.set(career.id, rand() < 0.25 ? between(0.55, 0.8) : between(0.85, 1.2));
     months.forEach((m, i) => {
       const seasonal = 1 + 0.08 * Math.sin(i);
       const leads = Math.round(monthly * seasonal);
-      goals.push({ career_id: c.id, month: m, leads_goal: leads, budget_goal: Math.round(leads * cpl) });
+      goals.push({ career_id: career.id, month: m, leads_goal: leads, budget_goal: Math.round(leads * cpl) });
     });
   }
-  for (const g of goals) {
-    await db().sql`
-      INSERT INTO career_monthly_goals (career_id, month, leads_goal, budget_goal)
-      VALUES (${g.career_id}, ${g.month}, ${g.leads_goal}, ${g.budget_goal})
-    `;
-  }
+  await insertMany(
+    "career_monthly_goals",
+    ["career_id", "month", "leads_goal", "budget_goal"],
+    ["int", "date", "numeric", "numeric"],
+    goals.map((g) => [g.career_id, g.month, g.leads_goal, g.budget_goal])
+  );
+  const weeklyRows: unknown[][] = [];
   for (const w of weeks) {
     const weekly = prorateWeeklyGoals(w, goals);
-    for (const c of careers) {
-      const goal = weekly[c.id] ?? { leads: 0, budget: 0 };
-      const perf = performance.get(c.id)!;
+    for (const career of careers) {
+      const goal = weekly[career.id] ?? { leads: 0, budget: 0 };
+      const perf = performance.get(career.id)!;
       const leads = Math.max(0, Math.round(goal.leads * perf * between(0.8, 1.2)));
       const spent = Math.round(goal.budget * between(0.8, 1.15) * 100) / 100;
-      await db().sql`
-        INSERT INTO career_weekly (career_id, week_start, leads, leads_source, budget_spent, budget_source)
-        VALUES (${c.id}, ${w}, ${leads}, 'manual', ${spent}, 'csv')
-      `;
+      weeklyRows.push([career.id, w, leads, "manual", spent, "csv"]);
     }
   }
+  await insertMany(
+    "career_weekly",
+    ["career_id", "week_start", "leads", "leads_source", "budget_spent", "budget_source"],
+    ["int", "date", "int", "text", "numeric", "text"],
+    weeklyRows
+  );
   for (const w of weeks.slice(-3)) {
     await db().sql`
       INSERT INTO career_imports (team_id, kind, week_start, file_name, careers_updated, total)
       VALUES (${teamId}, 'budget_csv', ${w}, ${`reporte-meta-${w}.csv`}, ${careers.length}, ${Math.round(between(55000, 70000))})
     `;
   }
+}
 
+async function seedScorecard(ctx: DemoContext) {
+  const { teamId, between, person, weeks, ownerNames } = ctx;
   // --- Scorecard ------------------------------------------------------------
-  const ownerNames: RosterName[] = ["Kevin", "Lucero", "Luis", "Andrea", "Patty"];
   const ownerIds: number[] = [];
   for (const [i, name] of ownerNames.entries()) {
     const r = (await db().sql`
@@ -167,19 +202,23 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
     await db().sql`INSERT INTO scorecard_targets VALUES (${metricId}, ${rollup[0].id}, ${rollupTarget})`;
     for (const ownerId of ownerIds) {
       await db().sql`INSERT INTO scorecard_targets VALUES (${metricId}, ${ownerId}, ${m.target})`;
-      for (const w of weeks) {
-        const raw = m.target * between(1 - m.spread, 1 + m.spread * 0.8);
-        const value = m.format === "percentage" ? Math.min(100, Math.round(raw)) : m.format === "currency" ? Math.round(raw * 100) / 100 : Math.round(raw);
-        await db().sql`
-          INSERT INTO scorecard_entries (metric_id, owner_id, week_start, value)
-          VALUES (${metricId}, ${ownerId}, ${w}, ${value})
-        `;
-      }
+      await insertMany(
+        "scorecard_entries",
+        ["metric_id", "owner_id", "week_start", "value"],
+        ["int", "int", "date", "numeric"],
+        weeks.map((w) => {
+          const raw = m.target * between(1 - m.spread, 1 + m.spread * 0.8);
+          const value = m.format === "percentage" ? Math.min(100, Math.round(raw)) : m.format === "currency" ? Math.round(raw * 100) / 100 : Math.round(raw);
+          return [metricId, ownerId, w, value];
+        })
+      );
     }
   }
+}
 
+async function seedRocks(ctx: DemoContext) {
+  const { teamId, person, today, quarter, year } = ctx;
   // --- Rocks del trimestre actual -----------------------------------------
-  const { quarter, year } = currentQuarter();
   const qStart = startOfQuarter(today);
   const qEnd = endOfQuarter(today);
   const qDate = (fraction: number) => iso(addDays(qStart, Math.round((qEnd.getTime() - qStart.getTime()) / 864e5 * fraction)));
@@ -234,7 +273,10 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
       `;
     }
   }
+}
 
+async function seedIssuesTodos(ctx: DemoContext) {
+  const { teamId, person, today } = ctx;
   // --- Issues y To-Dos -----------------------------------------------------
   const issues: [string, string, RosterName, number, "short_term" | "long_term", boolean][] = [
     ["Leads de Maestría en Data Science muy por debajo de la meta", "Tres semanas seguidas bajo el 70% de la meta.", "Luis", 5, "short_term", false],
@@ -272,7 +314,10 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
               ${done ? "done" : "open"}, ${done ? addDays(today, days).toISOString() : null})
     `;
   }
+}
 
+async function seedMeetings(ctx: DemoContext) {
+  const { teamId, between, person, lastWeek, ownerNames } = ctx;
   // --- Reuniones pasadas, calificaciones y noticias -----------------------
   const headlines: [number, "customer" | "employee", string][] = [
     [0, "customer", "Récord de solicitudes para Ingeniería en Sistemas esta semana"],
@@ -304,7 +349,10 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
       `;
     }
   }
+}
 
+async function seedVtoOrg(ctx: DemoContext) {
+  const { teamId, person, year } = ctx;
   // --- V/TO y organigrama ---------------------------------------------------
   await db().sql`
     UPDATE vto SET
@@ -334,8 +382,12 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
       VALUES (${teamId}, ${head[0].id}, ${title}, ${person(owner)}, ${JSON.stringify(roles)}::jsonb, ${i})
     `;
   }
+}
 
+async function seedControl(ctx: DemoContext) {
+  const { teamId, rand, pick, between, today, todayIso } = ctx;
   // --- Control de carrera ---------------------------------------------------
+  const careers = await listCareers(teamId);
   const milestones = await listControlMilestones(teamId);
   const labels = ["Prioridad", "Nueva", "Relanzamiento", "Bloqueada"];
   const tracked = careers.filter((_, i) => i % 5 === 0).slice(0, 24);
@@ -356,4 +408,22 @@ async function seedDemoContent(teamId: number, people: Map<RosterName, number>) 
       `;
     }
   }
+}
+
+/** Pasos de la demo, en orden. El 0 (equipo y carreras) lo hace createDemoTeam. */
+export const DEMO_STEPS = [
+  { label: "Creando equipo y carreras", run: null },
+  { label: "Generando metas e indicadores de 12 semanas", run: seedIndicators },
+  { label: "Armando el Scorecard", run: seedScorecard },
+  { label: "Creando Rocks del trimestre", run: seedRocks },
+  { label: "Agregando Issues y To-Dos", run: seedIssuesTodos },
+  { label: "Registrando reuniones y noticias", run: seedMeetings },
+  { label: "Completando V/TO y organigrama", run: seedVtoOrg },
+  { label: "Preparando Control de carrera", run: seedControl },
+] as const;
+
+export async function runDemoStep(teamId: number, step: number) {
+  const def = DEMO_STEPS[step];
+  if (!def?.run) throw new Error("Paso de demo inválido");
+  await def.run(await demoContext(teamId, 20260924 + step));
 }

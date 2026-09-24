@@ -6,7 +6,7 @@ import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { activeAnnouncements } from "@/lib/domain/announcements";
 import { AnnouncementPopup } from "@/components/announcement-popup";
-import { stopDemoAction } from "./ajustes/demo/actions";
+import { DemoBanner } from "./demo-banner";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await getSession();
@@ -30,18 +30,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           teamName={team?.name ?? "Equipo"}
           teams={teams}
         />
-        {team?.is_demo && (
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-yellow/30 bg-yellow-bg px-4 py-2 text-sm text-yellow md:px-8">
-            <span>
-              <b>Modo demo:</b> estás viendo información de ejemplo. Nada de lo que hagas aquí afecta tus datos reales.
-            </span>
-            <form action={stopDemoAction}>
-              <button type="submit" className="rounded-md bg-card px-3 py-1 text-xs font-semibold text-foreground shadow-sm">
-                Desactivar demo y volver
-              </button>
-            </form>
-          </div>
-        )}
+        {team?.is_demo && <DemoBanner />}
         <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
         {announcements.ads.length > 0 && (
           <AnnouncementPopup

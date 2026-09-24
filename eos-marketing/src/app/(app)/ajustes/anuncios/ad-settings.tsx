@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { AnnouncementModal, adImageUrl, type PopupAd } from "@/components/announcement-popup";
+import { ProgressBar } from "@/components/progress-bar";
 import type { AnnouncementSettings, AnnouncementSlot } from "@/lib/domain/announcements";
 import {
   clearAdSlotAction,
@@ -91,7 +92,16 @@ function SlotCard({
     }
     const fd = new FormData();
     fd.set("image", prepared);
-    run(() => uploadAdImageAction(slot.slot, fd));
+    try {
+      const res = await uploadAdImageAction(slot.slot, fd);
+      setMessage(slot.slot, res);
+    } catch (e) {
+      setMessage(slot.slot, {
+        ok: false,
+        message: `No se pudo subir la imagen: ${e instanceof Error ? e.message : String(e)}`,
+      });
+    }
+    router.refresh();
   }
 
   return (
@@ -184,8 +194,13 @@ function SlotCard({
           </div>
         </>
       )}
-      {result && (
-        <p className={`rounded-md px-2 py-1 text-sm ${result.ok ? "bg-green-bg text-green" : "bg-red-bg text-red"}`}>
+      {(uploading || pending) && <ProgressBar label={uploading ? "Preparando y subiendo la imagen…" : "Guardando…"} />}
+      {result && !uploading && !pending && (
+        <p
+          role="status"
+          className={`rounded-md px-2 py-1 text-sm ${result.ok ? "bg-green-bg text-green" : "bg-red-bg text-red"}`}
+        >
+          {result.ok ? "✓ " : "✕ "}
           {result.message}
         </p>
       )}

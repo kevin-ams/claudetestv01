@@ -12,9 +12,15 @@ const MIGRATIONS_DIR = path.join(process.cwd(), "db", "migrations");
 type Row = Record<string, unknown>;
 type Db = {
   sql: (strings: TemplateStringsArray, ...params: unknown[]) => Promise<Row[]>;
+  /** Consulta con texto y parámetros ($1, $2…), para inserciones en lote. */
+  query: (text: string, params: unknown[]) => Promise<Row[]>;
 };
 
-const globalForDb = globalThis as unknown as { __eosDb?: Promise<PGlite> };
+const globalForDb = globalThis as unknown as {
+  __eosDb?: Promise<PGlite>;
+  __eosMigrations?: number;
+  __eosMigrating?: Promise<void>;
+};
 
 async function open(): Promise<PGlite> {
   mkdirSync(DATA_DIR, { recursive: true });
@@ -48,17 +54,39 @@ async function migrate(pg: PGlite) {
   }
 }
 
-function instance(): Promise<PGlite> {
+function migrationCount() {
+  return readdirSync(MIGRATIONS_DIR).length;
+}
+
+async function instance(): Promise<PGlite> {
   if (!globalForDb.__eosDb) {
     globalForDb.__eosDb = open();
+    const pg = await globalForDb.__eosDb;
+    globalForDb.__eosMigrations = migrationCount();
+    return pg;
   }
-  return globalForDb.__eosDb;
+  const pg = await globalForDb.__eosDb;
+  // En desarrollo la conexión sobrevive a las recargas del código: si se
+  // copiaron archivos nuevos con migraciones, se aplican sin reiniciar.
+  if (process.env.NODE_ENV !== "production" && migrationCount() !== globalForDb.__eosMigrations) {
+    globalForDb.__eosMigrating ??= migrate(pg).finally(() => {
+      globalForDb.__eosMigrations = migrationCount();
+      globalForDb.__eosMigrating = undefined;
+    });
+    await globalForDb.__eosMigrating;
+  }
+  return pg;
 }
 
 const database: Db = {
   async sql(strings, ...params) {
     const pg = await instance();
     const res = await pg.sql<Row>(strings, ...params);
+    return res.rows;
+  },
+  async query(text, params) {
+    const pg = await instance();
+    const res = await pg.query<Row>(text, params);
     return res.rows;
   },
 };

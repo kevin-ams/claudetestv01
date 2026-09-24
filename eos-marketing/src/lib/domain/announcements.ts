@@ -11,7 +11,11 @@ import { db } from "@/lib/db";
 const UPLOADS_DIR =
   process.env.EOS_UPLOADS_DIR || path.join(path.dirname(process.env.EOS_DATA_DIR || path.join(process.cwd(), ".data", "pglite")), "uploads");
 
-function imagePath(teamId: number, slot: number) {
+export function uploadsDir() {
+  return UPLOADS_DIR;
+}
+
+export function imagePath(teamId: number, slot: number) {
   return path.join(UPLOADS_DIR, "anuncios", `${teamId}-${slot}`);
 }
 

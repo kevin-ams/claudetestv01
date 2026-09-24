@@ -1,6 +1,6 @@
 import { getSession } from "@/lib/auth/session";
 import { getTeam } from "@/lib/domain/teams";
-import { getDemoTeamFor } from "@/lib/domain/demo";
+import { DEMO_STEPS, getDemoTeamFor } from "@/lib/domain/demo";
 import { SettingsHeader } from "../settings-header";
 import { DemoControls } from "./demo-controls";
 
@@ -33,7 +33,12 @@ export default async function DemoPage() {
           <li>Solo tú ves la demo; el resto del equipo sigue viendo la información real.</li>
           <li>Al desactivarla, la demo y todos sus datos se borran y vuelves a tu equipo real.</li>
         </ul>
-        <DemoControls inDemo={inDemo} hasDemo={Boolean(demo)} canEdit={session.role === "admin"} />
+        <DemoControls
+          inDemo={inDemo}
+          hasDemo={Boolean(demo)}
+          canEdit={session.role === "admin"}
+          stepLabels={DEMO_STEPS.map((s) => s.label)}
+        />
       </section>
     </div>
   );
