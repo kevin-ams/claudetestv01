@@ -7,10 +7,10 @@ import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 export type StageKey = "definicion" | "produccion" | "activacion" | "mejora";
 
 export const CONTROL_STAGES: { key: StageKey; label: string; color: string; soft: string }[] = [
-  { key: "definicion", label: "1. Definición", color: "#7c6fd6", soft: "#efedfb" },
-  { key: "produccion", label: "2. Producción", color: "#e8845c", soft: "#fcefe9" },
-  { key: "activacion", label: "3. Activación", color: "#e0605e", soft: "#fbe9e9" },
-  { key: "mejora", label: "4. Mejora continua", color: "#2f9e8f", soft: "#e4f4f1" },
+  { key: "definicion", label: "1. Definición", color: "#7c6fd6", soft: "color-mix(in srgb, #7c6fd6 12%, transparent)" },
+  { key: "produccion", label: "2. Producción", color: "#e8845c", soft: "color-mix(in srgb, #e8845c 12%, transparent)" },
+  { key: "activacion", label: "3. Activación", color: "#e0605e", soft: "color-mix(in srgb, #e0605e 12%, transparent)" },
+  { key: "mejora", label: "4. Mejora continua", color: "#2f9e8f", soft: "color-mix(in srgb, #2f9e8f 12%, transparent)" },
 ];
 
 export type MilestoneKey = string;

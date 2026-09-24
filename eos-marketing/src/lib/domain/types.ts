@@ -17,6 +17,7 @@ export type Team = {
   created_at: string;
   is_demo: boolean;
   demo_owner_id: number | null;
+  theme_color: string;
 };
 
 export type TeamMember = {

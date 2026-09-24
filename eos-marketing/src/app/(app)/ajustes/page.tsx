@@ -6,6 +6,7 @@ import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { getTeam } from "@/lib/domain/teams";
 import { getDemoTeamFor } from "@/lib/domain/demo";
+import { THEME_PRESETS } from "@/lib/theme";
 
 const SECTIONS = [
   {
@@ -13,6 +14,12 @@ const SECTIONS = [
     icon: "👥",
     title: "Equipo",
     description: "Personas con acceso, correos, contraseñas y nombre del equipo.",
+  },
+  {
+    href: "/ajustes/apariencia",
+    icon: "🎨",
+    title: "Apariencia",
+    description: "Modo claro u oscuro y color del template de la plataforma.",
   },
   {
     href: "/ajustes/hitos",
@@ -61,6 +68,7 @@ export default async function AjustesIndexPage() {
   const activeAds = slots.filter((s) => s.has_image && s.active).length;
   const status: Record<string, string> = {
     "/ajustes/equipo": `${members.length} personas`,
+    "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
     "/ajustes/hitos": `${milestones.length} hitos`,
     "/ajustes/anuncios": adSettings.enabled
       ? `Activos · ${activeAds} imagen(es) · cada ${adSettings.interval_minutes} min`

@@ -25,3 +25,7 @@ export async function seedNewTeam(teamId: number) {
     ON CONFLICT (team_id) DO NOTHING
   `;
 }
+
+export async function setTeamThemeColor(id: number, color: string) {
+  await db().sql`UPDATE teams SET theme_color = ${color} WHERE id = ${id}`;
+}

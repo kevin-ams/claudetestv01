@@ -36,12 +36,13 @@ import {
 import { formatWeekLabel, shiftWeek } from "@/lib/utils/dates";
 
 // Paleta validada (dataviz): real = azul (serie 1), meta/plan = naranja (serie 2).
+// Son variables CSS (globals.css) para que cambien con el modo claro/oscuro.
 const C = {
-  actual: "#2a78d6",
-  goal: "#eb6834",
-  grid: "#e1e0d9",
-  axis: "#6b7280",
-  text: "#171923",
+  actual: "var(--chart-actual)",
+  goal: "var(--chart-goal)",
+  grid: "var(--chart-grid)",
+  axis: "var(--muted)",
+  text: "var(--foreground)",
 };
 const AXIS_PROPS = { tick: { fill: C.axis, fontSize: 12 }, axisLine: false, tickLine: false } as const;
 
@@ -331,10 +332,10 @@ export function AnalysisBoard({
               <CartesianGrid vertical={false} stroke={C.grid} />
               <XAxis dataKey="week" {...AXIS_PROPS} />
               <YAxis {...AXIS_PROPS} allowDecimals={false} />
-              <Tooltip content={<ChartTooltip fmt={num} />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+              <Tooltip content={<ChartTooltip fmt={num} />} cursor={{ fill: "var(--chart-cursor)" }} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: C.text }} />
               <Bar isAnimationActive={false} dataKey="leads" name="Leads" fill={C.actual} radius={[4, 4, 0, 0]} maxBarSize={28} />
-              <Line dataKey="leadsGoal" name="Meta" stroke={C.goal} strokeWidth={2} dot={{ r: 4, fill: C.goal, strokeWidth: 2, stroke: "#fff" }} type="linear" isAnimationActive={false} />
+              <Line dataKey="leadsGoal" name="Meta" stroke={C.goal} strokeWidth={2} dot={{ r: 4, fill: C.goal, strokeWidth: 2, stroke: "var(--card)" }} type="linear" isAnimationActive={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -349,10 +350,10 @@ export function AnalysisBoard({
               <CartesianGrid vertical={false} stroke={C.grid} />
               <XAxis dataKey="week" {...AXIS_PROPS} />
               <YAxis {...AXIS_PROPS} tickFormatter={(v: number) => `$${num(v)}`} />
-              <Tooltip content={<ChartTooltip fmt={money} />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+              <Tooltip content={<ChartTooltip fmt={money} />} cursor={{ fill: "var(--chart-cursor)" }} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: C.text }} />
               <Bar isAnimationActive={false} dataKey="spent" name="Consumo" fill={C.actual} radius={[4, 4, 0, 0]} maxBarSize={28} />
-              <Line dataKey="budget" name="Presupuesto" stroke={C.goal} strokeWidth={2} dot={{ r: 4, fill: C.goal, strokeWidth: 2, stroke: "#fff" }} type="linear" isAnimationActive={false} />
+              <Line dataKey="budget" name="Presupuesto" stroke={C.goal} strokeWidth={2} dot={{ r: 4, fill: C.goal, strokeWidth: 2, stroke: "var(--card)" }} type="linear" isAnimationActive={false} />
             </ComposedChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -368,7 +369,7 @@ export function AnalysisBoard({
               <XAxis dataKey="week" {...AXIS_PROPS} />
               <YAxis {...AXIS_PROPS} tickFormatter={(v: number) => `$${num(v)}`} />
               <Tooltip content={<ChartTooltip fmt={money} />} />
-              <Line dataKey="cpl" name="Costo por lead" stroke={C.actual} strokeWidth={2} dot={{ r: 4, fill: C.actual, strokeWidth: 2, stroke: "#fff" }} connectNulls type="linear" isAnimationActive={false} />
+              <Line dataKey="cpl" name="Costo por lead" stroke={C.actual} strokeWidth={2} dot={{ r: 4, fill: C.actual, strokeWidth: 2, stroke: "var(--card)" }} connectNulls type="linear" isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -383,7 +384,7 @@ export function AnalysisBoard({
               <CartesianGrid horizontal={false} stroke={C.grid} />
               <XAxis type="number" {...AXIS_PROPS} allowDecimals={false} />
               <YAxis type="category" dataKey="name" {...AXIS_PROPS} width={90} />
-              <Tooltip content={<ChartTooltip fmt={num} />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+              <Tooltip content={<ChartTooltip fmt={num} />} cursor={{ fill: "var(--chart-cursor)" }} />
               <Legend iconType="circle" wrapperStyle={{ fontSize: 12, color: C.text }} />
               <Bar isAnimationActive={false} dataKey="leads" name="Leads" fill={C.actual} radius={[0, 4, 4, 0]} maxBarSize={16} />
               <Bar isAnimationActive={false} dataKey="leadsGoal" name="Meta" fill={C.goal} radius={[0, 4, 4, 0]} maxBarSize={16} />
@@ -401,7 +402,7 @@ export function AnalysisBoard({
               <CartesianGrid horizontal={false} stroke={C.grid} />
               <XAxis type="number" {...AXIS_PROPS} allowDecimals={false} />
               <YAxis type="category" dataKey="name" {...AXIS_PROPS} width={90} interval={0} />
-              <Tooltip content={<ChartTooltip fmt={num} />} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+              <Tooltip content={<ChartTooltip fmt={num} />} cursor={{ fill: "var(--chart-cursor)" }} />
               <Bar isAnimationActive={false} dataKey="leads" name="Leads" fill={C.actual} radius={[0, 4, 4, 0]} maxBarSize={14} />
             </BarChart>
           </ResponsiveContainer>
@@ -444,7 +445,7 @@ export function AnalysisBoard({
                     {scTarget !== null && (
                       <ReferenceLine y={scTarget} stroke={C.goal} strokeWidth={2} strokeDasharray="6 4" label={{ value: "Meta", fill: C.axis, fontSize: 11, position: "insideTopRight" }} />
                     )}
-                    <Line dataKey="value" name={metric?.name ?? "Valor"} stroke={C.actual} strokeWidth={2} dot={{ r: 4, fill: C.actual, strokeWidth: 2, stroke: "#fff" }} connectNulls type="linear" isAnimationActive={false} />
+                    <Line dataKey="value" name={metric?.name ?? "Valor"} stroke={C.actual} strokeWidth={2} dot={{ r: 4, fill: C.actual, strokeWidth: 2, stroke: "var(--card)" }} connectNulls type="linear" isAnimationActive={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
