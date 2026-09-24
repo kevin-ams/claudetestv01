@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth/session";
 import { listTeamMembers } from "@/lib/domain/users";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
+import { getTeam } from "@/lib/domain/teams";
+import { getDemoTeamFor } from "@/lib/domain/demo";
 
 const SECTIONS = [
   {
@@ -24,6 +26,12 @@ const SECTIONS = [
     description: "Hasta 5 imágenes que aparecen como popup cada cierto tiempo. Activar o desactivar.",
   },
   {
+    href: "/ajustes/demo",
+    icon: "🧪",
+    title: "Información demo",
+    description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
+  },
+  {
     href: "/ajustes/exportar",
     icon: "📤",
     title: "Exportar datos",
@@ -35,7 +43,9 @@ export default async function AjustesIndexPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [members, milestones, adSettings, slots] = await Promise.all([
+  const [team, demo, members, milestones, adSettings, slots] = await Promise.all([
+    getTeam(session.teamId),
+    getDemoTeamFor(session.userId),
     listTeamMembers(session.teamId),
     listControlMilestones(session.teamId),
     getAnnouncementSettings(session.teamId),
@@ -49,6 +59,7 @@ export default async function AjustesIndexPage() {
       ? `Activos · ${activeAds} imagen(es) · cada ${adSettings.interval_minutes} min`
       : "Desactivados",
     "/ajustes/exportar": "Scorecard · Indicadores · Metas",
+    "/ajustes/demo": team?.is_demo ? "Estás viendo la demo" : demo ? "Demo creada" : "Desactivada",
   };
 
   return (

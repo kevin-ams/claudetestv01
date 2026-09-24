@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import {
-  ALLOWED_IMAGE_TYPES,
   clearSlot,
+  imageMime,
   MAX_IMAGE_BYTES,
   saveAnnouncementSettings,
   setSlotDetails,
@@ -44,11 +44,17 @@ export async function uploadAdImageAction(slot: number, formData: FormData): Pro
   const session = await requireAdmin();
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Elige una imagen." };
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    return { ok: false, message: "Formato no permitido. Usa PNG, JPG, WEBP o GIF." };
+  const mime = imageMime(file);
+  if (!mime) {
+    return {
+      ok: false,
+      message: /\.hei[cf]$/i.test(file.name)
+        ? "Las fotos HEIC de iPhone no se pueden mostrar en el navegador. Guárdala como JPG o PNG."
+        : "Formato no permitido. Usa PNG, JPG, WEBP o GIF.",
+    };
   }
   if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "La imagen pesa más de 5 MB." };
-  await setSlotImage(session.teamId, checkSlot(slot), new Uint8Array(await file.arrayBuffer()), file.type);
+  await setSlotImage(session.teamId, checkSlot(slot), new Uint8Array(await file.arrayBuffer()), mime);
   refresh();
   return { ok: true, message: "Imagen guardada." };
 }

@@ -7,15 +7,15 @@ import { createRock, addMilestone } from "./rocks";
 import { CAREER_CATALOG, MARKETING_ROSTER, type RosterName } from "./careers-catalog";
 
 /** Correo provisional para las personas del equipo que aún no tienen acceso. */
-export function placeholderEmail(name: string) {
-  return `${name.toLowerCase()}@marketing.local`;
+export function placeholderEmail(name: string, domain = "marketing.local") {
+  return `${name.toLowerCase()}@${domain}`;
 }
 
 /**
  * Asegura que las personas del roster estén en el equipo. Si ya hay un
  * miembro con ese primer nombre (por ejemplo, el administrador), se usa.
  */
-async function ensureRoster(teamId: number): Promise<Map<RosterName, number>> {
+async function ensureRoster(teamId: number, emailDomain: string): Promise<Map<RosterName, number>> {
   const members = await listTeamMembers(teamId);
   const userIdByName = new Map<RosterName, number>();
 
@@ -25,7 +25,7 @@ async function ensureRoster(teamId: number): Promise<Map<RosterName, number>> {
       userIdByName.set(name, member.id);
       continue;
     }
-    const email = placeholderEmail(name);
+    const email = placeholderEmail(name, emailDomain);
     const existing = await getUserByEmail(email);
     const user =
       existing ??
@@ -47,8 +47,11 @@ async function ensureRoster(teamId: number): Promise<Map<RosterName, number>> {
  * responsable (solo si el equipo aún no tiene carreras) y los Rocks iniciales
  * de Kevin. Se puede volver a correr sin duplicar nada.
  */
-export async function seedMarketingTeam(teamId: number): Promise<{ careers: number }> {
-  const userIdByName = await ensureRoster(teamId);
+export async function seedMarketingTeam(
+  teamId: number,
+  emailDomain = "marketing.local"
+): Promise<{ careers: number; userIdByName: Map<RosterName, number> }> {
+  const userIdByName = await ensureRoster(teamId, emailDomain);
 
   const existing = await db().sql`SELECT 1 FROM careers WHERE team_id = ${teamId} LIMIT 1`;
   let created = 0;
@@ -67,7 +70,7 @@ export async function seedMarketingTeam(teamId: number): Promise<{ careers: numb
   }
 
   await seedKevinRocks(teamId, userIdByName.get("Kevin") ?? null);
-  return { careers: created };
+  return { careers: created, userIdByName };
 }
 
 async function seedKevinRocks(teamId: number, kevinId: number | null) {

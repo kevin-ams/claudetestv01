@@ -73,8 +73,12 @@ de administrador. Al terminar el setup se cargan automáticamente:
   - **Hitos de Control de carrera** (`/ajustes/hitos`, administradores): editar, renombrar,
     eliminar, agregar y reordenar hitos; etapa, duración, dependencias y lanzamiento.
   - **Anuncios** (`/ajustes/anuncios`, administradores): hasta 5 imágenes (PNG, JPG, WEBP o
-    GIF, máx. 5 MB) que aparecen como popup a todo el equipo cada N minutos (5 por
+    GIF; las fotos grandes se reducen a 1920 px al subirlas) guardadas en `.data/uploads`, que aparecen como popup a todo el equipo cada N minutos (5 por
     defecto), en rotación; se pueden activar/desactivar en general o por imagen.
+  - **Información demo** (`/ajustes/demo`, administradores): crea un equipo aparte
+    "… · DEMO" con datos de ejemplo en todos los módulos y cambia tu vista a él; tu
+    información real no se toca y el resto del equipo no la ve. "Desactivar" borra la
+    demo completa y regresa al equipo real.
   - **Exportar datos** (`/ajustes/exportar`): Scorecard e Indicadores de carrera en Excel
     `.xlsm` (libro habilitado para macros, sin macros incluidas) o `.xlsx`, por rango de
     semanas. También desde los botones "Exportar Excel" de Scorecard e Indicadores.
