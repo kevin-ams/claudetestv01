@@ -45,3 +45,24 @@ de administrador.
 - **Issues** (`/issues`): lista IDS priorizable, con conversión a To-Do al resolver.
 - **To-Dos** (`/todos`): pendientes semanales con dueño y fecha límite.
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+
+## Plano de iluminación (`/plano`)
+
+Editor de planos de iluminación y distribución eléctrica para estudios y escenarios.
+Es público (no requiere sesión) y guarda los planos en el navegador (`localStorage`).
+
+- **Catálogo** de más de 80 elementos: luces (fresnel, COB, paneles, softbox, octabox, PAR, leko,
+  cabezas móviles, tubos, contraluz, prácticos, luces navideñas, velas, neón), rebotadores y banderas,
+  personas, cámaras (trípode, cine, PTZ, grúa, dolly), instrumentos y audio, escenografía y fondos,
+  tomas, regletas, extensiones, distribuidores y generadores, más texto/zonas/flechas/marcas.
+- **Lienzo** a escala en metros con cuadrícula, reglas, zoom, arrastrar/rotar/redimensionar,
+  selección múltiple, alinear/distribuir, copiar/pegar, deshacer/rehacer y atajos de teclado.
+- **Luces**: haz de luz con apertura, alcance, intensidad, temperatura de color (K), gel RGB y canal DMX.
+- **Vista eléctrica**: conecta equipos a tomas/regletas/extensiones (en cadena), carga por circuito
+  (W/A, regla del 80 %), enchufes usados, largo de cable y extensiones necesarias, alertas de sobrecarga,
+  y un asistente que sugiere dónde poner regletas y tomas.
+- **Exportar**: PNG, SVG, reporte imprimible/PDF (plano + resumen eléctrico + lista de equipo),
+  CSV del equipo y archivo `.plano.json` para respaldar o compartir.
+
+Código: `src/lib/plano/*` (modelo, catálogo, cálculos eléctricos, almacenamiento) y
+`src/components/plano/*` (editor, lienzo, símbolos SVG y paneles).

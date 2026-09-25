@@ -13,6 +13,7 @@ const NAV = [
   { href: "/issues", label: "Issues", icon: "⚠️" },
   { href: "/todos", label: "To-Dos", icon: "✅" },
   { href: "/meeting", label: "Reunión L10", icon: "⏱️" },
+  { href: "/plano", label: "Plano de iluminación", icon: "💡" },
   { href: "/settings/team", label: "Equipo", icon: "👥" },
 ];
 
