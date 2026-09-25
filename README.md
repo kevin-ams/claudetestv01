@@ -50,6 +50,8 @@ de administrador.
 
 Editor de planos de iluminación y distribución eléctrica para estudios y escenarios.
 Es público (no requiere sesión) y guarda los planos en el navegador (`localStorage`).
+No necesita base de datos: basta con `npm install && npm run dev` y abrir
+http://localhost:3000/plano.
 
 - **Catálogo** de más de 80 elementos: luces (fresnel, COB, paneles, softbox, octabox, PAR, leko,
   cabezas móviles, tubos, contraluz, prácticos, luces navideñas, velas, neón), rebotadores y banderas,

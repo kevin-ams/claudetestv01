@@ -1,10 +1,14 @@
 import { redirect } from "next/navigation";
+import { NoDatabase } from "@/components/no-database";
+import { isDatabaseConfigured } from "@/lib/db";
 import { countUsers } from "@/lib/domain/users";
 import { SetupForm } from "./setup-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
+  if (!isDatabaseConfigured()) return <NoDatabase />;
+
   const existing = await countUsers();
   if (existing > 0) {
     redirect("/login");

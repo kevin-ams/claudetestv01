@@ -8,3 +8,13 @@ export function db() {
   }
   return cached;
 }
+
+/** False when no Netlify Database is available (e.g. plain `npm run dev`). */
+export function isDatabaseConfigured() {
+  try {
+    db();
+    return true;
+  } catch {
+    return false;
+  }
+}

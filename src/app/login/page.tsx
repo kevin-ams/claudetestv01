@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NoDatabase } from "@/components/no-database";
+import { isDatabaseConfigured } from "@/lib/db";
 import { countUsers } from "@/lib/domain/users";
 import { getSession } from "@/lib/auth/session";
 import { LoginForm } from "./login-form";
 
+export const dynamic = "force-dynamic";
+
 export default async function LoginPage() {
+  if (!isDatabaseConfigured()) return <NoDatabase />;
+
   const session = await getSession();
   if (session) redirect("/");
 
