@@ -28,11 +28,6 @@ de administrador.
 | Variable      | Descripción                                              |
 | ------------- | --------------------------------------------------------- |
 | `AUTH_SECRET` | Secreto usado para firmar las cookies de sesión (JWT). Ya está configurado en el sitio de Netlify. |
-| `CALLS_SHEET_ID` | ID de la hoja de Google Sheets de la campaña de llamadas (lo que va entre `/d/` y `/edit` en la URL). |
-| `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` | Cliente OAuth (tipo web) de Google. Con esto la hoja se lee con la cuenta que se conecte desde `/llamadas` (botón "Conectar con Google"). |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Alternativa a OAuth: correo de la cuenta de servicio de Google que lee la hoja. |
-| `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Llave privada (`private_key` del JSON de la cuenta de servicio). Se aceptan los `\n` literales. |
-| `CALLS_FIXTURE_PATH` | Solo desarrollo: ruta a un JSON local con los datos de la hoja, para probar sin Google. No lo subas al repo. |
 
 ## Estructura
 
@@ -50,35 +45,21 @@ de administrador.
 - **Issues** (`/issues`): lista IDS priorizable, con conversión a To-Do al resolver.
 - **To-Dos** (`/todos`): pendientes semanales con dueño y fecha límite.
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos con timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
-- **Campaña de llamadas** (`/llamadas`): dashboard de la campaña de llamadas en frío a leads de carreras, leído en vivo de Google Sheets. Filtros por fecha, asesor, facultad, nivel, carrera, resultado, interés y "¿ya lo llamaron?"; KPIs de cobertura, contacto e interés; gráficos por asesor, día, hora, antigüedad del lead y carrera; temas detectados en observaciones; recomendaciones automáticas; lista de seguimiento prioritario con enlace a WhatsApp; exportación a CSV.
+- **Campaña de llamadas** (`/llamadas`): dashboard de la campaña de llamadas en frío a leads de carreras, a partir del Excel que se sube desde la misma página. Filtros por fecha, asesor, facultad, nivel, carrera, resultado, interés y "¿ya lo llamaron?"; KPIs de cobertura, contacto e interés; gráficos por asesor, día, hora, antigüedad del lead y carrera; temas detectados en observaciones; recomendaciones automáticas; lista de seguimiento prioritario con enlace a WhatsApp; exportación a CSV.
 
-## Sincronización con Google Sheets (campaña de llamadas)
+## Actualizar los datos de la campaña de llamadas
 
-La hoja sigue siendo la fuente de verdad: los asesores la llenan como siempre y el dashboard solo la **lee**.
+El dashboard no se conecta a Google: trabaja con el último archivo que se sube.
 
-Hay dos formas de dar acceso a la hoja (si están las dos, gana la cuenta de servicio):
+1. En Google Sheets abre la hoja de llamadas y ve a **Archivo → Descargar → Microsoft Excel (.xlsx)**.
+2. En `/llamadas` pulsa **Subir archivo actualizado** y elige ese archivo.
 
-**A. Iniciar sesión con Google (OAuth) — la que usa el sitio hoy**
+Cada carga reemplaza a la anterior (se conservan las últimas 10 por equipo en la tabla `call_uploads`). El dashboard muestra el nombre del archivo, la fecha y quién lo subió.
 
-1. En Google Cloud Console → *APIs & Services*: habilita **Google Sheets API** en el proyecto del cliente OAuth.
-2. En *Credentials* → el cliente OAuth (tipo *Web application*) → *Authorized redirect URIs*, agrega `https://eos-nivel-10.netlify.app/llamadas/google/callback` (y `http://localhost:8888/llamadas/google/callback` para desarrollo).
-3. En *OAuth consent screen*: si el proyecto pertenece a la organización de Google Workspace, márcalo como **Internal**. Si queda como *External* en modo *Testing*, agrega tu correo como usuario de prueba y ten en cuenta que Google revoca la autorización cada 7 días (hay que reconectar) hasta publicar la app.
-4. En Netlify deben estar `CALLS_SHEET_ID`, `GOOGLE_OAUTH_CLIENT_ID` y `GOOGLE_OAUTH_CLIENT_SECRET`.
-5. Entra a `/llamadas`, pulsa **Conectar con Google** e inicia sesión con una cuenta que pueda abrir la hoja. El refresh token se guarda cifrado (AES-GCM con `AUTH_SECRET`) en la tabla `google_connections`. La hoja no se comparte con nadie.
-
-**B. Cuenta de servicio**
-
-1. En Google Cloud crea una **cuenta de servicio** con la Google Sheets API habilitada y descarga su llave JSON.
-2. Comparte la hoja con el correo de la cuenta de servicio (`...@...iam.gserviceaccount.com`) como **Lector**.
-3. En Netlify agrega `CALLS_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` y `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, y vuelve a desplegar.
-
-Cómo se actualiza:
-
-- La lectura se guarda en caché **5 minutos** (`CALLS_REVALIDATE_SECONDS` en `src/lib/calls/source.ts`); pasado ese tiempo, la siguiente visita trae datos nuevos.
-- El botón **Sincronizar ahora** descarta la caché y vuelve a leer la hoja al instante.
-- Se leen todas las pestañas cuyo encabezado tenga `CARRERA` y `ESTADO LLAMADA` (p. ej. `contactos FISICC PREGRADO`); la facultad y el nivel salen del nombre de la pestaña. Las columnas se ubican por nombre, así que se pueden reordenar. Agregar una pestaña nueva con el mismo encabezado la incluye automáticamente.
+- Se leen todas las pestañas cuyo encabezado (fila 1) tenga `CARRERA` y `ESTADO LLAMADA` (p. ej. `contactos FISICC PREGRADO`); la facultad y el nivel salen del nombre de la pestaña. Las columnas se ubican por nombre, así que se pueden reordenar. Las demás pestañas (guion, opciones) se ignoran.
 - Filas sin `ESTADO LLAMADA` cuentan como *pendientes de llamar* (sirven para medir cobertura).
+- Límite: 4 MB por archivo.
 
 Para que las métricas sean confiables, los asesores deben llenar **Día** (dd/mm/aaaa) y **hora** (hh:mm) en cada llamada y usar las opciones de la pestaña *opciones* para ESTADO, YA LO LLAMARON e INTERÉS.
 
-Código: `src/lib/calls/parse.ts` (normalización de la hoja), `src/lib/calls/analytics.ts` (métricas y recomendaciones), `src/lib/calls/source.ts` (lectura de Google + caché), `src/app/(app)/llamadas/*` (UI).
+Código: `src/lib/calls/xlsx.ts` (lectura del Excel), `src/lib/calls/parse.ts` (normalización de la hoja), `src/lib/calls/analytics.ts` (métricas y recomendaciones), `src/lib/calls/source.ts` (guardar/leer cargas), `src/app/(app)/llamadas/*` (UI).

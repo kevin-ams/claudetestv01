@@ -32,8 +32,8 @@ export type CallRecord = {
 
 export type CallsDataset = {
   records: CallRecord[];
-  sheetTitle: string;
-  syncedAt: string;
-  source: "google" | "fixture";
   warnings: string[];
+  fileName: string;
+  uploadedAt: string;
+  uploadedBy: string | null;
 };

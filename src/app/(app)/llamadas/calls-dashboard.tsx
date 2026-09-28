@@ -37,7 +37,7 @@ import {
   type Segment,
 } from "./charts";
 import { MultiSelect, type Option } from "./filters";
-import { SyncButton } from "./sync-button";
+import { UploadButton } from "./upload-button";
 
 const OUTCOME_KEYS = ["efectiva", "no_contesto", "numero_equivocado", "otro"] as const;
 
@@ -136,17 +136,15 @@ function waLink(phone: string) {
 
 export function CallsDashboard({
   records,
-  sheetTitle,
-  syncedAt,
-  refreshMinutes,
-  sheetUrl,
+  fileName,
+  uploadedAt,
+  uploadedBy,
   warnings,
 }: {
   records: CallRecord[];
-  sheetTitle: string;
-  syncedAt: string;
-  refreshMinutes: number;
-  sheetUrl: string | null;
+  fileName: string;
+  uploadedAt: string;
+  uploadedBy: string | null;
   warnings: string[];
 }) {
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -299,26 +297,21 @@ export function CallsDashboard({
           <div>
             <h1 className="text-2xl font-bold">Campaña de llamadas en frío</h1>
             <p className="text-sm text-muted">
-              {sheetTitle} · sincronizado{" "}
+              Archivo <span className="font-medium">{fileName}</span> · subido{" "}
               <span suppressHydrationWarning>
-                {new Date(syncedAt).toLocaleString("es-GT", {
+                {new Date(uploadedAt).toLocaleString("es-GT", {
                   dateStyle: "medium",
                   timeStyle: "short",
                 })}
-              </span>{" "}
-              · se actualiza solo cada {refreshMinutes} min
+              </span>
+              {uploadedBy && <> por {uploadedBy}</>}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {sheetUrl && (
-              <a href={sheetUrl} target="_blank" rel="noreferrer" className="btn btn-secondary">
-                Abrir hoja ↗
-              </a>
-            )}
             <button type="button" className="btn btn-secondary" onClick={() => downloadCsv(detail)}>
               Exportar CSV
             </button>
-            <SyncButton />
+            <UploadButton />
           </div>
         </div>
 

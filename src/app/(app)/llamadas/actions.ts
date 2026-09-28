@@ -1,19 +1,45 @@
 "use server";
 
-import { updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
-import { deleteConnection } from "@/lib/calls/google-oauth";
-import { CALLS_CACHE_TAG } from "@/lib/calls/source";
+import { isCallsSheet } from "@/lib/calls/parse";
+import { saveUpload } from "@/lib/calls/source";
+import { readWorkbook } from "@/lib/calls/xlsx";
 
-/** Descarta la copia en caché y vuelve a leer Google Sheets en el siguiente render. */
-export async function syncCallsAction() {
-  await requireSession();
-  updateTag(CALLS_CACHE_TAG);
-}
+const MAX_BYTES = 4 * 1024 * 1024;
 
-export async function disconnectGoogleAction() {
+export type UploadResult = { error: string } | { ok: true; sheets: number };
+
+export async function uploadCallsAction(formData: FormData): Promise<UploadResult> {
   const session = await requireSession();
-  if (session.role !== "admin") throw new Error("Solo un administrador puede desconectar Google.");
-  await deleteConnection();
-  updateTag(CALLS_CACHE_TAG);
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Selecciona un archivo." };
+  if (!/\.xlsx$/i.test(file.name)) {
+    return { error: "El archivo debe ser Excel (.xlsx). En Google Sheets: Archivo → Descargar → Microsoft Excel." };
+  }
+  if (file.size > MAX_BYTES) return { error: "El archivo pesa más de 4 MB." };
+
+  let sheets;
+  try {
+    sheets = await readWorkbook(await file.arrayBuffer());
+  } catch {
+    return { error: "No se pudo leer el archivo. Verifica que sea un .xlsx válido." };
+  }
+
+  const callSheets = sheets.filter((s) => isCallsSheet(s.values));
+  if (!callSheets.length) {
+    return {
+      error: "No encontré ninguna pestaña con las columnas CARRERA y ESTADO LLAMADA en la primera fila.",
+    };
+  }
+
+  // Solo guardamos las pestañas de contactos (el guion y las opciones no hacen falta).
+  await saveUpload({
+    teamId: session.teamId,
+    userId: session.userId,
+    fileName: file.name,
+    sheets: callSheets,
+  });
+  revalidatePath("/llamadas");
+  return { ok: true, sheets: callSheets.length };
 }
