@@ -88,7 +88,7 @@ function countOptions<T extends string>(
 
 function Kpi({ label, value, hint }: { label: string; value: ReactNode; hint?: ReactNode }) {
   return (
-    <div className="card flex flex-col gap-1 p-4">
+    <div className="card flex break-inside-avoid flex-col gap-1 p-4">
       <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</span>
       <span className="text-2xl font-bold tabular-nums">{value}</span>
       {hint && <span className="text-xs text-muted">{hint}</span>}
@@ -276,11 +276,36 @@ export function CallsDashboard({
 
   const activeFilterCount =
     Number(Boolean(filters.from || filters.to)) +
-    Number(!filters.includeUndated) +
+    Number(!filters.from && !filters.to && !filters.includeUndated) +
     Number(Boolean(filters.search)) +
     (["agents", "faculties", "levels", "programs", "outcomes", "interests", "prior"] as const).filter(
       (k) => filters[k].length > 0
     ).length;
+
+  const filterSummary = [
+    filters.from || filters.to
+      ? `Fechas: ${filters.from ? fmtDay(filters.from, true) : "inicio"} – ${filters.to ? fmtDay(filters.to, true) : "hoy"} (no incluye llamadas sin fecha)`
+      : filters.includeUndated
+        ? "Fechas: todas"
+        : "Fechas: todas (sin llamadas sin fecha)",
+    filters.agents.length && `Asesor: ${filters.agents.join(", ")}`,
+    filters.faculties.length && `Facultad: ${filters.faculties.join(", ")}`,
+    filters.levels.length && `Nivel: ${filters.levels.join(", ")}`,
+    filters.programs.length && `Carrera: ${filters.programs.join(", ")}`,
+    filters.outcomes.length && `Resultado: ${filters.outcomes.map((o) => OUTCOME_LABEL[o]).join(", ")}`,
+    filters.interests.length &&
+      `Interés: ${filters.interests.map((i) => (i === "sin_dato" ? "Sin dato" : INTEREST_LABEL[i])).join(", ")}`,
+    filters.prior.length && `¿Ya lo llamaron?: ${filters.prior.map((p) => PRIOR_LABEL[p]).join(", ")}`,
+    filters.search && `Búsqueda: “${filters.search}”`,
+  ].filter(Boolean) as string[];
+
+  const exportPdf = () => {
+    // El título del documento es el nombre sugerido del PDF.
+    const previous = document.title;
+    document.title = `Campaña de llamadas ${isoDay(new Date())}`;
+    window.addEventListener("afterprint", () => (document.title = previous), { once: true });
+    window.print();
+  };
 
   const PAGE = 25;
   const detail = [...calls].sort(
@@ -307,7 +332,10 @@ export function CallsDashboard({
               {uploadedBy && <> por {uploadedBy}</>}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-start gap-2 print:hidden">
+            <button type="button" className="btn btn-secondary" onClick={exportPdf}>
+              Exportar PDF
+            </button>
             <button type="button" className="btn btn-secondary" onClick={() => downloadCsv(detail)}>
               Exportar CSV
             </button>
@@ -315,8 +343,21 @@ export function CallsDashboard({
           </div>
         </div>
 
+        {/* Solo en el PDF: qué filtros se aplicaron */}
+        <div className="hidden text-xs text-muted print:block">
+          <p>
+            Reporte generado el{" "}
+            <span suppressHydrationWarning>
+              {new Date().toLocaleString("es-GT", { dateStyle: "long", timeStyle: "short" })}
+            </span>{" "}
+            ·{" "}
+            {calls.length} llamadas de {allCalls.length} · {universe.length} leads
+          </p>
+          <p className="mt-1">Filtros: {filterSummary.join(" · ")}</p>
+        </div>
+
         {/* Filtros */}
-        <section className="card space-y-4 p-4">
+        <section className="card space-y-4 p-4 print:hidden">
           <div className="flex flex-wrap items-end gap-3">
             <label className="block">
               <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-muted">
@@ -364,7 +405,7 @@ export function CallsDashboard({
                 );
               })}
             </div>
-            {undatedCount > 0 && (
+            {undatedCount > 0 && !filters.from && !filters.to && (
               <label className="flex items-center gap-2 pb-2 text-sm">
                 <input
                   type="checkbox"
@@ -418,7 +459,7 @@ export function CallsDashboard({
         </section>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6 print:grid-cols-6">
           <Kpi
             label="Leads en la selección"
             value={universe.length}
@@ -455,9 +496,9 @@ export function CallsDashboard({
         <section>
           <h2 className="mb-3 font-semibold">Recomendaciones</h2>
           {recs.length ? (
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 print:grid-cols-3">
               {recs.map((r) => (
-                <div key={r.title} className={`card border-l-4 p-4 ${TONE[r.tone].cls}`}>
+                <div key={r.title} className={`card break-inside-avoid border-l-4 p-4 ${TONE[r.tone].cls}`}>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
                     <span aria-hidden>{TONE[r.tone].icon}</span> {TONE[r.tone].label}
                   </p>
@@ -474,7 +515,7 @@ export function CallsDashboard({
         </section>
 
         {/* Asesores */}
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
           <ChartCard title="Resultado por asesor" subtitle="Llamadas según su resultado" action={<Legend items={OUTCOME_LEGEND} />}>
             <StackedBars
               rows={agents.map((a) => ({
@@ -487,7 +528,7 @@ export function CallsDashboard({
 
           <ChartCard title="Productividad por asesor">
             {agents.length ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto print:overflow-visible">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
@@ -530,10 +571,10 @@ export function CallsDashboard({
         </div>
 
         {/* Tiempo */}
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2 print:grid-cols-2">
           <ChartCard
             title="Llamadas por día"
-            subtitle={undatedCount && filters.includeUndated ? `No incluye ${calls.filter((c) => !c.callDate).length} llamadas sin fecha` : undefined}
+            subtitle={calls.some((c) => !c.callDate) ? `No incluye ${calls.filter((c) => !c.callDate).length} llamadas sin fecha` : undefined}
             action={<Legend items={OUTCOME_LEGEND} />}
           >
             <Columns
@@ -559,7 +600,7 @@ export function CallsDashboard({
         </div>
 
         {/* Interés */}
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 lg:grid-cols-3 print:grid-cols-3">
           <ChartCard title="Nivel de interés" subtitle="Sobre llamadas efectivas · clic para filtrar">
             <BarList rows={interestRows} />
           </ChartCard>
@@ -582,10 +623,10 @@ export function CallsDashboard({
         </div>
 
         {/* Carreras y temas */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          <ChartCard title="Por carrera" subtitle="Cobertura, contacto e interés" className="lg:col-span-2">
+        <div className="grid gap-4 lg:grid-cols-3 print:grid-cols-1">
+          <ChartCard title="Por carrera" subtitle="Cobertura, contacto e interés" className="lg:col-span-2 print:col-span-1">
             {programs.length ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto print:overflow-visible">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
@@ -659,7 +700,7 @@ export function CallsDashboard({
           subtitle="Interesados y quienes piden información; primero los que nadie había llamado"
         >
           {follow.length ? (
-            <div className="max-h-[28rem] overflow-auto">
+            <div className="max-h-[28rem] overflow-auto print:max-h-none print:overflow-visible">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-card">
                   <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
@@ -726,10 +767,14 @@ export function CallsDashboard({
         </ChartCard>
 
         {/* Detalle */}
-        <ChartCard title="Detalle de llamadas" subtitle={`${detail.length} llamadas en la selección`}>
+        <ChartCard
+          title="Detalle de llamadas"
+          subtitle={`${detail.length} llamadas en la selección`}
+          className="print:hidden"
+        >
           {detail.length ? (
             <>
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto print:overflow-visible">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border text-left text-[11px] uppercase tracking-wide text-muted">
@@ -797,7 +842,7 @@ export function CallsDashboard({
         </ChartCard>
 
         {warnings.length > 0 && (
-          <details className="card p-4 text-sm">
+          <details className="card p-4 text-sm print:hidden">
             <summary className="cursor-pointer font-medium">
               {warnings.length} advertencias de calidad de datos
             </summary>

@@ -30,7 +30,7 @@ export function Sidebar() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="fixed left-4 top-4 z-30 rounded-md border border-border bg-card p-2 shadow-sm md:hidden"
+        className="fixed left-4 top-4 z-30 rounded-md print:hidden border border-border bg-card p-2 shadow-sm md:hidden"
         aria-label="Abrir menú"
       >
         ☰
@@ -44,7 +44,7 @@ export function Sidebar() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border bg-primary text-primary-foreground transition-transform md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 print:hidden transform border-r border-border bg-primary text-primary-foreground transition-transform md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >

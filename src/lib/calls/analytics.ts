@@ -72,10 +72,9 @@ export function applyFilters(records: CallRecord[], f: Filters) {
 
   const calls = universe.filter((r) => {
     if (!isCalled(r)) return false;
+    // Una llamada sin fecha no puede estar dentro de un rango: con fechas se excluye siempre.
     if (hasDate) {
-      if (!r.callDate) {
-        if (!f.includeUndated) return false;
-      } else if ((f.from && r.callDate < f.from) || (f.to && r.callDate > f.to)) {
+      if (!r.callDate || (f.from && r.callDate < f.from) || (f.to && r.callDate > f.to)) {
         return false;
       }
     } else if (!r.callDate && !f.includeUndated) {

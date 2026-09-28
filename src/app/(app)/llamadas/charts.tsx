@@ -26,7 +26,7 @@ export function TooltipLayer({ children }: { children: ReactNode }) {
       {tip && (
         <div
           role="tooltip"
-          className="pointer-events-none fixed z-50 max-w-xs rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-lg"
+          className="pointer-events-none fixed z-50 print:hidden max-w-xs rounded-lg border border-border bg-card px-3 py-2 text-xs shadow-lg"
           style={{
             left: Math.min(tip.x + 12, window.innerWidth - 260),
             top: tip.y + 14,
@@ -88,7 +88,7 @@ export function ChartCard({
   action?: ReactNode;
 }) {
   return (
-    <section className={`card p-5 ${className}`}>
+    <section className={`card break-inside-avoid p-5 ${className}`}>
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="shrink-0">
           <h2 className="font-semibold">{title}</h2>
@@ -147,7 +147,7 @@ function StackedRow({
             <div
               key={s.key}
               className={`h-full ${i === arr.length - 1 ? "rounded-r" : ""}`}
-              style={{ flexGrow: s.value, background: s.color }}
+              style={{ flexGrow: s.value / total, background: s.color }}
             />
           ))}
       </div>
@@ -272,7 +272,7 @@ function Column({
               <div
                 key={s.key}
                 className={i === arr.length - 1 ? "rounded-t" : ""}
-                style={{ flexGrow: s.value, background: s.color }}
+                style={{ flexGrow: s.value / total, background: s.color }}
               />
             ))}
         </div>

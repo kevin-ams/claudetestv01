@@ -17,13 +17,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex min-h-screen flex-1 bg-background">
       <Sidebar />
-      <div className="flex flex-1 flex-col md:pl-64">
+      <div className="flex flex-1 flex-col md:pl-64 print:pl-0">
         <Topbar
           session={session}
           teamName={team?.name ?? "Equipo"}
           teams={teams}
         />
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        <main className="flex-1 px-4 py-6 md:px-8 print:p-0">{children}</main>
       </div>
     </div>
   );
