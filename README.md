@@ -29,7 +29,8 @@ de administrador.
 | ------------- | --------------------------------------------------------- |
 | `AUTH_SECRET` | Secreto usado para firmar las cookies de sesión (JWT). Ya está configurado en el sitio de Netlify. |
 | `CALLS_SHEET_ID` | ID de la hoja de Google Sheets de la campaña de llamadas (lo que va entre `/d/` y `/edit` en la URL). |
-| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Correo de la cuenta de servicio de Google que lee la hoja. |
+| `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` | Cliente OAuth (tipo web) de Google. Con esto la hoja se lee con la cuenta que se conecte desde `/llamadas` (botón "Conectar con Google"). |
+| `GOOGLE_SERVICE_ACCOUNT_EMAIL` | Alternativa a OAuth: correo de la cuenta de servicio de Google que lee la hoja. |
 | `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` | Llave privada (`private_key` del JSON de la cuenta de servicio). Se aceptan los `\n` literales. |
 | `CALLS_FIXTURE_PATH` | Solo desarrollo: ruta a un JSON local con los datos de la hoja, para probar sin Google. No lo subas al repo. |
 
@@ -55,9 +56,21 @@ de administrador.
 
 La hoja sigue siendo la fuente de verdad: los asesores la llenan como siempre y el dashboard solo la **lee**.
 
-1. En [Google Cloud Console](https://console.cloud.google.com/) crea (o usa) un proyecto, habilita **Google Sheets API** y crea una **cuenta de servicio**. En *Keys* genera una llave JSON.
-2. Comparte la hoja con el correo de la cuenta de servicio (`...@...iam.gserviceaccount.com`) como **Lector**. Si el dominio de Google Workspace no permite compartir fuera, pide a TI que lo autorice para esa cuenta.
-3. En Netlify → *Project configuration → Environment variables* agrega `CALLS_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` y `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, y vuelve a desplegar.
+Hay dos formas de dar acceso a la hoja (si están las dos, gana la cuenta de servicio):
+
+**A. Iniciar sesión con Google (OAuth) — la que usa el sitio hoy**
+
+1. En Google Cloud Console → *APIs & Services*: habilita **Google Sheets API** en el proyecto del cliente OAuth.
+2. En *Credentials* → el cliente OAuth (tipo *Web application*) → *Authorized redirect URIs*, agrega `https://eos-nivel-10.netlify.app/llamadas/google/callback` (y `http://localhost:8888/llamadas/google/callback` para desarrollo).
+3. En *OAuth consent screen*: si el proyecto pertenece a la organización de Google Workspace, márcalo como **Internal**. Si queda como *External* en modo *Testing*, agrega tu correo como usuario de prueba y ten en cuenta que Google revoca la autorización cada 7 días (hay que reconectar) hasta publicar la app.
+4. En Netlify deben estar `CALLS_SHEET_ID`, `GOOGLE_OAUTH_CLIENT_ID` y `GOOGLE_OAUTH_CLIENT_SECRET`.
+5. Entra a `/llamadas`, pulsa **Conectar con Google** e inicia sesión con una cuenta que pueda abrir la hoja. El refresh token se guarda cifrado (AES-GCM con `AUTH_SECRET`) en la tabla `google_connections`. La hoja no se comparte con nadie.
+
+**B. Cuenta de servicio**
+
+1. En Google Cloud crea una **cuenta de servicio** con la Google Sheets API habilitada y descarga su llave JSON.
+2. Comparte la hoja con el correo de la cuenta de servicio (`...@...iam.gserviceaccount.com`) como **Lector**.
+3. En Netlify agrega `CALLS_SHEET_ID`, `GOOGLE_SERVICE_ACCOUNT_EMAIL` y `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, y vuelve a desplegar.
 
 Cómo se actualiza:
 

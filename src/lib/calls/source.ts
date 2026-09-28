@@ -2,6 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import { unstable_cache } from "next/cache";
 import { SignJWT, importPKCS8 } from "jose";
+import { oauthAccessToken, oauthConfigured } from "./google-oauth";
 import { parseWorkbook, type RawSheet } from "./parse";
 import type { CallsDataset } from "./types";
 
@@ -13,16 +14,22 @@ const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 
 export class CallsConfigError extends Error {}
 
-export function callsSourceConfigured(): boolean {
+function serviceAccountConfigured() {
   return Boolean(
-    process.env.CALLS_FIXTURE_PATH ||
-      (process.env.CALLS_SHEET_ID &&
-        process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL &&
-        process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY)
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY
   );
 }
 
-async function getAccessToken(): Promise<string> {
+/** "oauth" = se lee con la cuenta de Google que alguien conectó desde el dashboard. */
+export function callsAuthMode(): "fixture" | "service_account" | "oauth" | null {
+  if (process.env.CALLS_FIXTURE_PATH) return "fixture";
+  if (!process.env.CALLS_SHEET_ID) return null;
+  if (serviceAccountConfigured()) return "service_account";
+  if (oauthConfigured()) return "oauth";
+  return null;
+}
+
+async function serviceAccountAccessToken(): Promise<string> {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL!;
   // Netlify guarda los saltos de línea de la llave como "\n" literales.
   const pem = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY!.replace(/\\n/g, "\n");
@@ -55,7 +62,9 @@ async function getAccessToken(): Promise<string> {
 
 async function fetchFromGoogle(): Promise<{ title: string; sheets: RawSheet[] }> {
   const id = process.env.CALLS_SHEET_ID!;
-  const token = await getAccessToken();
+  const token = serviceAccountConfigured()
+    ? await serviceAccountAccessToken()
+    : await oauthAccessToken();
   const headers = { Authorization: `Bearer ${token}` };
   const base = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(id)}`;
 
@@ -66,7 +75,9 @@ async function fetchFromGoogle(): Promise<{ title: string; sheets: RawSheet[] }>
   if (!metaRes.ok) {
     throw new CallsConfigError(
       metaRes.status === 403 || metaRes.status === 404
-        ? `No hay acceso a la hoja (${metaRes.status}). Compártela como Lector con ${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL}.`
+        ? serviceAccountConfigured()
+          ? `No hay acceso a la hoja (${metaRes.status}). Compártela como Lector con ${process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL}.`
+          : `La cuenta de Google conectada no tiene acceso a la hoja (${metaRes.status}). Conecta una cuenta que pueda abrirla.`
         : `Error al leer la hoja (${metaRes.status}).`
     );
   }
