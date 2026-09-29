@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSession } from "@/lib/auth/session";
 import { isCallsSheet } from "@/lib/calls/parse";
-import { saveUpload } from "@/lib/calls/source";
+import { saveUpload } from "@/lib/calls/storage";
 import { readWorkbook } from "@/lib/calls/xlsx";
 
 const MAX_BYTES = 4 * 1024 * 1024;
@@ -35,11 +35,11 @@ export async function uploadCallsAction(formData: FormData): Promise<UploadResul
 
   // Solo guardamos las pestañas de contactos (el guion y las opciones no hacen falta).
   await saveUpload({
-    teamId: session.teamId,
-    userId: session.userId,
     fileName: file.name,
+    uploadedAt: new Date().toISOString(),
+    uploadedBy: session.name,
     sheets: callSheets,
   });
-  revalidatePath("/llamadas");
+  revalidatePath("/");
   return { ok: true, sheets: callSheets.length };
 }

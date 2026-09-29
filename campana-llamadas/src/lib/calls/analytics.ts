@@ -418,6 +418,19 @@ export function recommendations(universe: CallRecord[], calls: CallRecord[]): Re
     }
   }
 
+  // 4b. Meta diaria de efectivas.
+  const behind = agentGoals(calls).filter((g) => g.days.length > 0 && g.avgEffective < DAILY_EFFECTIVE_GOAL);
+  if (behind.length) {
+    const g = behind[behind.length - 1];
+    out.push({
+      tone: "warning",
+      title: `${behind.map((b) => b.agent).join(", ")} ${behind.length === 1 ? "está" : "están"} bajo la meta de ${DAILY_EFFECTIVE_GOAL} efectivas diarias`,
+      detail: `${g.agent} promedia ${g.avgEffective.toFixed(1)} efectivas por día${
+        g.callsNeeded ? `; con su ${pct(g.contactRate)} de contacto necesita unas ${g.callsNeeded} llamadas diarias para llegar` : ""
+      }. Sube el volumen de marcación o concentra llamadas en las franjas con más contacto.`,
+    });
+  }
+
   // 5. Muchos buzones.
   if (total.calls >= 10 && ratio(total.noAnswer, total.calls) >= 0.5) {
     out.push({
@@ -500,4 +513,50 @@ export function recommendations(universe: CallRecord[], calls: CallRecord[]): Re
   }
 
   return out;
+}
+
+/** Meta de llamadas efectivas por asesor por día. */
+export const DAILY_EFFECTIVE_GOAL = 15;
+
+export type AgentGoal = {
+  agent: string;
+  /** Días con fecha, de más antiguo a más reciente. */
+  days: { day: string; calls: number; effective: number }[];
+  daysMet: number;
+  avgEffective: number;
+  periodEffective: number;
+  periodGoal: number;
+  lastDay: { day: string; calls: number; effective: number } | null;
+  contactRate: number;
+  /** Llamadas diarias que necesita, con su tasa de contacto actual, para llegar a la meta. */
+  callsNeeded: number | null;
+  undatedEffective: number;
+};
+
+export function agentGoals(calls: CallRecord[], goal = DAILY_EFFECTIVE_GOAL): AgentGoal[] {
+  return [...groupBy(calls, (r) => r.agent ?? "(Sin asesor)")]
+    .map(([agent, list]) => {
+      const days = [...groupBy(list, (r) => r.callDate)]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([day, dayCalls]) => ({
+          day,
+          calls: dayCalls.length,
+          effective: dayCalls.filter((r) => r.outcome === "efectiva").length,
+        }));
+      const periodEffective = days.reduce((s, d) => s + d.effective, 0);
+      const { contactRate } = rates(list);
+      return {
+        agent,
+        days,
+        daysMet: days.filter((d) => d.effective >= goal).length,
+        avgEffective: ratio(periodEffective, days.length),
+        periodEffective,
+        periodGoal: days.length * goal,
+        lastDay: days[days.length - 1] ?? null,
+        contactRate,
+        callsNeeded: contactRate > 0 ? Math.ceil(goal / contactRate) : null,
+        undatedEffective: list.filter((r) => !r.callDate && r.outcome === "efectiva").length,
+      };
+    })
+    .sort((a, b) => b.avgEffective - a.avgEffective);
 }

@@ -11,7 +11,7 @@ export function Topbar({
   teams: { id: number; name: string }[];
 }) {
   return (
-    <header className="flex h-16 print:hidden items-center justify-between border-b border-border bg-card px-4 md:px-8">
+    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-8">
       <div className="ml-10 flex items-center gap-2 md:ml-0">
         <span className="font-semibold">{teamName}</span>
         {teams.length > 1 && (

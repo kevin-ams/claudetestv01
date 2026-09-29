@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { uploadCallsAction } from "./actions";
+import { uploadCallsAction } from "@/app/actions";
 
 export function UploadButton({ label = "↑ Subir archivo actualizado" }: { label?: string }) {
   const input = useRef<HTMLInputElement>(null);

@@ -100,3 +100,19 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
 }
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  html,
+  body {
+    background: #fff;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .card {
+    box-shadow: none;
+  }
+}
