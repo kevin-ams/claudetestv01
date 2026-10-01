@@ -34,7 +34,13 @@ import {
   rateMeetingAction,
   completeMeetingAction,
   saveCascadeNotesAction,
+  setAttendanceAction,
+  setMeetingLeaderAction,
+  rateAttendeeAction,
 } from "../actions";
+import type { AttendanceRow } from "@/lib/domain/meetings";
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { AppSelect } from "@/components/ui/select";
 
 function useElapsed(since: string | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -231,6 +237,123 @@ function CascadeNotes({ meetingId, initial }: { meetingId: number; initial: stri
   );
 }
 
+function AttendancePanel({
+  meetingId,
+  attendance,
+  leaderId,
+  canLead,
+}: {
+  meetingId: number;
+  attendance: AttendanceRow[];
+  leaderId: number | null;
+  canLead: boolean;
+}) {
+  const [, startTransition] = useTransition();
+  const present = attendance.filter((a) => a.present).length;
+  return (
+    <Card>
+      <Card.Header className="flex-row flex-wrap items-start justify-between gap-3">
+        <div>
+          <Card.Title>Lista de asistencia ({present} de {attendance.length})</Card.Title>
+          <Card.Description>Marca a las personas presentes. Al final, quien dirige captura la calificación de cada una.</Card.Description>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted">Dirige:</span>
+          {canLead ? (
+            <AppSelect
+              aria-label="Quién dirige la reunión"
+              className="w-44"
+              value={leaderId ?? ""}
+              onChange={(e) => e.target.value && startTransition(() => setMeetingLeaderAction(meetingId, Number(e.target.value)))}
+            >
+              {leaderId === null && <option value="">Sin asignar</option>}
+              {attendance.map((a) => (
+                <option key={a.user_id} value={a.user_id}>
+                  {a.name}
+                </option>
+              ))}
+            </AppSelect>
+          ) : (
+            <span className="font-medium">{attendance.find((a) => a.user_id === leaderId)?.name ?? "Sin asignar"}</span>
+          )}
+        </div>
+      </Card.Header>
+      <Card.Content>
+        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 md:grid-cols-3">
+          {attendance.map((a) => (
+            <AppCheckbox
+              key={a.user_id}
+              checked={a.present}
+              className="text-sm"
+              onChange={(e) => startTransition(() => setAttendanceAction(meetingId, a.user_id, e.target.checked))}
+            >
+              {a.name}
+              {a.user_id === leaderId && <span className="ml-1 text-xs text-muted">(dirige)</span>}
+            </AppCheckbox>
+          ))}
+        </div>
+      </Card.Content>
+    </Card>
+  );
+}
+
+/** Quien dirige captura la calificación de cada asistente. */
+function LeaderRatingPanel({
+  meetingId,
+  attendance,
+  ratings,
+}: {
+  meetingId: number;
+  attendance: AttendanceRow[];
+  ratings: { user_id: number; rating: number; user_name: string }[];
+}) {
+  const [pending, startTransition] = useTransition();
+  const present = attendance.filter((a) => a.present);
+  const rated = ratings.filter((r) => present.some((a) => a.user_id === r.user_id));
+  const avg = ratings.length ? (ratings.reduce((x, r) => x + r.rating, 0) / ratings.length).toFixed(1) : null;
+  return (
+    <Card className={pending ? "opacity-80" : ""}>
+      <Card.Header>
+        <Card.Title>Calificación de los asistentes (1-10)</Card.Title>
+        <Card.Description>
+          {rated.length} de {present.length} asistente(s) calificaron{avg && ` · Promedio: ${avg}`}. Toca el número de cada persona; usa &quot;Borrar&quot; para quitarlo.
+        </Card.Description>
+      </Card.Header>
+      <Card.Content className="gap-3">
+        {present.length === 0 && (
+          <p className="text-sm text-muted">Marca primero a los asistentes en la lista de asistencia.</p>
+        )}
+        {present.map((a) => {
+          const current = ratings.find((r) => r.user_id === a.user_id)?.rating ?? null;
+          return (
+            <div key={a.user_id} className="flex flex-wrap items-center gap-3 border-b border-border pb-2 last:border-0">
+              <span className="w-32 shrink-0 text-sm font-medium">{a.name}</span>
+              <Segmented
+                aria-label={`Calificación de ${a.name}`}
+                detached
+                className="flex-wrap"
+                options={Array.from({ length: 10 }, (_, i) => ({ id: i + 1, label: String(i + 1) }))}
+                value={current}
+                onChange={(n) => startTransition(() => rateAttendeeAction(meetingId, a.user_id, n))}
+              />
+              {current !== null && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-xs text-muted"
+                  onPress={() => startTransition(() => rateAttendeeAction(meetingId, a.user_id, null))}
+                >
+                  Borrar
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </Card.Content>
+    </Card>
+  );
+}
+
 function RatingPanel({
   meetingId,
   session,
@@ -278,6 +401,8 @@ export function MeetingRunner({
   headlines,
   ratings,
   clickupConfigured,
+  attendance,
+  canLead,
 }: {
   meeting: Meeting;
   session: SessionPayload;
@@ -297,6 +422,8 @@ export function MeetingRunner({
   headlines: MeetingHeadline[];
   ratings: { user_id: number; rating: number; user_name: string }[];
   clickupConfigured: boolean;
+  attendance: AttendanceRow[];
+  canLead: boolean;
 }) {
   const router = useRouter();
   const idx = segmentIndex(meeting.current_segment);
@@ -423,11 +550,14 @@ export function MeetingRunner({
 
       <div className="mb-10">
         {segment.key === "segue" && (
+          <div className="flex flex-col gap-4">
+          <AttendancePanel meetingId={meeting.id} attendance={attendance} leaderId={meeting.leader_id} canLead={canLead} />
           <Card className="block gap-0 p-6 text-sm text-muted">
             Cada persona comparte una buena noticia personal y una del negocio.
             No hay datos que revisar en este segmento. Cuando terminen, avancen
             al Scorecard.
           </Card>
+          </div>
         )}
 
         {segment.key === "scorecard" && (
@@ -546,7 +676,12 @@ export function MeetingRunner({
           <div className="flex flex-col gap-4">
             <ConclusionTodos todos={todos} members={members} startedAt={meeting.started_at} />
             <CascadeNotes meetingId={meeting.id} initial={meeting.cascade_notes ?? ""} />
-            <RatingPanel meetingId={meeting.id} session={session} ratings={ratings} />
+            <AttendancePanel meetingId={meeting.id} attendance={attendance} leaderId={meeting.leader_id} canLead={canLead} />
+            {canLead ? (
+              <LeaderRatingPanel meetingId={meeting.id} attendance={attendance} ratings={ratings} />
+            ) : (
+              <RatingPanel meetingId={meeting.id} session={session} ratings={ratings} />
+            )}
             <Card className="block gap-0 p-4 text-sm text-muted">
               Al finalizar la reunión podrás descargar el <b>resumen en PDF</b> con todo lo registrado. También puedes
               generar uno ahora:{" "}

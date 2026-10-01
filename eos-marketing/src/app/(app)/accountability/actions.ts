@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import { createSeat, updateSeat, deleteSeat } from "@/lib/domain/accountability";
 
 function linesOf(formData: FormData, key: string): string[] {
@@ -34,22 +35,26 @@ export async function createSeatAction(formData: FormData) {
     roles: linesOf(formData, "roles"),
     sortOrder: 0,
   });
+  await logActivity(session, "accountability", "Agregó asiento al organigrama", String(formData.get("title") ?? "").trim());
   revalidatePath("/accountability");
 }
 
 export async function updateSeatAction(seatId: number, formData: FormData) {
-  await requireModule("accountability");
+  const session = await requireModule("accountability");
   await updateSeat(seatId, {
     title: String(formData.get("title") ?? "").trim(),
     userId: userId(formData),
     roles: linesOf(formData, "roles"),
     parentSeatId: parentId(formData),
   });
+  await logActivity(session, "accountability", "Editó asiento del organigrama", String(formData.get("title") ?? "").trim());
   revalidatePath("/accountability");
 }
 
 export async function deleteSeatAction(seatId: number) {
-  await requireModule("accountability");
+  const session = await requireModule("accountability");
+  const label = await labelOf("accountability_seats", seatId);
   await deleteSeat(seatId);
+  await logActivity(session, "accountability", "Eliminó asiento del organigrama", label);
   revalidatePath("/accountability");
 }

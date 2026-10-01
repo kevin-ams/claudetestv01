@@ -1,21 +1,38 @@
 import { getSession } from "@/lib/auth/session";
+import { isTeamAdmin } from "@/lib/auth/access";
+import { daysSinceLastBackup, lastBackupEvents } from "@/lib/backup";
+import { BackupPanel } from "./backup-panel";
 import { runDiagnostics } from "@/lib/domain/diagnostics";
 import { SettingsHeader } from "../settings-header";
 
 export const dynamic = "force-dynamic";
 
+// Se formatea en el servidor, con la zona del equipo, para que coincida al hidratar.
+const WHEN = new Intl.DateTimeFormat("es", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: process.env.EOS_TIMEZONE || "America/Guatemala",
+});
+
 export default async function DiagnosticoPage() {
   const session = await getSession();
   if (!session) return null;
-  const checks = await runDiagnostics(session.teamId);
+  const [checks, events, admin] = await Promise.all([
+    runDiagnostics(session.teamId),
+    lastBackupEvents().catch(() => []),
+    isTeamAdmin(),
+  ]);
   const failed = checks.filter((c) => !c.ok).length;
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <SettingsHeader
         title="Diagnóstico"
-        description="Pruebas rápidas de la base de datos, la carpeta de imágenes y el entorno. Si algo no guarda o no carga, empieza aquí."
+        description="Pruebas rápidas de la base de datos, la carpeta de imágenes y el entorno, y respaldos de la información. Si algo no guarda o no carga, empieza aquí."
       />
+      <BackupPanel
+        events={events.map((e) => ({ ...e, when: WHEN.format(new Date(e.created_at)) }))}
+        canEdit={admin} days={daysSinceLastBackup(events)} />
       <p
         role="status"
         className={`rounded-lg px-3 py-2 text-sm font-semibold ${failed ? "bg-red-bg text-red" : "bg-green-bg text-green"}`}
@@ -36,9 +53,9 @@ export default async function DiagnosticoPage() {
         ))}
       </ul>
       <p className="text-xs text-muted">
-        Si la base de datos falla en lectura o escritura, detén la app (Ctrl + C) y vuelve a correr{" "}
-        <code>npm run dev</code>. Si sigue fallando, la base pudo dañarse: renombra la carpeta <code>.data</code> (así
-        conservas una copia) y abre la app de nuevo para empezar con una base limpia.
+        En tu computadora: si la base falla, detén la app (Ctrl + C) y vuelve a correr <code>npm run dev</code>. Si
+        sigue fallando, renombra la carpeta <code>.data</code> (así conservas una copia), abre la app de nuevo y
+        restaura tu último respaldo.
       </p>
     </div>
   );

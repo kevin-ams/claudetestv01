@@ -137,9 +137,16 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
     "… · DEMO" con datos de ejemplo en todos los módulos y cambia tu vista a él; tu
     información real no se toca y el resto del equipo no la ve. "Desactivar" borra la
     demo completa y regresa al equipo real.
+  - **Log** (`/ajustes/log`, administradores): bitácora de acciones importantes (metas,
+    valores y metas del Scorecard, hitos, Rocks, To-Dos, Issues, indicadores, Control de
+    carrera, V/TO, organigrama, reuniones, personas, roles, anuncios, color y respaldos),
+    con filtros por módulo y persona.
   - **Diagnóstico** (`/ajustes/diagnostico`): prueba lectura y escritura de la base,
-    migraciones aplicadas, la carpeta de imágenes y cada anuncio guardado, y muestra el
-    error exacto si algo falla.
+    migraciones aplicadas, el almacenamiento de imágenes y cada anuncio guardado, y muestra el
+    error exacto si algo falla. **Respaldos** (administradores): alerta si no hay respaldo o
+    tiene 7 días o más; "Descargar respaldo" genera un `.json.gz` con toda la base (todos los
+    equipos; sin imágenes de anuncios); "Restaurar" reemplaza toda la información por la de
+    un respaldo (escribiendo RESTAURAR), en una sola transacción. Historial de respaldos.
   - **Exportar datos** (`/ajustes/exportar`): Scorecard e Indicadores de carrera en Excel
     `.xlsm` (libro habilitado para macros, sin macros incluidas) o `.xlsx`, por rango de
     semanas. También desde los botones "Exportar Excel" de Scorecard e Indicadores.
@@ -163,7 +170,10 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
   todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,
   Rocks, Noticias y To-Dos; "+ To-Do" desde cada Issue en IDS. Timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+  Al iniciar, **lista de asistencia** (quien inicia queda presente y dirige; se puede cambiar
+  quién dirige). En **Conclusión**, quien dirige (o un administrador) captura la calificación
+  1–10 de cada asistente; los demás califican solo la suya.
   En **Conclusión** se listan los To-Dos que estaban pendientes y los nuevos de la reunión,
   y se registran los mensajes a cascadear. Al finalizar, **Generar resumen (PDF)** descarga
-  lo registrado (calificaciones, Scorecard fuera de meta, indicadores de carrera, Rocks,
+  lo registrado (asistencia, quién dirigió, calificaciones, Scorecard fuera de meta, indicadores de carrera, Rocks,
   noticias, To-Dos, IDS y mensajes); también desde el historial de reuniones.

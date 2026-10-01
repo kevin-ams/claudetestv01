@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import { createTodo, completeTodo, deleteTodo, getTodo, updateTodo } from "@/lib/domain/todos";
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 
@@ -28,6 +29,7 @@ export async function createTodoAction(formData: FormData) {
     dueDate: (formData.get("dueDate") as string) || null,
     meetingId: null,
   });
+  await logActivity(session, "todos", "Creó To-Do", title);
   refresh();
 }
 
@@ -43,6 +45,7 @@ export async function updateTodoAction(todoId: number, formData: FormData) {
     ownerId: ownerId(formData),
     dueDate: (formData.get("dueDate") as string) || null,
   });
+  await logActivity(session, "todos", "Editó To-Do", title);
   refresh();
 }
 
@@ -56,13 +59,16 @@ export async function sendTodoToClickUpAction(todoId: number): Promise<SendResul
 }
 
 export async function completeTodoAction(todoId: number, done: boolean) {
-  await requireModule("todos");
+  const session = await requireModule("todos");
   await completeTodo(todoId, done);
+  await logActivity(session, "todos", "Marcó To-Do", `${await labelOf("todos", todoId)}: ${done ? "hecho" : "reabierto"}`);
   refresh();
 }
 
 export async function deleteTodoAction(todoId: number) {
-  await requireModule("todos");
+  const session = await requireModule("todos");
+  const label = await labelOf("todos", todoId);
   await deleteTodo(todoId);
+  await logActivity(session, "todos", "Eliminó To-Do", label);
   refresh();
 }

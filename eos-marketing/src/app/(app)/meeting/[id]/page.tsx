@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { getMeeting, listHeadlines, listRatings } from "@/lib/domain/meetings";
+import { getMeeting, listAttendance, listHeadlines, listRatings } from "@/lib/domain/meetings";
+import { isTeamAdmin } from "@/lib/auth/access";
 import { listOwners, listMetrics, listTargets, listEntries } from "@/lib/domain/scorecard";
 import { buildScorecardGrid } from "@/lib/domain/scorecard-shared";
 import { listRocks, listMilestonesForRocks } from "@/lib/domain/rocks";
@@ -44,6 +45,8 @@ export default async function MeetingPage({
     careers,
     careerWeekly,
     careerGoals,
+    attendance,
+    admin,
   ] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
@@ -58,6 +61,8 @@ export default async function MeetingPage({
     listCareers(session.teamId),
     listWeekly(session.teamId, careerWeek),
     weeklyGoals(session.teamId, careerWeek),
+    listAttendance(meetingId, session.teamId),
+    isTeamAdmin(),
   ]);
   const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
   const milestonesByRock: Record<number, typeof milestones> = {};
@@ -85,6 +90,8 @@ export default async function MeetingPage({
       headlines={headlines}
       ratings={ratings}
       clickupConfigured={isClickUpConfigured()}
+      attendance={attendance}
+      canLead={admin || meeting.leader_id === session.userId}
     />
   );
 }

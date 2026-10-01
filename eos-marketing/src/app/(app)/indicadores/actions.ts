@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import {
   getCareer,
   listCareers,
@@ -75,6 +76,7 @@ export async function setLeadsAction(careerId: number, week: string, value: numb
     source: "manual",
     userId: session.userId,
   });
+  await logActivity(session, "indicadores", "Cambió leads de la semana", `${await labelOf("careers", careerId)} · semana ${week}: ${value ?? "vacío"}`);
   refresh();
 }
 
@@ -87,6 +89,7 @@ export async function setBudgetAction(careerId: number, week: string, value: num
     source: "manual",
     userId: session.userId,
   });
+  await logActivity(session, "indicadores", "Cambió consumo de la semana", `${await labelOf("careers", careerId)} · semana ${week}: ${value ?? "vacío"}`);
   refresh();
 }
 
@@ -94,6 +97,7 @@ export async function setOwnerAction(careerId: number, ownerId: number | null) {
   const { session } = await requireTeamCareer(careerId);
   if (ownerId !== null && !(await isUserInTeam(ownerId, session.teamId))) return;
   await setCareerOwner(careerId, ownerId);
+  await logActivity(session, "indicadores", "Cambió responsable de carrera", await labelOf("careers", careerId));
   refresh();
 }
 
@@ -112,6 +116,7 @@ export async function createCareerAction(formData: FormData) {
     level: levelFrom(formData.get("level")),
     ownerId: await ownerFrom(formData.get("ownerId"), session.teamId),
   });
+  await logActivity(session, "indicadores", "Agregó carrera", name);
   refresh();
 }
 
@@ -127,12 +132,14 @@ export async function updateCareerAction(careerId: number, formData: FormData) {
     level: levelFrom(formData.get("level")),
     ownerId: await ownerFrom(formData.get("ownerId"), session.teamId),
   });
+  await logActivity(session, "indicadores", "Editó carrera", name);
   refresh();
 }
 
 export async function archiveCareerAction(careerId: number) {
-  await requireTeamCareer(careerId);
+  const { session } = await requireTeamCareer(careerId);
   await archiveCareer(careerId);
+  await logActivity(session, "indicadores", "Archivó carrera", await labelOf("careers", careerId));
   refresh();
 }
 
@@ -198,6 +205,7 @@ export async function importBudgetAction(payload: BudgetImportPayload): Promise<
     total,
     userId: session.userId,
   });
+  await logActivity(session, "indicadores", "Importó consumo (CSV de Meta)", `Semana ${payload.week} · ${payload.rows.length} fila(s) · ${payload.fileName}`);
   refresh();
   return {
     ok: true,

@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { Issue, Meeting, MeetingHeadline, Rock, Todo } from "./types";
-import { getMeeting, listHeadlines, listRatings } from "./meetings";
+import { getMeeting, listAttendance, listHeadlines, listRatings, type AttendanceRow } from "./meetings";
 import { getTeam } from "./teams";
 import { listTeamMembers } from "./users";
 import { listRocks } from "./rocks";
@@ -17,6 +17,8 @@ export type MeetingRecap = {
   members: { id: number; name: string }[];
   ownerName: (id: number | null) => string;
   ratings: { user_name: string; rating: number }[];
+  attendance: AttendanceRow[];
+  leaderName: string | null;
   average: number | null;
   durationMinutes: number | null;
   headlines: MeetingHeadline[];
@@ -45,8 +47,9 @@ export async function meetingRecap(meetingId: number, teamId: number): Promise<M
   const careerWeek = shiftWeek(weekStartISO(new Date(from)), -1);
   const weeks = lastNWeeks(4, careerWeek);
   const { quarter, year } = currentQuarter(new Date(from));
-  const [team, members, ratings, headlines, todoRows, issueRows, rocks, metrics, owners, targets, entries, careers, weekly, goals] =
+  const [attendance, team, members, ratings, headlines, todoRows, issueRows, rocks, metrics, owners, targets, entries, careers, weekly, goals] =
     await Promise.all([
+      listAttendance(meetingId, teamId),
       getTeam(teamId),
       listTeamMembers(teamId),
       listRatings(meetingId),
@@ -90,6 +93,8 @@ export async function meetingRecap(meetingId: number, teamId: number): Promise<M
     members: members.map((m) => ({ id: m.id, name: m.name })),
     ownerName: name,
     ratings: ratings.map((r) => ({ user_name: r.user_name, rating: r.rating })),
+    attendance,
+    leaderName: meeting.leader_id ? name(meeting.leader_id) : null,
     average,
     durationMinutes: meeting.started_at ? Math.round((to - from) / 60000) : null,
     headlines,

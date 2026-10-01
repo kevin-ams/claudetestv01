@@ -1,5 +1,6 @@
 "use server";
 
+import { logActivity } from "@/lib/domain/activity";
 import { redirect } from "next/navigation";
 import { isTeamAdmin } from "@/lib/auth/access";
 import { createSessionCookie, requireSession } from "@/lib/auth/session";
@@ -18,6 +19,8 @@ export async function createTeamAction(name: string): Promise<TeamResult> {
   const team = await createTeam(trimmed);
   await seedNewTeam(team.id);
   await addTeamMember(team.id, session.userId, undefined, ADMIN_ROLE);
+  await logActivity(session, "equipos", "Creó equipo", trimmed);
+  await logActivity({ ...session, teamId: team.id }, "equipos", "Creó este equipo", trimmed);
   await createSessionCookie({ ...session, teamId: team.id });
   redirect("/ajustes/equipo");
 }

@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import {
   upsertEntry,
   createMetric,
@@ -21,6 +22,7 @@ export async function upsertEntryAction(
 ) {
   const session = await requireModule("scorecard");
   await upsertEntry({ metricId, ownerId, weekStart, value, enteredBy: session.userId });
+  await logActivity(session, "scorecard", "Registró valor del Scorecard", `${await labelOf("scorecard_metrics", metricId)} · ${await labelOf("scorecard_owners", ownerId)} · semana ${weekStart}: ${value ?? "vacío"}`);
   revalidatePath("/scorecard");
   revalidatePath("/");
 }
@@ -35,12 +37,15 @@ export async function createMetricAction(formData: FormData) {
     format: formData.get("format") as MetricFormat,
     aggregation: formData.get("aggregation") as Aggregation,
   });
+  await logActivity(session, "scorecard", "Agregó indicador", String(formData.get("name") ?? "").trim());
   revalidatePath("/scorecard");
 }
 
 export async function archiveMetricAction(metricId: number) {
-  await requireModule("scorecard");
+  const session = await requireModule("scorecard");
+  const label = await labelOf("scorecard_metrics", metricId);
   await archiveMetric(metricId);
+  await logActivity(session, "scorecard", "Archivó indicador", label);
   revalidatePath("/scorecard");
 }
 
@@ -51,18 +56,22 @@ export async function createOwnerAction(formData: FormData) {
     String(formData.get("name") ?? "").trim(),
     formData.get("isRollup") === "on"
   );
+  await logActivity(session, "scorecard", "Agregó dueño del Scorecard", String(formData.get("name") ?? "").trim());
   revalidatePath("/scorecard");
 }
 
 export async function deleteOwnerAction(ownerId: number) {
-  await requireModule("scorecard");
+  const session = await requireModule("scorecard");
+  const label = await labelOf("scorecard_owners", ownerId);
   await deleteOwner(ownerId);
+  await logActivity(session, "scorecard", "Eliminó dueño del Scorecard", label);
   revalidatePath("/scorecard");
 }
 
 export async function setTargetAction(metricId: number, ownerId: number, value: number) {
-  await requireModule("scorecard");
+  const session = await requireModule("scorecard");
   await setTarget(metricId, ownerId, value);
+  await logActivity(session, "scorecard", "Cambió meta del Scorecard", `${await labelOf("scorecard_metrics", metricId)} · ${await labelOf("scorecard_owners", ownerId)}: ${value}`);
   revalidatePath("/scorecard");
 }
 
@@ -73,6 +82,7 @@ export async function setMetricSharingAction(
 ): Promise<{ ok: boolean; message: string }> {
   const session = await requireModule("scorecard");
   const ok = await setMetricSharing(session.teamId, metricId, sharedAll, teamIds);
+  await logActivity(session, "scorecard", "Cambió visibilidad de indicador", `${await labelOf("scorecard_metrics", metricId)}: ${sharedAll ? "todos los equipos" : `${teamIds.length} equipo(s)`}`);
   revalidatePath("/scorecard");
   if (!ok) return { ok: false, message: "Ese indicador no es de este equipo." };
   return {

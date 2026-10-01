@@ -182,8 +182,16 @@ export async function buildMeetingSummaryPdf(recap: MeetingRecap, brandColor: st
   });
   L.y -= 64;
 
-  // Asistentes y calificaciones
-  L.heading("Calificación de la reunión", `${recap.ratings.length} de ${recap.members.length} personas calificaron`);
+  // Asistencia
+  const present = recap.attendance.filter((a) => a.present);
+  const absent = recap.attendance.filter((a) => !a.present);
+  L.heading("Asistencia", `${present.length} de ${recap.attendance.length} personas${recap.leaderName ? ` · Dirigió: ${recap.leaderName}` : ""}`);
+  if (present.length === 0) L.empty("No se registró la lista de asistencia.");
+  else L.text(`Presentes: ${present.map((a) => a.name).join(", ")}`, { gap: 2 });
+  if (absent.length && present.length) L.text(`Ausentes: ${absent.map((a) => a.name).join(", ")}`, { color: MUTED, size: 9.5, gap: 2 });
+
+  // Calificaciones
+  L.heading("Calificación de la reunión", `${recap.ratings.length} calificación(es)`);
   if (recap.ratings.length === 0) L.empty("Nadie calificó la reunión.");
   else L.text(recap.ratings.map((r) => `${r.user_name}: ${r.rating}`).join("   ·   "), { gap: 2 });
 

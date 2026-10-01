@@ -12,12 +12,18 @@ import type { PGlite } from "@electric-sql/pglite";
  */
 
 type Row = Record<string, unknown>;
+type Statement = { text: string; params?: unknown[] };
 type Db = {
   sql: (strings: TemplateStringsArray, ...params: unknown[]) => Promise<Row[]>;
   /** Consulta con texto y parámetros ($1, $2…), para inserciones en lote. */
   query: (text: string, params: unknown[]) => Promise<Row[]>;
+  /** Varias sentencias en una sola transacción: o se aplican todas o ninguna. */
+  batch: (statements: Statement[]) => Promise<void>;
 };
-type Backend = { query: (text: string, params: unknown[]) => Promise<Row[]> };
+type Backend = {
+  query: (text: string, params: unknown[]) => Promise<Row[]>;
+  batch: (statements: Statement[]) => Promise<void>;
+};
 
 export const CLOUD_SCHEMA = "eos_marketing";
 
@@ -98,6 +104,12 @@ async function openCloud(connectionString: string): Promise<Backend> {
       ]);
       return rows as Row[];
     },
+    async batch(statements) {
+      await http.transaction([
+        http.query(`SET LOCAL search_path TO ${CLOUD_SCHEMA}`),
+        ...statements.map((st) => http.query(st.text, st.params ?? [], { types: typeConfig })),
+      ]);
+    },
   };
 }
 
@@ -151,6 +163,11 @@ async function openLocal(): Promise<Backend> {
       }
       return (await pg.query<Row>(text, params)).rows;
     },
+    async batch(statements) {
+      await pg.transaction(async (tx) => {
+        for (const st of statements) await tx.query(st.text, st.params ?? []);
+      });
+    },
   };
 }
 
@@ -182,6 +199,9 @@ const database: Db = {
   },
   async query(text, params) {
     return (await backend()).query(text, params);
+  },
+  async batch(statements) {
+    return (await backend()).batch(statements);
   },
 };
 

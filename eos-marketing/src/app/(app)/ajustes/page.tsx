@@ -3,6 +3,7 @@ import { Card, Chip } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { getUserTeams, listTeamMembers } from "@/lib/domain/users";
 import { listRoles } from "@/lib/domain/roles";
+import { daysSinceLastBackup, lastBackupEvents } from "@/lib/backup";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { getTeam } from "@/lib/domain/teams";
@@ -53,10 +54,16 @@ const SECTIONS = [
     description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
   },
   {
+    href: "/ajustes/log",
+    icon: "📜",
+    title: "Log",
+    description: "Bitácora de acciones importantes: quién cambió metas, indicadores, hitos y más.",
+  },
+  {
     href: "/ajustes/diagnostico",
     icon: "🩺",
     title: "Diagnóstico",
-    description: "Revisa si la base de datos y la carpeta de imágenes funcionan, y muestra el error si algo falla.",
+    description: "Revisa la base de datos y las imágenes, y descarga o restaura respaldos de la información.",
   },
   {
     href: "/ajustes/exportar",
@@ -70,7 +77,7 @@ export default async function AjustesIndexPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [team, demo, members, milestones, adSettings, slots, roles, userTeams] = await Promise.all([
+  const [team, demo, members, milestones, adSettings, slots, roles, userTeams, backups] = await Promise.all([
     getTeam(session.teamId),
     getDemoTeamFor(session.userId),
     listTeamMembers(session.teamId),
@@ -79,26 +86,31 @@ export default async function AjustesIndexPage() {
     listAnnouncementSlots(session.teamId),
     listRoles(session.teamId),
     getUserTeams(session.userId),
+    lastBackupEvents().catch(() => []),
   ]);
+  const backupDays = daysSinceLastBackup(backups);
   const teamCount = userTeams.filter((t) => !t.is_demo).length;
   const activeAds = slots.filter((s) => s.has_image && s.active).length;
   const status: Record<string, string> = {
     "/ajustes/equipo": `${members.length} personas`,
     "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
     "/ajustes/roles": `${roles.length} roles`,
+    "/ajustes/log": "Solo administradores",
     "/ajustes/equipos": `${teamCount} equipo(s)`,
     "/ajustes/hitos": `${milestones.length} hitos`,
     "/ajustes/anuncios": adSettings.enabled
       ? `Activos · ${activeAds} imagen(es) · cada ${adSettings.interval_minutes} min`
       : "Desactivados",
     "/ajustes/exportar": "Scorecard · Indicadores · Metas",
-    "/ajustes/diagnostico": "Pruebas de base de datos e imágenes",
+    "/ajustes/diagnostico":
+      backupDays === null ? "⚠ Sin respaldos" : `Último respaldo: hace ${backupDays} día(s)${backupDays >= 7 ? " ⚠" : ""}`,
     "/ajustes/demo": team?.is_demo ? "Estás viendo la demo" : demo ? "Demo creada" : "Desactivada",
   };
 
   const STATUS_COLOR: Record<string, "default" | "accent" | "success" | "warning"> = {
     "/ajustes/anuncios": adSettings.enabled ? "success" : "default",
     "/ajustes/demo": team?.is_demo ? "warning" : demo ? "accent" : "default",
+    "/ajustes/diagnostico": backupDays === null || backupDays >= 7 ? "warning" : "success",
   };
 
   return (

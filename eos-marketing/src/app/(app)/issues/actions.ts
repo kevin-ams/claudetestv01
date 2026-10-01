@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import {
   listIssues,
   createIssue,
@@ -33,6 +34,7 @@ export async function createIssueAction(formData: FormData) {
     term: (formData.get("term") as IssueTerm) || "short_term",
     dueDate: (formData.get("dueDate") as string) || null,
   });
+  await logActivity(session, "issues", "Creó Issue", String(formData.get("title") ?? "").trim());
   revalidatePath("/issues");
   revalidatePath("/meeting", "layout");
 }
@@ -42,6 +44,7 @@ export async function setIssueDueDateAction(issueId: number, dueDate: string | n
   const issue = await getIssue(issueId);
   if (!issue || issue.team_id !== session.teamId) return;
   await setIssueDueDate(issueId, dueDate || null);
+  await logActivity(session, "issues", "Cambió fecha de Issue", `${await labelOf("issues", issueId)}: ${dueDate ?? "sin fecha"}`);
   revalidatePath("/issues");
   revalidatePath("/meeting", "layout");
 }
@@ -74,10 +77,9 @@ export async function moveIssueAction(issueId: number, direction: "up" | "down")
 }
 
 export async function solveIssueAction(issueId: number, createFollowUpTodo: string) {
-  await requireModule("issues");
+  const session = await requireModule("issues");
   await solveIssue(issueId);
   if (createFollowUpTodo.trim()) {
-    const session = await requireModule("issues");
     await createTodo({
       teamId: session.teamId,
       title: createFollowUpTodo.trim(),
@@ -86,18 +88,22 @@ export async function solveIssueAction(issueId: number, createFollowUpTodo: stri
       meetingId: null,
     });
   }
+  await logActivity(session, "issues", "Resolvió Issue", await labelOf("issues", issueId));
   revalidatePath("/issues");
   revalidatePath("/todos");
 }
 
 export async function reopenIssueAction(issueId: number) {
-  await requireModule("issues");
+  const session = await requireModule("issues");
   await reopenIssue(issueId);
+  await logActivity(session, "issues", "Reabrió Issue", await labelOf("issues", issueId));
   revalidatePath("/issues");
 }
 
 export async function deleteIssueAction(issueId: number) {
-  await requireModule("issues");
+  const session = await requireModule("issues");
+  const label = await labelOf("issues", issueId);
   await deleteIssue(issueId);
+  await logActivity(session, "issues", "Eliminó Issue", label);
   revalidatePath("/issues");
 }

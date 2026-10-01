@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/domain/activity";
 import { updateVTOField } from "@/lib/domain/vto";
 
 function linesOf(formData: FormData, key: string): string[] {
@@ -20,6 +21,7 @@ export async function saveCoreValues(formData: FormData) {
     linesOf(formData, "coreValues"),
     session.userId
   );
+  await logActivity(session, "vto", "Editó V/TO", "Valores centrales");
   revalidatePath("/vto");
 }
 
@@ -34,6 +36,7 @@ export async function saveCoreFocus(formData: FormData) {
     },
     session.userId
   );
+  await logActivity(session, "vto", "Editó V/TO", "Enfoque central");
   revalidatePath("/vto");
 }
 
@@ -45,6 +48,7 @@ export async function saveTenYearTarget(formData: FormData) {
     String(formData.get("tenYearTarget") ?? ""),
     session.userId
   );
+  await logActivity(session, "vto", "Editó V/TO", "Meta a 10 años");
   revalidatePath("/vto");
 }
 
@@ -61,6 +65,7 @@ export async function saveMarketingStrategy(formData: FormData) {
     },
     session.userId
   );
+  await logActivity(session, "vto", "Editó V/TO", "Estrategia de mercadeo");
   revalidatePath("/vto");
 }
 
@@ -78,6 +83,7 @@ export async function saveThreeYearPicture(formData: FormData) {
     },
     session.userId
   );
+  await logActivity(session, "vto", "Editó V/TO", "Visión a 3 años");
   revalidatePath("/vto");
 }
 
@@ -95,5 +101,6 @@ export async function saveOneYearPlan(formData: FormData) {
     },
     session.userId
   );
+  await logActivity(session, "vto", "Editó V/TO", "Plan a 1 año");
   revalidatePath("/vto");
 }

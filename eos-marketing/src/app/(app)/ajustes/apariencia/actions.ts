@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/domain/activity";
 import { canEdit } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import { setTeamThemeColor } from "@/lib/domain/teams";
@@ -15,6 +16,7 @@ export async function saveThemeColorAction(color: string): Promise<ThemeResult> 
   }
   if (!isHexColor(color)) return { ok: false, message: "El color debe tener el formato #RRGGBB." };
   await setTeamThemeColor(session.teamId, color.toLowerCase());
+  await logActivity(session, "ajustes", "Cambió color del template", color.toLowerCase());
   // El color se aplica en el layout de toda la app.
   revalidatePath("/", "layout");
   return { ok: true, message: "Color del template guardado para todo el equipo." };

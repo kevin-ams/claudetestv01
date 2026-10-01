@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/domain/activity";
 import { isTeamAdmin } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import {
@@ -48,6 +49,7 @@ export async function addTeammateAction(
   }
 
   await addTeamMember(session.teamId, user.id, seatTitle || undefined, role?.name);
+  await logActivity(session, "equipo", "Agregó persona al equipo", `${user.name} (${role?.name ?? "Usuario"})`);
   revalidatePath("/ajustes/equipo");
   return { error: null, success: `${user.name} fue agregado(a) al equipo como ${role?.name ?? "Usuario"}.` };
 }
@@ -58,6 +60,7 @@ export async function renameTeamAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return;
   await renameTeam(session.teamId, name);
+  await logActivity(session, "equipo", "Renombró el equipo", name);
   revalidatePath("/ajustes/equipo");
 }
 
@@ -87,6 +90,7 @@ export async function updateAccessAction(
   if (other && other.id !== userId) return { error: "Ya existe una cuenta con ese correo" };
 
   await updateUserAccess(userId, { name, email, password: password || null });
+  await logActivity(session, "equipo", "Editó acceso de una persona", `${name} <${email}>${password ? " · contraseña cambiada" : ""}`);
   revalidatePath("/ajustes/equipo");
   return { error: null, success: "Acceso actualizado." };
 }
@@ -106,6 +110,7 @@ export async function setMemberRoleAction(userId: number, roleId: number): Promi
     return { ok: false, message: "El equipo necesita al menos un administrador." };
   }
   await setMemberRole(session.teamId, userId, roleId);
+  await logActivity(session, "equipo", "Cambió rol de una persona", `${member.name}: ${target.name}`);
   revalidatePath("/", "layout");
   return { ok: true, message: `${member.name} ahora es ${target.name}.` };
 }
@@ -114,7 +119,9 @@ export async function removeMemberAction(userId: number): Promise<MemberResult> 
   const session = await requireSession();
   if (!(await isTeamAdmin())) return { ok: false, message: "Solo un administrador puede quitar personas." };
   if (userId === session.userId) return { ok: false, message: "No puedes quitarte a ti mismo del equipo." };
+  const removed = (await listTeamMembersDetailed(session.teamId)).find((m) => m.id === userId);
   await removeTeamMember(session.teamId, userId);
+  await logActivity(session, "equipo", "Quitó a una persona del equipo", removed?.name ?? `#${userId}`);
   revalidatePath("/ajustes/equipo");
   return { ok: true, message: "Persona quitada del equipo." };
 }

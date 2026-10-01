@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/domain/activity";
 import { canEdit } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import {
@@ -37,6 +38,7 @@ export async function saveAdSettingsAction(enabled: boolean, intervalMinutes: nu
     return { ok: false, message: "El intervalo debe estar entre 1 y 240 minutos." };
   }
   await saveAnnouncementSettings(session.teamId, { enabled, interval_minutes: minutes });
+  await logActivity(session, "ajustes", "Cambió anuncios", enabled ? `Activados cada ${minutes} min` : "Desactivados");
   refresh();
   return { ok: true, message: enabled ? `Anuncios activos cada ${minutes} min.` : "Anuncios desactivados." };
 }
@@ -57,6 +59,7 @@ export async function uploadAdImageAction(slot: number, formData: FormData): Pro
     }
     if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "La imagen pesa más de 5 MB." };
     await setSlotImage(session.teamId, checkSlot(slot), new Uint8Array(await file.arrayBuffer()), mime);
+    await logActivity(session, "ajustes", "Subió imagen de anuncio", `Espacio ${slot}`);
     refresh();
     return { ok: true, message: "Imagen guardada." };
   } catch (err) {

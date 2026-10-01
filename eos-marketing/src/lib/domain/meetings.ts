@@ -29,8 +29,8 @@ export async function createMeeting(
   scheduledAt: string | null
 ): Promise<Meeting> {
   const rows = await db().sql`
-    INSERT INTO meetings (team_id, created_by, scheduled_at)
-    VALUES (${teamId}, ${createdBy}, ${scheduledAt})
+    INSERT INTO meetings (team_id, created_by, leader_id, scheduled_at)
+    VALUES (${teamId}, ${createdBy}, ${createdBy}, ${scheduledAt})
     RETURNING *
   `;
   return rows[0] as Meeting;
@@ -131,4 +131,35 @@ export async function listRecentHeadlines(teamId: number, limit = 10) {
 
 export async function setCascadeNotes(meetingId: number, teamId: number, notes: string) {
   await db().sql`UPDATE meetings SET cascade_notes = ${notes} WHERE id = ${meetingId} AND team_id = ${teamId}`;
+}
+
+export type AttendanceRow = { user_id: number; name: string; present: boolean };
+
+/** Lista de asistencia: todas las personas del equipo con su marca. */
+export async function listAttendance(meetingId: number, teamId: number): Promise<AttendanceRow[]> {
+  const rows = await db().sql`
+    SELECT u.id AS user_id, u.name, COALESCE(a.present, FALSE) AS present
+    FROM team_members tm
+    JOIN users u ON u.id = tm.user_id
+    LEFT JOIN meeting_attendees a ON a.meeting_id = ${meetingId} AND a.user_id = u.id
+    WHERE tm.team_id = ${teamId}
+    ORDER BY u.name ASC
+  `;
+  return rows as AttendanceRow[];
+}
+
+export async function setAttendance(meetingId: number, userId: number, present: boolean) {
+  await db().sql`
+    INSERT INTO meeting_attendees (meeting_id, user_id, present)
+    VALUES (${meetingId}, ${userId}, ${present})
+    ON CONFLICT (meeting_id, user_id) DO UPDATE SET present = ${present}
+  `;
+}
+
+export async function setMeetingLeader(meetingId: number, teamId: number, userId: number) {
+  await db().sql`UPDATE meetings SET leader_id = ${userId} WHERE id = ${meetingId} AND team_id = ${teamId}`;
+}
+
+export async function clearRating(meetingId: number, userId: number) {
+  await db().sql`DELETE FROM meeting_ratings WHERE meeting_id = ${meetingId} AND user_id = ${userId}`;
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import { canEdit } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import { CONTROL_STAGES, type StageKey } from "@/lib/domain/career-control";
@@ -35,6 +36,7 @@ export async function createMilestoneAction(stage: string, label: string): Promi
   const name = label.trim().slice(0, 80);
   if (!name) return { ok: false, message: "Escribe el nombre del hito." };
   await createControlMilestone(session.teamId, checkStage(stage), name);
+  await logActivity(session, "ajustes", "Agregó hito de Control de carrera", name);
   refresh();
   return { ok: true, message: `Hito "${name}" agregado.` };
 }
@@ -67,6 +69,7 @@ export async function updateMilestoneAction(
     dependsOn: input.dependsOn,
     isLaunch: input.isLaunch,
   });
+  await logActivity(session, "ajustes", "Editó hito de Control de carrera", `${label} · ${days} día(s)`);
   refresh();
   return { ok: true, message: "Hito guardado." };
 }
@@ -74,17 +77,21 @@ export async function updateMilestoneAction(
 export async function moveMilestoneAction(id: number, delta: -1 | 1) {
   const session = await requireAdmin();
   await moveControlMilestone(session.teamId, id, delta);
+  await logActivity(session, "ajustes", "Reordenó hitos de Control de carrera", `${await labelOf("control_milestones", id)} ${delta < 0 ? "subió" : "bajó"}`);
   refresh();
 }
 
 export async function deleteMilestoneAction(id: number) {
   const session = await requireAdmin();
+  const label = await labelOf("control_milestones", id);
   await deleteControlMilestone(session.teamId, id);
+  await logActivity(session, "ajustes", "Eliminó hito de Control de carrera", label);
   refresh();
 }
 
 export async function resetMilestonesAction() {
   const session = await requireAdmin();
   await resetControlMilestones(session.teamId);
+  await logActivity(session, "ajustes", "Restableció los hitos de Control de carrera", "Hitos originales");
   refresh();
 }

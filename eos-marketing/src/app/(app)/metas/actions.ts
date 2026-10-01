@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/domain/activity";
 import { copyMonthlyGoals, getCareer, setMonthlyGoal } from "@/lib/domain/careers";
 
 export type GoalField = "leads" | "budget";
@@ -35,6 +36,7 @@ export async function setMonthlyGoalAction(
     value: field === "leads" ? Math.round(clean) : Math.round(clean * 100) / 100,
     userId: session.userId,
   });
+  await logActivity(session, "metas", "Cambió meta mensual", `${career.code ? career.code + " · " : ""}${career.name} · ${month.slice(0, 7)} · ${field === "leads" ? "leads" : "presupuesto"}: ${value ?? 0}`);
   refresh();
 }
 
@@ -52,6 +54,7 @@ export async function copyMonthAction(
     field,
     userId: session.userId,
   });
+  await logActivity(session, "metas", "Copió metas de un mes", `${from.slice(0, 7)} → ${to.slice(0, 7)} (${field === "both" ? "leads y presupuesto" : field === "leads" ? "leads" : "presupuesto"}) · ${copied} carrera(s)`);
   refresh();
   return copied === 0
     ? { ok: false, message: "El mes de origen no tiene metas cargadas." }

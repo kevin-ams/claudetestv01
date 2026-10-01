@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
+import { labelOf, logActivity } from "@/lib/domain/activity";
 import { listCareers } from "@/lib/domain/careers";
 import {
   addTracks,
@@ -32,6 +33,7 @@ export async function addTracksAction(careerIds: number[], startDate: string) {
   if (!DATE.test(startDate)) throw new Error("Fecha inválida");
   const teamIds = new Set((await listCareers(session.teamId)).map((c) => c.id));
   await addTracks(careerIds.filter((id) => teamIds.has(id)), startDate, session.userId);
+  await logActivity(session, "control", "Agregó carreras a Control de carrera", `${careerIds.length} carrera(s), inicio ${startDate}`);
   refresh();
 }
 
@@ -45,6 +47,7 @@ export async function moveTrackAction(careerId: number, column: ColumnKey) {
   const target = column === DONE_COLUMN ? null : column;
   if (target !== null && !keys.includes(target)) throw new Error("Hito inválido");
   await moveTrack(careerId, keys, target, session.userId);
+  await logActivity(session, "control", "Movió carrera en el tablero", `${await labelOf("careers", careerId)} → ${column}`);
   refresh();
 }
 
@@ -53,6 +56,7 @@ export async function setMilestoneDoneAction(careerId: number, milestone: Milest
   if (!(await teamKeys(session.teamId)).includes(milestone)) throw new Error("Hito inválido");
   if (doneOn !== null && !DATE.test(doneOn)) throw new Error("Fecha inválida");
   await setMilestoneDone(careerId, milestone, doneOn, session.userId);
+  await logActivity(session, "control", "Marcó hito de carrera", `${await labelOf("careers", careerId)} · ${milestone}: ${doneOn ?? "pendiente"}`);
   refresh();
 }
 
@@ -60,6 +64,7 @@ export async function setTrackStatusAction(careerId: number, status: TrackStatus
   const session = await requireTrack(careerId);
   if (status !== "on_track" && status !== "off_track") return;
   await updateTrack(careerId, { status }, session.userId);
+  await logActivity(session, "control", "Cambió on/off track", `${await labelOf("careers", careerId)}: ${status === "on_track" ? "On track" : "Off track"}`);
   refresh();
 }
 
@@ -78,7 +83,9 @@ export async function updateTrackDetailsAction(careerId: number, notes: string, 
 }
 
 export async function removeTrackAction(careerId: number) {
-  await requireTrack(careerId);
+  const session = await requireTrack(careerId);
+  const label = await labelOf("careers", careerId);
   await removeTrack(careerId);
+  await logActivity(session, "control", "Quitó carrera de Control de carrera", label);
   refresh();
 }

@@ -191,6 +191,7 @@ export type Meeting = {
   created_by: number | null;
   created_at: string;
   cascade_notes: string;
+  leader_id: number | null;
 };
 
 export type MeetingHeadline = {
