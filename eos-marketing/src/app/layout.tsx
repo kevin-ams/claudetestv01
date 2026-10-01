@@ -25,10 +25,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${resolved ?? ""} ${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
+      <body className="min-h-full flex flex-col">
+        {/* Va al inicio del <body> (no en <head>): Netlify inserta un comentario en el
+            <head> y React se quejaría al hidratar un <head> propio. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-      </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+        {children}
+      </body>
     </html>
   );
 }
