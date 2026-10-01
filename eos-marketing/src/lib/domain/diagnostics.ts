@@ -1,8 +1,8 @@
 import "server-only";
-import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { db } from "@/lib/db";
-import { imagePath, uploadsDir } from "./announcements";
+import { databaseKind, db } from "@/lib/db";
+import { MIGRATIONS } from "@/lib/db-migrations.generated";
+import { storage } from "@/lib/storage";
+import { imageKey } from "./announcements";
 
 export type Check = { name: string; ok: boolean; detail: string };
 
@@ -40,26 +40,25 @@ export async function runDiagnostics(teamId: number): Promise<Check[]> {
 
   checks.push(
     await check("Actualizaciones de la base (migraciones)", async () => {
-      const files = (await readdir(path.join(process.cwd(), "db", "migrations"))).sort();
+      const files = MIGRATIONS.map((m) => m.name);
       const applied = new Set(
         ((await db().sql`SELECT name FROM _migrations`) as { name: string }[]).map((r) => r.name)
       );
       const missing = files.filter((f) => !applied.has(f));
-      if (missing.length) throw new Error(`Faltan: ${missing.join(", ")}. Reinicia npm run dev para aplicarlas.`);
+      if (missing.length) throw new Error(`Faltan: ${missing.join(", ")}. Reinicia la app para aplicarlas.`);
       return `OK (${files.length} aplicadas)`;
     })
   );
 
   checks.push(
-    await check("Carpeta de imágenes: escritura", async () => {
-      const dir = path.join(uploadsDir(), "anuncios");
-      await mkdir(dir, { recursive: true });
-      const file = path.join(dir, `.prueba-${Date.now()}`);
-      await writeFile(file, "ok");
-      const back = await readFile(file, "utf8");
-      await rm(file, { force: true });
-      if (back !== "ok") throw new Error("Se escribió pero no se pudo leer de vuelta.");
-      return `OK (${dir})`;
+    await check("Almacenamiento de imágenes: escritura", async () => {
+      const store = await storage();
+      const key = `diagnostico/prueba-${Date.now()}`;
+      await store.put(key, new TextEncoder().encode("ok"));
+      const back = await store.get(key);
+      await store.remove(key);
+      if (!back || new TextDecoder().decode(back) !== "ok") throw new Error("Se escribió pero no se pudo leer de vuelta.");
+      return `OK (${store.where})`;
     })
   );
 
@@ -69,9 +68,9 @@ export async function runDiagnostics(teamId: number): Promise<Check[]> {
   for (const s of slots.filter((x) => x.mime)) {
     checks.push(
       await check(`Anuncio espacio ${s.slot}`, async () => {
-        const info = await stat(imagePath(teamId, s.slot)).catch(() => null);
-        if (!info) throw new Error("Hay registro en la base pero falta el archivo de la imagen. Vuelve a subirla.");
-        return `OK (${s.mime}, ${Math.round(info.size / 1024)} KB${s.active ? "" : ", pausado"})`;
+        const data = await (await storage()).get(imageKey(teamId, s.slot));
+        if (!data) throw new Error("Hay registro en la base pero falta el archivo de la imagen. Vuelve a subirla.");
+        return `OK (${s.mime}, ${Math.round(data.length / 1024)} KB${s.active ? "" : ", pausado"})`;
       })
     );
   }
@@ -79,7 +78,7 @@ export async function runDiagnostics(teamId: number): Promise<Check[]> {
   checks.push({
     name: "Entorno",
     ok: true,
-    detail: `Node ${process.version} · ${process.platform} · ${process.env.NODE_ENV} · carpeta ${process.cwd()}`,
+    detail: `Base de datos ${await databaseKind()} · Node ${process.version} · ${process.platform} · ${process.env.NODE_ENV}`,
   });
   return checks;
 }

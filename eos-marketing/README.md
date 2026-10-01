@@ -11,6 +11,7 @@ con agenda, timer y calificación final.
 
 - [Next.js](https://nextjs.org) 16 (App Router, Server Actions) + TypeScript + Tailwind CSS v4
 - [PGlite](https://pglite.dev) — Postgres embebido en Node, guardado en disco (`.data/pglite`). No requiere servidor de base de datos ni cuenta en la nube.
+- En Netlify: Netlify Database (Postgres) y Netlify Blobs para imágenes (ver "Publicar en Netlify").
 - Autenticación propia con cookies firmadas (JWT vía `jose`) + `bcryptjs`
 
 ## Uso local
@@ -39,12 +40,30 @@ de administrador. Al terminar el setup se cargan automáticamente:
 actualizaciones de la base (`db/migrations`) se aplican solas, incluso si `npm run dev`
 estaba corriendo.
 
+## Publicar en Netlify
+
+Sitio: **eos-nivel-10** (https://eos-nivel-10.netlify.app). `netlify.toml` está en esta carpeta.
+
+- **Base de datos:** si existe Netlify Database (`NETLIFY_DB_URL`), `src/lib/db.ts` la usa en
+  lugar de PGlite. Todas las tablas viven en el esquema **`eos_marketing`**, así no se
+  mezclan con tablas anteriores de esa base. Las migraciones de `db/migrations` se
+  empaquetan al compilar (`scripts/gen-migrations.mjs`, en `prebuild`) y se aplican solas
+  al arrancar, con candado para no aplicarse doble.
+- **Imágenes de anuncios:** Netlify Blobs (store `eos-marketing-uploads`) en vez de `.data/uploads`.
+- **Variables:** `AUTH_SECRET` (secreto, configurado en el sitio) y `EOS_TIMEZONE`
+  (`America/Guatemala`; las semanas se calculan en esa zona).
+- **Volver a publicar:** desde esta carpeta, con el comando de despliegue de Netlify
+  (`netlify deploy --build --prod` con la CLI enlazada al sitio).
+
+La primera vez, abre el sitio y verás `/setup` para crear el equipo y el administrador.
+
 ## Variables de entorno (opcionales)
 
 | Variable       | Descripción                                                     |
 | -------------- | ---------------------------------------------------------------- |
 | `AUTH_SECRET`  | Secreto para firmar las cookies de sesión. Si falta, usa uno de desarrollo. |
 | `EOS_DATA_DIR` | Carpeta de la base de datos local (por defecto `.data/pglite`). |
+| `EOS_TIMEZONE` | Zona horaria para semanas y fechas (por defecto `America/Guatemala`). |
 | `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Para activar la sincronización de leads (la consulta está preparada en `src/lib/integrations/activecampaign.ts`, falta implementarla). |
 
@@ -97,8 +116,18 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   costo por lead por semana; leads por responsable y por programa; tendencia de un
   indicador del Scorecard contra su meta; y carreras más lejos de su meta. Filtros por
   rango de fechas, programa, responsable, nivel y carrera; cada gráfica tiene vista en tabla.
-- **Ajustes** (`/ajustes`): índice de configuraciones (Equipo, Apariencia, Hitos, Anuncios, Demo, Diagnóstico, Exportar).
-  - **Equipo** (`/ajustes/equipo`): personas, accesos y nombre del equipo.
+- **Ajustes** (`/ajustes`): índice de configuraciones (Equipo, Roles y accesos, Equipos, Apariencia, Hitos, Anuncios, Demo, Diagnóstico, Exportar).
+  - **Equipo** (`/ajustes/equipo`): personas, accesos, rol de cada persona y nombre del
+    equipo. Se puede agregar a alguien que ya tiene cuenta solo con su correo.
+  - **Roles y accesos** (`/ajustes/roles`): roles **Administrador** (todo, y es el único
+    que administra equipo, roles y equipos) y **Usuario** (todo editable menos Ajustes),
+    más roles propios. Por cada módulo: *Sin acceso*, *Solo ver* o *Ver y editar*. El menú
+    oculta lo que no tiene acceso; en *Solo ver* la página muestra un aviso y los controles
+    quedan deshabilitados; las acciones del servidor también lo validan.
+  - **Equipos** (`/ajustes/equipos`): crear equipos (cada uno con sus propios datos),
+    cambiar entre ellos. Los indicadores del Scorecard se pueden hacer **visibles para otros
+    equipos** (todos o elegidos) desde "Gestionar indicadores"; esos equipos los ven en
+    su Scorecard, sección "De otros equipos", en solo lectura.
   - **Hitos de Control de carrera** (`/ajustes/hitos`, administradores): editar, renombrar,
     eliminar, agregar y reordenar hitos; etapa, duración, dependencias y lanzamiento.
   - **Anuncios** (`/ajustes/anuncios`, administradores): hasta 5 imágenes (PNG, JPG, WEBP o
@@ -125,11 +154,16 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   (última semana cerrada).
 - **Scorecard** (`/scorecard`): indicadores semanales por dueño, con meta, semáforo y un dueño "rollup" calculado automáticamente (suma o promedio de los demás).
 - **Issues** (`/issues`): lista IDS priorizable, con fecha específica, conversión a To-Do
-  al resolver y botón "Enviar a ClickUp".
+  al resolver y botón "Enviar a ClickUp". Cada persona ve primero los suyos; filtros
+  "Solo míos", "Todos" (para reordenar prioridades) o los de una persona.
 - **To-Dos** (`/todos`): pendientes semanales con descripción, dueño, fecha límite y botón
-  "Enviar a ClickUp".
+  "Enviar a ClickUp". Mismos filtros por persona que Issues.
 - **Dashboard** (`/`): muestra las Noticias compartidas en la reunión.
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
   Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
   todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,
   Rocks, Noticias y To-Dos; "+ To-Do" desde cada Issue en IDS. Timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+  En **Conclusión** se listan los To-Dos que estaban pendientes y los nuevos de la reunión,
+  y se registran los mensajes a cascadear. Al finalizar, **Generar resumen (PDF)** descarga
+  lo registrado (calificaciones, Scorecard fuera de meta, indicadores de carrera, Rocks,
+  noticias, To-Dos, IDS y mensajes); también desde el historial de reuniones.

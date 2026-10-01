@@ -1,22 +1,14 @@
 import "server-only";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { db } from "@/lib/db";
+import { storage } from "@/lib/storage";
 
 /**
- * Las imágenes se guardan como archivos junto a la base de datos local, no
- * dentro de ella: PGlite no soporta binarios grandes y una foto de varios MB
- * la dejaba inservible. En la base solo queda el tipo y la fecha.
+ * Las imágenes se guardan como archivos (carpeta local o Netlify Blobs), no
+ * dentro de la base: PGlite no soporta binarios grandes y una foto de varios
+ * MB la dejaba inservible. En la base solo queda el tipo y la fecha.
  */
-const UPLOADS_DIR =
-  process.env.EOS_UPLOADS_DIR || path.join(path.dirname(process.env.EOS_DATA_DIR || path.join(process.cwd(), ".data", "pglite")), "uploads");
-
-export function uploadsDir() {
-  return UPLOADS_DIR;
-}
-
-export function imagePath(teamId: number, slot: number) {
-  return path.join(UPLOADS_DIR, "anuncios", `${teamId}-${slot}`);
+export function imageKey(teamId: number, slot: number) {
+  return `anuncios/${teamId}-${slot}`;
 }
 
 export const ANNOUNCEMENT_SLOTS = [1, 2, 3, 4, 5] as const;
@@ -74,9 +66,7 @@ export async function listAnnouncementSlots(teamId: number): Promise<Announcemen
 }
 
 export async function setSlotImage(teamId: number, slot: number, image: Uint8Array, mime: string) {
-  const file = imagePath(teamId, slot);
-  await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, image);
+  await (await storage()).put(imageKey(teamId, slot), image);
   await db().sql`
     INSERT INTO announcement_slots (team_id, slot, image, mime, updated_at)
     VALUES (${teamId}, ${slot}, NULL, ${mime}, NOW())
@@ -98,13 +88,14 @@ export async function setSlotDetails(
 }
 
 export async function clearSlot(teamId: number, slot: number) {
-  await rm(imagePath(teamId, slot), { force: true });
+  await (await storage()).remove(imageKey(teamId, slot));
   await db().sql`DELETE FROM announcement_slots WHERE team_id = ${teamId} AND slot = ${slot}`;
 }
 
 /** Borra las imágenes de todos los espacios de un equipo (al eliminar la demo). */
 export async function removeTeamImages(teamId: number) {
-  for (const slot of ANNOUNCEMENT_SLOTS) await rm(imagePath(teamId, slot), { force: true });
+  const store = await storage();
+  for (const slot of ANNOUNCEMENT_SLOTS) await store.remove(imageKey(teamId, slot));
 }
 
 export async function getSlotImage(teamId: number, slot: number) {
@@ -113,12 +104,10 @@ export async function getSlotImage(teamId: number, slot: number) {
   `) as { image: Uint8Array | null; mime: string }[];
   const row = rows[0];
   if (!row) return null;
-  try {
-    return { image: new Uint8Array(await readFile(imagePath(teamId, slot))), mime: row.mime };
-  } catch {
-    // Imágenes pequeñas subidas con la versión anterior quedaron en la base.
-    return row.image ? { image: row.image, mime: row.mime } : null;
-  }
+  const image = await (await storage()).get(imageKey(teamId, slot));
+  if (image) return { image, mime: row.mime };
+  // Imágenes pequeñas subidas con la versión anterior quedaron en la base.
+  return row.image ? { image: row.image, mime: row.mime } : null;
 }
 
 /** Lo que necesita el popup: anuncios activos con imagen, si la función está encendida. */

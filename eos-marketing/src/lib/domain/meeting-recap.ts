@@ -9,7 +9,7 @@ import { listEntries, listMetrics, listOwners, listTargets } from "./scorecard";
 import { buildScorecardGrid, formatValue, getCell, statusFor, targetFor } from "./scorecard-shared";
 import { listCareers, listWeekly, weeklyGoals } from "./careers";
 import { mergeWeekly, totalsFor, type Totals } from "./careers-shared";
-import { currentQuarter, formatWeekRange, lastClosedWeek, lastNWeeks } from "@/lib/utils/dates";
+import { currentQuarter, formatWeekRange, lastNWeeks, shiftWeek, weekStartISO } from "@/lib/utils/dates";
 
 export type MeetingRecap = {
   meeting: Meeting & { cascade_notes: string };
@@ -41,8 +41,9 @@ export async function meetingRecap(meetingId: number, teamId: number): Promise<M
     return t !== null && t >= from && t <= to;
   };
 
-  const weeks = lastNWeeks(4);
-  const careerWeek = lastClosedWeek();
+  // Lo que se revisó en esa reunión: la última semana cerrada antes de la fecha de la reunión.
+  const careerWeek = shiftWeek(weekStartISO(new Date(from)), -1);
+  const weeks = lastNWeeks(4, careerWeek);
   const { quarter, year } = currentQuarter(new Date(from));
   const [team, members, ratings, headlines, todoRows, issueRows, rocks, metrics, owners, targets, entries, careers, weekly, goals] =
     await Promise.all([
