@@ -7,6 +7,7 @@ import { Magnifier, Xmark } from "@gravity-ui/icons";
 import { Button, Chip, Input, Tooltip } from "@heroui/react";
 import { NAV_GROUPS, SETTINGS_ITEM, isActive, type NavBadge, type NavItem } from "./nav";
 import { useShell } from "./shell";
+import { moduleForPath, type ModuleKey } from "@/lib/auth/modules";
 
 function initials(name: string) {
   const words = name.split(/\s+/).filter((w) => /^[\p{L}\p{N}]/u.test(w));
@@ -72,18 +73,31 @@ function NavLink({
   );
 }
 
-export function Sidebar({ teamName, counts }: { teamName: string; counts: Record<NavBadge, number> }) {
+export function Sidebar({
+  teamName,
+  counts,
+  allowed,
+}: {
+  teamName: string;
+  counts: Record<NavBadge, number>;
+  allowed: ModuleKey[];
+}) {
   const pathname = usePathname();
   const { collapsed, mobileOpen, setMobileOpen } = useShell();
   const [query, setQuery] = useState<string | null>(null);
   const close = () => setMobileOpen(false);
 
   const q = normalize(query ?? "");
+  // Solo los módulos a los que el rol de la persona tiene acceso.
+  const visible = (i: NavItem) => {
+    const m = moduleForPath(i.href);
+    return !m || allowed.includes(m);
+  };
   const groups = NAV_GROUPS.map((g) => ({
     ...g,
-    items: g.items.filter((i) => !q || normalize(i.label).includes(q)),
+    items: g.items.filter((i) => visible(i) && (!q || normalize(i.label).includes(q))),
   })).filter((g) => g.items.length > 0);
-  const showSettings = !q || normalize(SETTINGS_ITEM.label).includes(q);
+  const showSettings = visible(SETTINGS_ITEM) && (!q || normalize(SETTINGS_ITEM.label).includes(q));
   // En modo colapsado (solo escritorio) se ocultan textos y buscador.
   const narrow = collapsed && !mobileOpen;
 

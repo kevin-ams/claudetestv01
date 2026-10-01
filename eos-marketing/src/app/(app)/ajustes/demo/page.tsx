@@ -1,3 +1,4 @@
+import { canEdit } from "@/lib/auth/access";
 import { Chip } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { getTeam } from "@/lib/domain/teams";
@@ -37,7 +38,7 @@ export default async function DemoPage() {
         <DemoControls
           inDemo={inDemo}
           hasDemo={Boolean(demo)}
-          canEdit={session.role === "admin"}
+          canEdit={await canEdit("ajustes")}
           stepLabels={DEMO_STEPS.map((s) => s.label)}
         />
       </section>

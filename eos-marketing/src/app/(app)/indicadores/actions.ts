@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import {
   getCareer,
   listCareers,
@@ -45,7 +45,7 @@ function cleanNumber(value: number | null): number | null {
 }
 
 async function requireTeamCareer(careerId: number) {
-  const session = await requireSession();
+  const session = await requireModule("indicadores");
   const career = await getCareer(careerId);
   if (!career || career.team_id !== session.teamId) {
     throw new Error("Carrera no encontrada");
@@ -100,7 +100,7 @@ export async function setOwnerAction(careerId: number, ownerId: number | null) {
 // --- Catálogo de carreras ---------------------------------------------------
 
 export async function createCareerAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("indicadores");
   const name = String(formData.get("name") ?? "").trim();
   const program = String(formData.get("program") ?? "").trim().toUpperCase();
   if (!name || !program) return;
@@ -137,7 +137,7 @@ export async function archiveCareerAction(careerId: number) {
 }
 
 export async function loadCareerCatalogAction(): Promise<ActionResult> {
-  const session = await requireSession();
+  const session = await requireModule("indicadores");
   const { careers } = await seedMarketingTeam(session.teamId);
   refresh();
   revalidatePath("/rocks");
@@ -159,7 +159,7 @@ export type BudgetImportPayload = {
 };
 
 export async function importBudgetAction(payload: BudgetImportPayload): Promise<ActionResult> {
-  const session = await requireSession();
+  const session = await requireModule("indicadores");
   const weekStart = normalizeWeek(payload.week);
   const teamCareers = new Set((await listCareers(session.teamId)).map((c) => c.id));
 
@@ -208,7 +208,7 @@ export async function importBudgetAction(payload: BudgetImportPayload): Promise<
 // --- ActiveCampaign (preparado, sin conectar) -------------------------------
 
 export async function syncActiveCampaignAction(week: string): Promise<ActionResult> {
-  const session = await requireSession();
+  const session = await requireModule("indicadores");
   const weekStart = normalizeWeek(week);
   const weekEnd = shiftWeek(weekStart, 1);
 

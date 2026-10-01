@@ -82,7 +82,7 @@ export function AppSelect({
     <Select
       id={id}
       name={name}
-      aria-label={ariaLabel ?? title}
+      aria-label={ariaLabel ?? title ?? placeholder}
       placeholder={placeholder}
       isDisabled={disabled}
       isRequired={required}

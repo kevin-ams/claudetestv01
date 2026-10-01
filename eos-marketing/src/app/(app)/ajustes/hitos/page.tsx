@@ -1,3 +1,4 @@
+import { canEdit } from "@/lib/auth/access";
 import { getSession } from "@/lib/auth/session";
 import { countCompletions, listControlMilestones } from "@/lib/domain/control-milestones";
 import { MilestoneSettings } from "./milestone-settings";
@@ -23,7 +24,7 @@ export default async function AjustesPage() {
         <MilestoneSettings
           milestones={milestones}
           completions={completions}
-          canEdit={session.role === "admin"}
+          canEdit={await canEdit("ajustes")}
         />
       </section>
     </div>

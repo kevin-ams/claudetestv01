@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { canEdit } from "@/lib/auth/access";
 import { requireSession, createSessionCookie } from "@/lib/auth/session";
 import { getTeam } from "@/lib/domain/teams";
 import {
@@ -24,7 +25,7 @@ function errorText(err: unknown) {
  */
 export async function demoStepAction(step: number): Promise<DemoResult> {
   const session = await requireSession();
-  if (session.role !== "admin") {
+  if (!(await canEdit("ajustes"))) {
     return { ok: false, message: "Solo un administrador puede activar la información demo." };
   }
   const label = DEMO_STEPS[step]?.label ?? `Paso ${step}`;

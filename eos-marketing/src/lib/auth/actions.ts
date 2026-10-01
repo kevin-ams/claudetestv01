@@ -1,5 +1,6 @@
 "use server";
 
+import { ADMIN_ROLE } from "@/lib/domain/roles";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -56,7 +57,7 @@ export async function setupAdminAction(
     password: parsed.data.password,
     role: "admin",
   });
-  await addTeamMember(team.id, user.id, "Líder de equipo");
+  await addTeamMember(team.id, user.id, "Líder de equipo", ADMIN_ROLE);
   await seedMarketingTeam(team.id);
 
   await createSessionCookie({

@@ -5,6 +5,8 @@ import { Button, Card, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import { useState } from "react";
 import type { ScorecardMetric, ScorecardOwner } from "@/lib/domain/types";
+import type { MetricSharing } from "@/lib/domain/scorecard";
+import { MetricSharingControl } from "./metric-sharing";
 import {
   createMetricAction,
   archiveMetricAction,
@@ -15,9 +17,13 @@ import {
 export function ScorecardAdmin({
   metrics,
   owners,
+  sharing,
+  shareTeams,
 }: {
   metrics: ScorecardMetric[];
   owners: ScorecardOwner[];
+  sharing: Record<number, MetricSharing>;
+  shareTeams: { id: number; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -36,14 +42,21 @@ export function ScorecardAdmin({
             <h4 className="mb-2 text-sm font-semibold">Indicadores</h4>
             <ul className="mb-3 flex flex-col gap-1 text-sm">
               {metrics.map((m) => (
-                <li key={m.id} className="flex items-center justify-between gap-2">
-                  <span>{m.name}</span>
-                  <Button size="sm" variant="ghost"
-                    className="text-xs text-red"
-                    onPress={() => archiveMetricAction(m.id)}
-                  >
-                    Archivar
-                  </Button>
+                <li key={m.id} className="flex items-start justify-between gap-2 border-b border-border pb-1">
+                  <span className="pt-1.5">{m.name}</span>
+                  <div className="flex items-start gap-1">
+                    <MetricSharingControl
+                      metricId={m.id}
+                      sharing={sharing[m.id] ?? { shared_all: false, team_ids: [] }}
+                      teams={shareTeams}
+                    />
+                    <Button size="sm" variant="ghost"
+                      className="text-xs text-red"
+                      onPress={() => archiveMetricAction(m.id)}
+                    >
+                      Archivar
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>

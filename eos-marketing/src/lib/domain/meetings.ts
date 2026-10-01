@@ -128,3 +128,7 @@ export async function listRecentHeadlines(teamId: number, limit = 10) {
   `;
   return rows as (MeetingHeadline & { author_name: string | null })[];
 }
+
+export async function setCascadeNotes(meetingId: number, teamId: number, notes: string) {
+  await db().sql`UPDATE meetings SET cascade_notes = ${notes} WHERE id = ${meetingId} AND team_id = ${teamId}`;
+}

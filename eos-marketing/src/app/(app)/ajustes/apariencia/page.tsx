@@ -1,3 +1,4 @@
+import { canEdit } from "@/lib/auth/access";
 import { getSession } from "@/lib/auth/session";
 import { getTeam } from "@/lib/domain/teams";
 import { DEFAULT_THEME_COLOR } from "@/lib/theme";
@@ -17,7 +18,7 @@ export default async function AparienciaPage() {
       />
       <AppearanceSettings
         color={team?.theme_color ?? DEFAULT_THEME_COLOR}
-        canEdit={session.role === "admin"}
+        canEdit={await canEdit("ajustes")}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import {
   upsertEntry,
   createMetric,
@@ -9,6 +9,7 @@ import {
   createOwner,
   deleteOwner,
   setTarget,
+  setMetricSharing,
 } from "@/lib/domain/scorecard";
 import type { Direction, MetricFormat, Aggregation } from "@/lib/domain/types";
 
@@ -18,14 +19,14 @@ export async function upsertEntryAction(
   weekStart: string,
   value: number | null
 ) {
-  const session = await requireSession();
+  const session = await requireModule("scorecard");
   await upsertEntry({ metricId, ownerId, weekStart, value, enteredBy: session.userId });
   revalidatePath("/scorecard");
   revalidatePath("/");
 }
 
 export async function createMetricAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("scorecard");
   await createMetric({
     teamId: session.teamId,
     name: String(formData.get("name") ?? "").trim(),
@@ -38,13 +39,13 @@ export async function createMetricAction(formData: FormData) {
 }
 
 export async function archiveMetricAction(metricId: number) {
-  await requireSession();
+  await requireModule("scorecard");
   await archiveMetric(metricId);
   revalidatePath("/scorecard");
 }
 
 export async function createOwnerAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("scorecard");
   await createOwner(
     session.teamId,
     String(formData.get("name") ?? "").trim(),
@@ -54,13 +55,32 @@ export async function createOwnerAction(formData: FormData) {
 }
 
 export async function deleteOwnerAction(ownerId: number) {
-  await requireSession();
+  await requireModule("scorecard");
   await deleteOwner(ownerId);
   revalidatePath("/scorecard");
 }
 
 export async function setTargetAction(metricId: number, ownerId: number, value: number) {
-  await requireSession();
+  await requireModule("scorecard");
   await setTarget(metricId, ownerId, value);
   revalidatePath("/scorecard");
+}
+
+export async function setMetricSharingAction(
+  metricId: number,
+  sharedAll: boolean,
+  teamIds: number[]
+): Promise<{ ok: boolean; message: string }> {
+  const session = await requireModule("scorecard");
+  const ok = await setMetricSharing(session.teamId, metricId, sharedAll, teamIds);
+  revalidatePath("/scorecard");
+  if (!ok) return { ok: false, message: "Ese indicador no es de este equipo." };
+  return {
+    ok: true,
+    message: sharedAll
+      ? "Visible para todos los equipos."
+      : teamIds.length
+        ? `Visible para ${teamIds.length} equipo(s).`
+        : "Ya no se comparte con otros equipos.",
+  };
 }

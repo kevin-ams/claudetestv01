@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Card, Chip } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
-import { listTeamMembers } from "@/lib/domain/users";
+import { getUserTeams, listTeamMembers } from "@/lib/domain/users";
+import { listRoles } from "@/lib/domain/roles";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { getTeam } from "@/lib/domain/teams";
@@ -14,6 +15,18 @@ const SECTIONS = [
     icon: "👥",
     title: "Equipo",
     description: "Personas con acceso, correos, contraseñas y nombre del equipo.",
+  },
+  {
+    href: "/ajustes/roles",
+    icon: "🔐",
+    title: "Roles y accesos",
+    description: "Administrador, Usuario y roles propios: qué módulos puede ver o editar cada uno.",
+  },
+  {
+    href: "/ajustes/equipos",
+    icon: "🧩",
+    title: "Equipos",
+    description: "Crea otros equipos, cambia entre ellos y comparte indicadores entre equipos.",
   },
   {
     href: "/ajustes/apariencia",
@@ -57,18 +70,23 @@ export default async function AjustesIndexPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [team, demo, members, milestones, adSettings, slots] = await Promise.all([
+  const [team, demo, members, milestones, adSettings, slots, roles, userTeams] = await Promise.all([
     getTeam(session.teamId),
     getDemoTeamFor(session.userId),
     listTeamMembers(session.teamId),
     listControlMilestones(session.teamId),
     getAnnouncementSettings(session.teamId),
     listAnnouncementSlots(session.teamId),
+    listRoles(session.teamId),
+    getUserTeams(session.userId),
   ]);
+  const teamCount = userTeams.filter((t) => !t.is_demo).length;
   const activeAds = slots.filter((s) => s.has_image && s.active).length;
   const status: Record<string, string> = {
     "/ajustes/equipo": `${members.length} personas`,
     "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
+    "/ajustes/roles": `${roles.length} roles`,
+    "/ajustes/equipos": `${teamCount} equipo(s)`,
     "/ajustes/hitos": `${milestones.length} hitos`,
     "/ajustes/anuncios": adSettings.enabled
       ? `Activos · ${activeAds} imagen(es) · cada ${adSettings.interval_minutes} min`

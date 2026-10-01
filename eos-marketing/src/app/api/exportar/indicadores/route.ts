@@ -1,5 +1,6 @@
 import { type NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/session";
+import { getAccess } from "@/lib/auth/access";
 import { fileResponse, parseFormat, workbookFile } from "@/lib/export/excel";
 import { careerWorkbook } from "@/lib/export/workbooks";
 import { lastClosedWeek, shiftWeek } from "@/lib/utils/dates";
@@ -10,6 +11,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) return new Response("No autenticado", { status: 401 });
+  if ((await getAccess())?.level("indicadores") === "none") return new Response("Sin acceso", { status: 403 });
   const q = request.nextUrl.searchParams;
   const to = DATE.test(q.get("hasta") ?? "") ? shiftWeek(q.get("hasta")!, 0) : lastClosedWeek();
   const from = DATE.test(q.get("desde") ?? "") ? shiftWeek(q.get("desde")!, 0) : shiftWeek(to, -11);

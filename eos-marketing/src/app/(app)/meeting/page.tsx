@@ -56,9 +56,16 @@ export default async function MeetingListPage() {
                   {m.avg_rating !== null && ` · Calificación: ${Number(m.avg_rating).toFixed(1)}/10`}
                 </p>
               </div>
-              <Link href={`/meeting/${m.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
-                Ver
-              </Link>
+              <div className="flex gap-2">
+                {m.status === "completed" && (
+                  <a href={`/api/reuniones/${m.id}/resumen`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                    ⬇ Resumen PDF
+                  </a>
+                )}
+                <Link href={`/meeting/${m.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                  Ver
+                </Link>
+              </div>
             </li>
           ))}
         </ul>

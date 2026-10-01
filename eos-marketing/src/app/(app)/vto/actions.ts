@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import { updateVTOField } from "@/lib/domain/vto";
 
 function linesOf(formData: FormData, key: string): string[] {
@@ -13,7 +13,7 @@ function linesOf(formData: FormData, key: string): string[] {
 }
 
 export async function saveCoreValues(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("vto");
   await updateVTOField(
     session.teamId,
     "core_values",
@@ -24,7 +24,7 @@ export async function saveCoreValues(formData: FormData) {
 }
 
 export async function saveCoreFocus(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("vto");
   await updateVTOField(
     session.teamId,
     "core_focus",
@@ -38,7 +38,7 @@ export async function saveCoreFocus(formData: FormData) {
 }
 
 export async function saveTenYearTarget(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("vto");
   await updateVTOField(
     session.teamId,
     "ten_year_target",
@@ -49,7 +49,7 @@ export async function saveTenYearTarget(formData: FormData) {
 }
 
 export async function saveMarketingStrategy(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("vto");
   await updateVTOField(
     session.teamId,
     "marketing_strategy",
@@ -65,7 +65,7 @@ export async function saveMarketingStrategy(formData: FormData) {
 }
 
 export async function saveThreeYearPicture(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("vto");
   await updateVTOField(
     session.teamId,
     "three_year_picture",
@@ -82,7 +82,7 @@ export async function saveThreeYearPicture(formData: FormData) {
 }
 
 export async function saveOneYearPlan(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("vto");
   await updateVTOField(
     session.teamId,
     "one_year_plan",

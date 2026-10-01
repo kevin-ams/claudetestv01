@@ -3,6 +3,7 @@ import { addDays, format, parseISO, startOfQuarter, endOfQuarter } from "date-fn
 import { db } from "@/lib/db";
 import { lastClosedWeek, shiftWeek, currentQuarter } from "@/lib/utils/dates";
 import { addTeamMember } from "./users";
+import { ADMIN_ROLE } from "./roles";
 import { seedNewTeam } from "./teams";
 import { seedMarketingTeam } from "./marketing-seed";
 import { listCareers } from "./careers";
@@ -69,7 +70,7 @@ export async function createDemoTeam(userId: number, realTeamName: string): Prom
   `) as { id: number }[];
   const teamId = rows[0].id;
   await seedNewTeam(teamId);
-  await addTeamMember(teamId, userId, "Dirección de marketing");
+  await addTeamMember(teamId, userId, "Dirección de marketing", ADMIN_ROLE);
   await seedMarketingTeam(teamId, DEMO_EMAIL_DOMAIN);
   return teamId;
 }

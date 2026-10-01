@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { canEdit } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import { CONTROL_STAGES, type StageKey } from "@/lib/domain/career-control";
 import {
@@ -15,7 +16,7 @@ export type SettingsResult = { ok: boolean; message: string };
 
 async function requireAdmin() {
   const session = await requireSession();
-  if (session.role !== "admin") throw new Error("Solo un administrador puede cambiar los ajustes.");
+  if (!(await canEdit("ajustes"))) throw new Error("Solo un administrador puede cambiar los ajustes.");
   return session;
 }
 

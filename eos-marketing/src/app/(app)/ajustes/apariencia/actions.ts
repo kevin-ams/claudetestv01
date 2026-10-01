@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { canEdit } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import { setTeamThemeColor } from "@/lib/domain/teams";
 import { isHexColor } from "@/lib/theme";
@@ -9,7 +10,7 @@ export type ThemeResult = { ok: boolean; message: string };
 
 export async function saveThemeColorAction(color: string): Promise<ThemeResult> {
   const session = await requireSession();
-  if (session.role !== "admin") {
+  if (!(await canEdit("ajustes"))) {
     return { ok: false, message: "Solo un administrador puede cambiar el color del template." };
   }
   if (!isHexColor(color)) return { ok: false, message: "El color debe tener el formato #RRGGBB." };

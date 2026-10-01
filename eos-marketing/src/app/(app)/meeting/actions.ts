@@ -1,8 +1,8 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireSession } from "@/lib/auth/session";
 import {
   createMeeting,
   startMeeting,
@@ -11,6 +11,7 @@ import {
   addHeadline,
   rateMeeting,
   getMeeting,
+  setCascadeNotes,
 } from "@/lib/domain/meetings";
 import { createTodo } from "@/lib/domain/todos";
 import { createIssue } from "@/lib/domain/issues";
@@ -18,14 +19,14 @@ import { isUserInTeam } from "@/lib/domain/users";
 import type { IssueTerm } from "@/lib/domain/types";
 
 export async function startNewMeetingAction() {
-  const session = await requireSession();
+  const session = await requireModule("meeting");
   const meeting = await createMeeting(session.teamId, session.userId, null);
   await startMeeting(meeting.id);
   redirect(`/meeting/${meeting.id}`);
 }
 
 export async function advanceSegmentAction(meetingId: number, segmentKey: string) {
-  await requireSession();
+  await requireModule("meeting");
   await setSegment(meetingId, segmentKey);
   revalidatePath(`/meeting/${meetingId}`);
 }
@@ -35,23 +36,25 @@ export async function addHeadlineAction(
   type: "customer" | "employee",
   content: string
 ) {
-  const session = await requireSession();
+  const session = await requireModule("meeting");
   if (!content.trim()) return;
   await addHeadline({ meetingId, type, content: content.trim(), createdBy: session.userId });
   revalidatePath(`/meeting/${meetingId}`);
 }
 
 export async function rateMeetingAction(meetingId: number, rating: number) {
-  const session = await requireSession();
+  const session = await requireModule("meeting", "view");
   await rateMeeting(meetingId, session.userId, rating);
   revalidatePath(`/meeting/${meetingId}`);
 }
 
 export async function completeMeetingAction(meetingId: number) {
-  await requireSession();
+  await requireModule("meeting");
   await completeMeeting(meetingId);
   revalidatePath("/meeting");
-  redirect("/meeting");
+  // Queda en la reunión: la pantalla final ofrece descargar el resumen en PDF.
+  revalidatePath(`/meeting/${meetingId}`);
+  redirect(`/meeting/${meetingId}`);
 }
 
 export type QuickItemInput = {
@@ -63,7 +66,7 @@ export type QuickItemInput = {
 };
 
 async function checkQuickItem(meetingId: number, input: QuickItemInput) {
-  const session = await requireSession();
+  const session = await requireModule("meeting");
   const meeting = await getMeeting(meetingId);
   if (!meeting || meeting.team_id !== session.teamId) throw new Error("Reunión no encontrada");
   const title = input.title.trim().slice(0, 200);
@@ -96,4 +99,10 @@ export async function createMeetingIssueAction(meetingId: number, input: QuickIt
   });
   revalidatePath(`/meeting/${meetingId}`);
   revalidatePath("/issues");
+}
+
+export async function saveCascadeNotesAction(meetingId: number, notes: string) {
+  const session = await requireModule("meeting");
+  await setCascadeNotes(meetingId, session.teamId, notes.slice(0, 5000));
+  revalidatePath(`/meeting/${meetingId}`);
 }

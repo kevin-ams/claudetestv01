@@ -31,6 +31,7 @@ export default async function IssuesPage() {
         solvedIssues={solvedIssues}
         members={members}
         clickupConfigured={isClickUpConfigured()}
+        currentUserId={session.userId}
       />
     </div>
   );

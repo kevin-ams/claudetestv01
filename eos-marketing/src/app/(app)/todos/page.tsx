@@ -21,7 +21,12 @@ export default async function TodosPage() {
           Tareas de una semana que salen de la Reunión Level 10 o del día a día.
         </p>
       </div>
-      <TodoList todos={todos} members={members} clickupConfigured={isClickUpConfigured()} />
+      <TodoList
+        todos={todos}
+        members={members}
+        clickupConfigured={isClickUpConfigured()}
+        currentUserId={session.userId}
+      />
     </div>
   );
 }

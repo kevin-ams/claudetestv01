@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth/password";
 import type { User, PublicUser, Role } from "./types";
+import { roleIdByName, USER_ROLE } from "./roles";
 
 export async function countUsers(): Promise<number> {
   const rows = await db().sql`SELECT COUNT(*)::int AS count FROM users`;
@@ -57,9 +58,10 @@ export async function listTeamMembers(teamId: number): Promise<PublicUser[]> {
 
 export async function listTeamMembersDetailed(teamId: number) {
   const rows = await db().sql`
-    SELECT u.id, u.name, u.email, u.role, tm.seat_title
+    SELECT u.id, u.name, u.email, u.role, tm.seat_title, tm.role_id, r.name AS role_name, COALESCE(r.is_admin, FALSE) AS is_admin
     FROM users u
     JOIN team_members tm ON tm.user_id = u.id
+    LEFT JOIN team_roles r ON r.id = tm.role_id
     WHERE tm.team_id = ${teamId}
     ORDER BY u.name ASC
   `;
@@ -69,30 +71,42 @@ export async function listTeamMembersDetailed(teamId: number) {
     email: string;
     role: Role;
     seat_title: string | null;
+    role_id: number | null;
+    role_name: string | null;
+    is_admin: boolean;
   }[];
 }
 
 export async function addTeamMember(
   teamId: number,
   userId: number,
-  seatTitle?: string
+  seatTitle?: string,
+  roleName: string = USER_ROLE
 ) {
+  const roleId = await roleIdByName(teamId, roleName);
   await db().sql`
-    INSERT INTO team_members (team_id, user_id, seat_title)
-    VALUES (${teamId}, ${userId}, ${seatTitle ?? null})
+    INSERT INTO team_members (team_id, user_id, seat_title, role_id)
+    VALUES (${teamId}, ${userId}, ${seatTitle ?? null}, ${roleId})
     ON CONFLICT (team_id, user_id) DO NOTHING
   `;
 }
 
+/** Quita a una persona del equipo (su cuenta sigue existiendo). */
+export async function removeTeamMember(teamId: number, userId: number) {
+  await db().sql`DELETE FROM team_members WHERE team_id = ${teamId} AND user_id = ${userId}`;
+}
+
 export async function getUserTeams(userId: number) {
   const rows = await db().sql`
-    SELECT t.id, t.name
+    SELECT t.id, t.name, t.is_demo, r.name AS role_name,
+      (SELECT COUNT(*)::int FROM team_members x WHERE x.team_id = t.id) AS members
     FROM teams t
     JOIN team_members tm ON tm.team_id = t.id
+    LEFT JOIN team_roles r ON r.id = tm.role_id
     WHERE tm.user_id = ${userId}
-    ORDER BY t.name ASC
+    ORDER BY t.is_demo ASC, t.name ASC
   `;
-  return rows as { id: number; name: string }[];
+  return rows as { id: number; name: string; is_demo: boolean; role_name: string | null; members: number }[];
 }
 
 export async function isUserInTeam(userId: number, teamId: number) {

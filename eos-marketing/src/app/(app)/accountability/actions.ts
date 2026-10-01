@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import { createSeat, updateSeat, deleteSeat } from "@/lib/domain/accountability";
 
 function linesOf(formData: FormData, key: string): string[] {
@@ -25,7 +25,7 @@ function userId(formData: FormData): number | null {
 }
 
 export async function createSeatAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("accountability");
   await createSeat({
     teamId: session.teamId,
     parentSeatId: parentId(formData),
@@ -38,7 +38,7 @@ export async function createSeatAction(formData: FormData) {
 }
 
 export async function updateSeatAction(seatId: number, formData: FormData) {
-  await requireSession();
+  await requireModule("accountability");
   await updateSeat(seatId, {
     title: String(formData.get("title") ?? "").trim(),
     userId: userId(formData),
@@ -49,7 +49,7 @@ export async function updateSeatAction(seatId: number, formData: FormData) {
 }
 
 export async function deleteSeatAction(seatId: number) {
-  await requireSession();
+  await requireModule("accountability");
   await deleteSeat(seatId);
   revalidatePath("/accountability");
 }

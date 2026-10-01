@@ -118,6 +118,7 @@ export type ScorecardMetric = {
   sort_order: number;
   archived: boolean;
   created_at: string;
+  shared_all: boolean;
 };
 
 export type ScorecardTarget = {
@@ -189,6 +190,7 @@ export type Meeting = {
   avg_rating: number | null;
   created_by: number | null;
   created_at: string;
+  cascade_notes: string;
 };
 
 export type MeetingHeadline = {

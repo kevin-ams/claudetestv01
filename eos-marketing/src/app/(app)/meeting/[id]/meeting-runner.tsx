@@ -1,9 +1,9 @@
 "use client";
 
 import { Segmented } from "@/components/ui/segmented";
-import { Button, Card, Input } from "@heroui/react";
+import { Button, Card, Input, TextArea } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type {
@@ -33,6 +33,7 @@ import {
   addHeadlineAction,
   rateMeetingAction,
   completeMeetingAction,
+  saveCascadeNotesAction,
 } from "../actions";
 
 function useElapsed(since: string | null) {
@@ -137,6 +138,99 @@ function HeadlinesPanel({
   );
 }
 
+function ConclusionTodos({
+  todos,
+  members,
+  startedAt,
+}: {
+  todos: Todo[];
+  members: PublicUser[];
+  startedAt: string | null;
+}) {
+  const from = startedAt ? new Date(startedAt).getTime() : 0;
+  const created = (t: Todo) => new Date(t.created_at).getTime() >= from;
+  const pending = todos.filter((t) => !created(t) && t.status === "open");
+  const fresh = todos.filter(created);
+  const name = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
+  const due = (d: string | null) => (d ? d.slice(5).split("-").reverse().join("/") : "sin fecha");
+
+  const list = (items: Todo[], empty: string) =>
+    items.length === 0 ? (
+      <p className="text-sm text-muted">{empty}</p>
+    ) : (
+      <ul className="flex flex-col divide-y divide-border text-sm">
+        {items.map((t) => (
+          <li key={t.id} className="flex items-start justify-between gap-3 py-2">
+            <span className={t.status === "done" ? "text-muted line-through" : ""}>{t.title}</span>
+            <span className="shrink-0 text-xs text-muted">
+              {name(t.owner_id)} · {due(t.due_date)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+
+  return (
+    <div className="grid gap-4 md:grid-cols-2">
+      <Card>
+        <Card.Header>
+          <Card.Title>To-Dos que estaban pendientes ({pending.length})</Card.Title>
+          <Card.Description>Venían de antes de esta reunión y siguen abiertos.</Card.Description>
+        </Card.Header>
+        <Card.Content>{list(pending, "No quedan To-Dos pendientes de antes. 🎉")}</Card.Content>
+      </Card>
+      <Card>
+        <Card.Header>
+          <Card.Title>To-Dos nuevos de esta reunión ({fresh.length})</Card.Title>
+          <Card.Description>Confirmen dueño y fecha de cada uno.</Card.Description>
+        </Card.Header>
+        <Card.Content>{list(fresh, "Todavía no se crearon To-Dos en esta reunión.")}</Card.Content>
+      </Card>
+    </div>
+  );
+}
+
+function CascadeNotes({ meetingId, initial }: { meetingId: number; initial: string }) {
+  const [notes, setNotes] = useState(initial);
+  const [saved, setSaved] = useState(initial);
+  const [pending, startTransition] = useTransition();
+  return (
+    <Card>
+      <Card.Header>
+        <Card.Title>Mensajes a cascadear</Card.Title>
+        <Card.Description>Qué se comunica al resto de la organización. Sale en el resumen PDF.</Card.Description>
+      </Card.Header>
+      <Card.Content className="gap-2">
+        <TextArea
+          aria-label="Mensajes a cascadear"
+          fullWidth
+          className="min-h-24"
+          placeholder="Ej. Se aprobó el presupuesto de IRE; la campaña de FACTI arranca el lunes…"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            isDisabled={notes === saved}
+            isPending={pending}
+            onPress={() =>
+              startTransition(async () => {
+                await saveCascadeNotesAction(meetingId, notes);
+                setSaved(notes);
+              })
+            }
+          >
+            Guardar mensajes
+          </Button>
+          {notes === saved && saved && <span className="text-xs text-green">Guardado</span>}
+        </div>
+      </Card.Content>
+    </Card>
+  );
+}
+
 function RatingPanel({
   meetingId,
   session,
@@ -233,9 +327,17 @@ export function MeetingRunner({
           Duró {formatClock(totalElapsed)} · Calificación promedio:{" "}
           {meeting.avg_rating ? Number(meeting.avg_rating).toFixed(1) : "-"}/10
         </p>
-        <Link href="/meeting" className={`${buttonVariants({ variant: "primary" })} mt-6 inline-flex`}>
-          Volver al historial
-        </Link>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <a href={`/api/reuniones/${meeting.id}/resumen`} className={buttonVariants({ variant: "primary" })}>
+            ⬇ Generar resumen (PDF)
+          </a>
+          <Link href="/meeting" className={buttonVariants({ variant: "outline" })}>
+            Volver al historial
+          </Link>
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          Incluye calificación, Scorecard, indicadores, Rocks, noticias, To-Dos pendientes y nuevos, IDS y mensajes a cascadear.
+        </p>
       </div>
     );
   }
@@ -442,11 +544,16 @@ export function MeetingRunner({
 
         {segment.key === "conclude" && (
           <div className="flex flex-col gap-4">
-            <Card className="block gap-0 p-5 text-sm text-muted">
-              Recapitulen los nuevos to-dos y qué mensajes se deben cascadear al
-              resto de la organización.
-            </Card>
+            <ConclusionTodos todos={todos} members={members} startedAt={meeting.started_at} />
+            <CascadeNotes meetingId={meeting.id} initial={meeting.cascade_notes ?? ""} />
             <RatingPanel meetingId={meeting.id} session={session} ratings={ratings} />
+            <Card className="block gap-0 p-4 text-sm text-muted">
+              Al finalizar la reunión podrás descargar el <b>resumen en PDF</b> con todo lo registrado. También puedes
+              generar uno ahora:{" "}
+              <a href={`/api/reuniones/${meeting.id}/resumen`} className="font-medium text-primary underline">
+                vista previa del resumen (PDF)
+              </a>
+            </Card>
           </div>
         )}
       </div>

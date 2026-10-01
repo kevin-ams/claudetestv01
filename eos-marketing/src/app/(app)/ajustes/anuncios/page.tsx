@@ -1,3 +1,4 @@
+import { canEdit } from "@/lib/auth/access";
 import { getSession } from "@/lib/auth/session";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { SettingsHeader } from "../settings-header";
@@ -17,7 +18,7 @@ export default async function AnunciosPage() {
         title="Anuncios"
         description="Sube hasta 5 imágenes. Aparecen como popup para todo el equipo, una a la vez y en orden, cada cierto tiempo."
       />
-      <AdSettings settings={settings} slots={slots} canEdit={session.role === "admin"} />
+      <AdSettings settings={settings} slots={slots} canEdit={await canEdit("ajustes")} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import { listCareers } from "@/lib/domain/careers";
 import {
   addTracks,
@@ -18,7 +18,7 @@ import type { TrackStatus } from "@/lib/domain/types";
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 async function requireTrack(careerId: number) {
-  const session = await requireSession();
+  const session = await requireModule("control");
   if ((await trackTeam(careerId)) !== session.teamId) throw new Error("Carrera no encontrada");
   return session;
 }
@@ -28,7 +28,7 @@ function refresh() {
 }
 
 export async function addTracksAction(careerIds: number[], startDate: string) {
-  const session = await requireSession();
+  const session = await requireModule("control");
   if (!DATE.test(startDate)) throw new Error("Fecha inválida");
   const teamIds = new Set((await listCareers(session.teamId)).map((c) => c.id));
   await addTracks(careerIds.filter((id) => teamIds.has(id)), startDate, session.userId);

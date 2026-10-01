@@ -1,5 +1,6 @@
 "use client";
 
+import { groupByOwner, OwnerFilterBar, type OwnerView } from "@/components/owner-filter";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Chip, Input, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -167,39 +168,57 @@ export function TodoList({
   members,
   clickupConfigured,
   onRaiseIssue,
+  currentUserId,
 }: {
   todos: Todo[];
   members: PublicUser[];
   clickupConfigured: boolean;
   /** En la reunión L10: un To-Do no cumplido puede pasar a IDS. */
   onRaiseIssue?: (todo: Todo) => void;
+  /** Si se indica, se muestran primero los de esta persona y aparece el filtro. */
+  currentUserId?: number;
 }) {
   const [, startTransition] = useTransition();
-  const open = todos.filter((t) => t.status === "open");
-  const done = todos.filter((t) => t.status === "done");
+  const [view, setView] = useState<OwnerView>("mine-first");
+  const labels = { mine: "Míos", others: "Del resto del equipo" };
+  const openAll = todos.filter((t) => t.status === "open");
+  const groups = groupByOwner(openAll, view, currentUserId, labels);
+  const open = groups.flatMap((g) => g.items);
+  const done = groupByOwner(todos.filter((t) => t.status === "done"), view, currentUserId, labels).flatMap((g) => g.items);
 
   return (
     <div className="flex flex-col gap-6">
       <AddTodoForm members={members} />
+
+      {currentUserId !== undefined && (
+        <OwnerFilterBar view={view} onChange={setView} members={members} userId={currentUserId} />
+      )}
 
       <div>
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           Pendientes ({open.length})
         </h2>
         {open.length === 0 ? (
-          <p className="text-sm text-muted">No hay to-dos pendientes.</p>
+          <p className="text-sm text-muted">No hay to-dos pendientes{view === "all" ? "" : " con este filtro"}.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {open.map((t) => (
-              <TodoItem
-                key={t.id}
-                todo={t}
-                members={members}
-                clickupConfigured={clickupConfigured}
-                onRaiseIssue={onRaiseIssue}
-              />
-            ))}
-          </ul>
+          groups.map((g) =>
+            g.items.length === 0 && g.title ? null : (
+              <div key={g.key} className="mb-4">
+                {g.title && <h3 className="mb-2 text-xs font-semibold text-muted">{g.title}</h3>}
+                <ul className="flex flex-col gap-2">
+                  {g.items.map((t) => (
+                    <TodoItem
+                      key={t.id}
+                      todo={t}
+                      members={members}
+                      clickupConfigured={clickupConfigured}
+                      onRaiseIssue={onRaiseIssue}
+                    />
+                  ))}
+                </ul>
+              </div>
+            )
+          )
         )}
       </div>
 

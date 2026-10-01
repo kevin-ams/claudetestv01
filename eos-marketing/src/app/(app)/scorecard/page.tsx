@@ -4,7 +4,11 @@ import {
   listMetrics,
   listTargets,
   listEntries,
+  listMetricSharing,
+  listShareableTeams,
+  listSharedScorecards,
 } from "@/lib/domain/scorecard";
+import { SharedScorecards } from "./shared-scorecards";
 import { buildScorecardGrid } from "@/lib/domain/scorecard-shared";
 import { lastNWeeks } from "@/lib/utils/dates";
 import { ScorecardTable } from "./scorecard-table";
@@ -16,11 +20,14 @@ export default async function ScorecardPage() {
   if (!session) return null;
 
   const weeks = lastNWeeks(8);
-  const [owners, metrics, targets, entries] = await Promise.all([
+  const [owners, metrics, targets, entries, sharing, shareTeams, shared] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
     listTargets(session.teamId),
     listEntries(session.teamId, weeks),
+    listMetricSharing(session.teamId),
+    listShareableTeams(session.teamId),
+    listSharedScorecards(session.teamId, lastNWeeks(4)),
   ]);
 
   const gridMap = buildScorecardGrid(metrics, owners, targets, entries, weeks);
@@ -55,7 +62,9 @@ export default async function ScorecardPage() {
         </div>
       )}
 
-      <ScorecardAdmin metrics={metrics} owners={owners} />
+      <ScorecardAdmin metrics={metrics} owners={owners} sharing={sharing} shareTeams={shareTeams} />
+
+      <SharedScorecards shared={shared} weeks={lastNWeeks(4)} />
     </div>
   );
 }

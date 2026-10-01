@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import { createTodo, completeTodo, deleteTodo, getTodo, updateTodo } from "@/lib/domain/todos";
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 
@@ -17,7 +17,7 @@ function refresh() {
 }
 
 export async function createTodoAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("todos");
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return;
   await createTodo({
@@ -32,7 +32,7 @@ export async function createTodoAction(formData: FormData) {
 }
 
 export async function updateTodoAction(todoId: number, formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("todos");
   const todo = await getTodo(todoId);
   if (!todo || todo.team_id !== session.teamId) return;
   const title = String(formData.get("title") ?? "").trim();
@@ -47,7 +47,7 @@ export async function updateTodoAction(todoId: number, formData: FormData) {
 }
 
 export async function sendTodoToClickUpAction(todoId: number): Promise<SendResult> {
-  const session = await requireSession();
+  const session = await requireModule("todos");
   const todo = await getTodo(todoId);
   if (!todo || todo.team_id !== session.teamId) return { ok: false, message: "To-Do no encontrado." };
   const result = await sendToClickUp("todo", todo);
@@ -56,13 +56,13 @@ export async function sendTodoToClickUpAction(todoId: number): Promise<SendResul
 }
 
 export async function completeTodoAction(todoId: number, done: boolean) {
-  await requireSession();
+  await requireModule("todos");
   await completeTodo(todoId, done);
   refresh();
 }
 
 export async function deleteTodoAction(todoId: number) {
-  await requireSession();
+  await requireModule("todos");
   await deleteTodo(todoId);
   refresh();
 }

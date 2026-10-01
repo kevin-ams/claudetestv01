@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { getAccess } from "@/lib/auth/access";
+import { MODULES } from "@/lib/auth/modules";
 import { getTeam } from "@/lib/domain/teams";
 import { getUserTeams, isUserInTeam } from "@/lib/domain/users";
 import { Sidebar } from "./sidebar";
@@ -20,7 +22,8 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // o una base reiniciada): si el usuario ya no está en ese equipo, se cierra.
   if (!(await isUserInTeam(session.userId, session.teamId))) redirect("/salir");
 
-  const [team, teams, announcements, openTodos, openIssues, cookieStore] = await Promise.all([
+  const [access, team, teams, announcements, openTodos, openIssues, cookieStore] = await Promise.all([
+    getAccess(),
     getTeam(session.teamId),
     getUserTeams(session.userId),
     activeAnnouncements(session.teamId),
@@ -33,7 +36,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <AppShell initialCollapsed={cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed"}>
       {/* Color del template del equipo (Ajustes > Apariencia). */}
       <style>{brandStyleSheet(team?.theme_color ?? DEFAULT_THEME_COLOR)}</style>
-      <Sidebar teamName={team?.name ?? "Equipo"} counts={{ todos: openTodos, issues: openIssues }} />
+      <Sidebar
+        teamName={team?.name ?? "Equipo"}
+        counts={{ todos: openTodos, issues: openIssues }}
+        allowed={MODULES.filter((m) => access?.level(m.key) !== "none").map((m) => m.key)}
+      />
       <div className="flex min-w-0 flex-1 flex-col transition-[padding] duration-200 md:pl-64 md:group-data-[collapsed=true]/shell:pl-16">
         <Topbar session={session} teams={teams} />
         {team?.is_demo && <DemoBanner />}

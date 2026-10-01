@@ -1,7 +1,9 @@
 import { Chip } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
+import { firstAllowedPath, getAccess } from "@/lib/auth/access";
 import { getActiveMeeting, listMeetings, listRecentHeadlines } from "@/lib/domain/meetings";
 import { countOpenIssues } from "@/lib/domain/issues";
 import { countOpenTodos, countOverdueTodos } from "@/lib/domain/todos";
@@ -38,6 +40,8 @@ function StatCard({
 }
 
 export default async function DashboardPage() {
+  const access = await getAccess();
+  if (access && access.level("dashboard") === "none") redirect(firstAllowedPath(access));
   const session = await getSession();
   if (!session) return null;
 

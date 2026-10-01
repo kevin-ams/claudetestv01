@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import {
   createRock,
   updateRockStatus,
@@ -21,7 +21,7 @@ function ownerId(formData: FormData): number | null {
 }
 
 export async function createRockAction(formData: FormData) {
-  const session = await requireSession();
+  const session = await requireModule("rocks");
   await createRock({
     teamId: session.teamId,
     ownerId: ownerId(formData),
@@ -36,13 +36,13 @@ export async function createRockAction(formData: FormData) {
 }
 
 export async function updateRockStatusAction(rockId: number, status: RockStatus) {
-  await requireSession();
+  await requireModule("rocks");
   await updateRockStatus(rockId, status);
   revalidatePath("/rocks");
 }
 
 export async function updateRockAction(rockId: number, formData: FormData) {
-  await requireSession();
+  await requireModule("rocks");
   await updateRock(rockId, {
     title: String(formData.get("title") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim(),
@@ -54,31 +54,31 @@ export async function updateRockAction(rockId: number, formData: FormData) {
 }
 
 export async function deleteRockAction(rockId: number) {
-  await requireSession();
+  await requireModule("rocks");
   await deleteRock(rockId);
   revalidatePath("/rocks");
 }
 
 export async function addMilestoneAction(rockId: number, title: string, dueDate: string | null) {
-  await requireSession();
+  await requireModule("rocks");
   await addMilestone({ rockId, title, dueDate: dueDate || null, sortOrder: 0 });
   revalidatePath("/rocks");
 }
 
 export async function toggleMilestoneAction(milestoneId: number, done: boolean) {
-  await requireSession();
+  await requireModule("rocks");
   await toggleMilestone(milestoneId, done);
   revalidatePath("/rocks");
 }
 
 export async function setMilestoneDueDateAction(milestoneId: number, dueDate: string | null) {
-  await requireSession();
+  await requireModule("rocks");
   await setMilestoneDueDate(milestoneId, dueDate || null);
   revalidatePath("/rocks");
 }
 
 export async function deleteMilestoneAction(milestoneId: number) {
-  await requireSession();
+  await requireModule("rocks");
   await deleteMilestone(milestoneId);
   revalidatePath("/rocks");
 }

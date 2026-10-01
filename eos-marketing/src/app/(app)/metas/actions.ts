@@ -1,7 +1,7 @@
 "use server";
 
+import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { requireSession } from "@/lib/auth/session";
 import { copyMonthlyGoals, getCareer, setMonthlyGoal } from "@/lib/domain/careers";
 
 export type GoalField = "leads" | "budget";
@@ -23,7 +23,7 @@ export async function setMonthlyGoalAction(
   field: GoalField,
   value: number | null
 ) {
-  const session = await requireSession();
+  const session = await requireModule("metas");
   const career = await getCareer(careerId);
   if (!career || career.team_id !== session.teamId) throw new Error("Carrera no encontrada");
   const clean = value === null ? 0 : value;
@@ -43,7 +43,7 @@ export async function copyMonthAction(
   to: string,
   field: GoalField | "both"
 ): Promise<{ ok: boolean; message: string }> {
-  const session = await requireSession();
+  const session = await requireModule("metas");
   if (from === to) return { ok: false, message: "Elige dos meses distintos." };
   const copied = await copyMonthlyGoals({
     teamId: session.teamId,
