@@ -137,6 +137,9 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
     "… · DEMO" con datos de ejemplo en todos los módulos y cambia tu vista a él; tu
     información real no se toca y el resto del equipo no la ve. "Desactivar" borra la
     demo completa y regresa al equipo real.
+  - **Frases motivacionales** (`/ajustes/frases`): banco inicial de 155 frases
+    (`src/lib/domain/quotes-catalog.ts`, copiado a cada equipo la primera vez); agregar,
+    activar/desactivar, eliminar, filtrar y "Restaurar banco inicial".
   - **Log** (`/ajustes/log`, administradores): bitácora de acciones importantes (metas,
     valores y metas del Scorecard, hitos, Rocks, To-Dos, Issues, indicadores, Control de
     carrera, V/TO, organigrama, reuniones, personas, roles, anuncios, color y respaldos),
@@ -165,7 +168,9 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   "Solo míos", "Todos" (para reordenar prioridades) o los de una persona.
 - **To-Dos** (`/todos`): pendientes semanales con descripción, dueño, fecha límite y botón
   "Enviar a ClickUp". Mismos filtros por persona que Issues.
-- **Dashboard** (`/`): muestra las Noticias compartidas en la reunión.
+- **Dashboard** (`/`): saludo que cambia según la hora (y rota entre varias frases), las
+  Noticias compartidas en la reunión, indicadores rápidos y la **frase del día**: una frase
+  motivacional distinta cada día, sin repetir hasta recorrer todas las activas.
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
   Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
   todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,

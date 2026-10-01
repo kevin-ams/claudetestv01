@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { getUserTeams, listTeamMembers } from "@/lib/domain/users";
 import { listRoles } from "@/lib/domain/roles";
 import { daysSinceLastBackup, lastBackupEvents } from "@/lib/backup";
+import { listQuotes } from "@/lib/domain/quotes";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { getTeam } from "@/lib/domain/teams";
@@ -34,6 +35,12 @@ const SECTIONS = [
     icon: "🎨",
     title: "Apariencia",
     description: "Modo claro u oscuro y color del template de la plataforma.",
+  },
+  {
+    href: "/ajustes/frases",
+    icon: "💬",
+    title: "Frases motivacionales",
+    description: "Las frases que aparecen en el Dashboard, una distinta cada día. Agregar, desactivar o quitar.",
   },
   {
     href: "/ajustes/hitos",
@@ -77,7 +84,7 @@ export default async function AjustesIndexPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [team, demo, members, milestones, adSettings, slots, roles, userTeams, backups] = await Promise.all([
+  const [team, demo, members, milestones, adSettings, slots, roles, userTeams, backups, quotes] = await Promise.all([
     getTeam(session.teamId),
     getDemoTeamFor(session.userId),
     listTeamMembers(session.teamId),
@@ -87,6 +94,7 @@ export default async function AjustesIndexPage() {
     listRoles(session.teamId),
     getUserTeams(session.userId),
     lastBackupEvents().catch(() => []),
+    listQuotes(session.teamId),
   ]);
   const backupDays = daysSinceLastBackup(backups);
   const teamCount = userTeams.filter((t) => !t.is_demo).length;
@@ -96,6 +104,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
     "/ajustes/roles": `${roles.length} roles`,
     "/ajustes/log": "Solo administradores",
+    "/ajustes/frases": `${quotes.filter((q) => q.active).length} frases activas`,
     "/ajustes/equipos": `${teamCount} equipo(s)`,
     "/ajustes/hitos": `${milestones.length} hitos`,
     "/ajustes/anuncios": adSettings.enabled

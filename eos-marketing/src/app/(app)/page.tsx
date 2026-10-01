@@ -11,6 +11,9 @@ import { listRocks } from "@/lib/domain/rocks";
 import { listOwners, listMetrics, listTargets, listEntries } from "@/lib/domain/scorecard";
 import { buildScorecardGrid, statusFor } from "@/lib/domain/scorecard-shared";
 import { currentQuarter, weekStartISO } from "@/lib/utils/dates";
+import { quoteOfTheDay } from "@/lib/domain/quotes";
+import { greetingFor } from "@/lib/domain/greeting";
+import { QUOTE_CATEGORIES } from "@/lib/domain/quotes-catalog";
 
 function StatCard({
   label,
@@ -71,7 +74,8 @@ export default async function DashboardPage() {
     listTargets(session.teamId),
     listEntries(session.teamId, [week]),
   ]);
-  const news = await listRecentHeadlines(session.teamId);
+  const [news, quote] = await Promise.all([listRecentHeadlines(session.teamId), quoteOfTheDay(session.teamId)]);
+  const greeting = greetingFor(session.name.split(" ")[0]);
 
   const offTrackRocks = rocks.filter((r) => r.status === "off_track").length;
 
@@ -93,8 +97,9 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Hola, {session.name.split(" ")[0]}</h1>
-        <p className="text-sm text-muted">Así está tu negocio esta semana.</p>
+        <p className="text-sm font-medium text-muted">{greeting.salute} 👋</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">{greeting.phrase}</h1>
+        <p className="mt-1 text-sm text-muted">Así está tu negocio esta semana.</p>
       </div>
 
       {activeMeeting && (
@@ -165,20 +170,25 @@ export default async function DashboardPage() {
         />
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-3">
-        <Link href="/vto" className="card card--default block gap-0 p-5 hover:border-primary">
-          <p className="font-semibold">V/TO</p>
-          <p className="mt-1 text-sm text-muted">Tu visión y plan de tracción de una página.</p>
-        </Link>
-        <Link href="/accountability" className="card card--default block gap-0 p-5 hover:border-primary">
-          <p className="font-semibold">Organigrama</p>
-          <p className="mt-1 text-sm text-muted">Quién es dueño de qué en tu organización.</p>
-        </Link>
-        <Link href="/meeting" className="card card--default block gap-0 p-5 hover:border-primary">
-          <p className="font-semibold">Reunión Level 10</p>
-          <p className="mt-1 text-sm text-muted">Corre tu reunión semanal de 90 minutos.</p>
-        </Link>
-      </div>
+      {quote && (
+        <figure className="mx-auto mt-12 max-w-3xl px-2 pb-4 text-center">
+          <span aria-hidden className="block font-serif text-6xl leading-none text-primary/30">
+            &ldquo;
+          </span>
+          <blockquote className="-mt-4 text-xl font-medium leading-relaxed text-balance sm:text-2xl">
+            {quote.text}
+          </blockquote>
+          <figcaption className="mt-4 text-sm text-muted">
+            — {quote.author || "Anónimo"}
+            {quote.category && (
+              <span className="ml-2 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent-soft-foreground">
+                {QUOTE_CATEGORIES[quote.category] ?? quote.category}
+              </span>
+            )}
+          </figcaption>
+          <p className="mt-3 text-[11px] uppercase tracking-widest text-muted">Frase del día</p>
+        </figure>
+      )}
     </div>
   );
 }
