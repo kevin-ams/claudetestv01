@@ -39,21 +39,40 @@ function UserSelect({
   );
 }
 
+/** Puestos que dependen (directa o indirectamente) de un puesto. */
+function descendantsOf(seatId: number, all: Seat[]): Set<number> {
+  const out = new Set<number>();
+  const walk = (id: number) => {
+    for (const s of all) {
+      if (s.parent_seat_id === id && !out.has(s.id)) {
+        out.add(s.id);
+        walk(s.id);
+      }
+    }
+  };
+  walk(seatId);
+  return out;
+}
+
 function SeatForm({
   members,
   parentSeatId,
   onDone,
   seat,
+  allSeats,
 }: {
   members: PublicUser[];
   parentSeatId: number | null;
   onDone: () => void;
   seat?: Seat;
+  allSeats: Seat[];
 }) {
+  // No puede reportar a sí mismo ni a quien depende de él.
+  const blocked = seat ? new Set([seat.id, ...descendantsOf(seat.id, allSeats)]) : new Set<number>();
+  const options = allSeats.filter((s) => !blocked.has(s.id));
   return (
     <form
       action={async (fd) => {
-        fd.set("parentSeatId", parentSeatId === null ? "none" : String(parentSeatId));
         if (seat) {
           await updateSeatAction(seat.id, fd);
         } else {
@@ -70,6 +89,19 @@ function SeatForm({
         defaultValue={seat?.title}
       />
       <UserSelect members={members} defaultValue={seat?.user_id} />
+      <AppSelect fullWidth name="parentSeatId" aria-label="Reporta a" defaultValue={parentSeatId ?? "none"}>
+        <option value="none">Reporta a: nadie (nivel superior)</option>
+        {options.map((s) => (
+          <option key={s.id} value={s.id}>
+            Reporta a: {s.title}
+          </option>
+        ))}
+      </AppSelect>
+      {seat && (
+        <p className="text-left text-[11px] text-muted">
+          Solo cambia la posición de este puesto (y de quienes dependen de él); los demás no se mueven.
+        </p>
+      )}
       <TextArea fullWidth
         name="roles"
         className="min-h-20"
@@ -109,6 +141,7 @@ function SeatNode({
             members={members}
             parentSeatId={seat.parent_seat_id}
             seat={seat}
+            allSeats={allSeats}
             onDone={() => setEditing(false)}
           />
         ) : (
@@ -138,7 +171,10 @@ function SeatNode({
               <Button size="sm" variant="ghost"
                 className="text-red"
                 onPress={async () => {
-                  if (confirm(`¿Eliminar el asiento "${seat.title}"?`)) {
+                  const msg = children.length
+                    ? `¿Eliminar el asiento "${seat.title}"? Los ${children.length} puesto(s) que dependen de él no se borran: pasan a reportar al nivel de arriba.`
+                    : `¿Eliminar el asiento "${seat.title}"?`;
+                  if (confirm(msg)) {
                     await deleteSeatAction(seat.id);
                   }
                 }}
@@ -155,6 +191,7 @@ function SeatNode({
           <SeatForm
             members={members}
             parentSeatId={seat.id}
+            allSeats={allSeats}
             onDone={() => setAddingChild(false)}
           />
         </div>
@@ -179,13 +216,13 @@ export function SeatTree({ seats, members }: Props) {
     <div>
       <div className="mb-6 flex justify-end">
         <Button variant="outline" onPress={() => setAddingRoot((v) => !v)}>
-          + Agregar asiento raíz
+          + Agregar puesto de nivel superior
         </Button>
       </div>
 
       {addingRoot && (
         <div className="mb-8 max-w-md">
-          <SeatForm members={members} parentSeatId={null} onDone={() => setAddingRoot(false)} />
+          <SeatForm members={members} parentSeatId={null} allSeats={seats} onDone={() => setAddingRoot(false)} />
         </div>
       )}
 

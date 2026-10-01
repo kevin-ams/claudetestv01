@@ -43,5 +43,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "011_quotes",
     "sql": "-- Frases motivacionales del Dashboard (Ajustes > Frases). Una distinta cada día.\nCREATE TABLE quotes (\n  id SERIAL PRIMARY KEY,\n  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  text TEXT NOT NULL,\n  author TEXT NOT NULL DEFAULT '',\n  category TEXT NOT NULL DEFAULT '',\n  active BOOLEAN NOT NULL DEFAULT TRUE,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_quotes_team ON quotes(team_id);\n-- El banco inicial se copia una sola vez por equipo (aunque luego borren todas).\nALTER TABLE teams ADD COLUMN quotes_seeded BOOLEAN NOT NULL DEFAULT FALSE;\n"
+  },
+  {
+    "name": "012_user_profile",
+    "sql": "-- Perfil de cada persona (Mi perfil): pronombre, foto y color personal.\nALTER TABLE users ADD COLUMN pronoun TEXT NOT NULL DEFAULT '';        -- 'el' | 'ella' | 'elle' | ''\nALTER TABLE users ADD COLUMN avatar_mime TEXT;                        -- NULL = sin foto\nALTER TABLE users ADD COLUMN avatar_updated_at TIMESTAMPTZ;\nALTER TABLE users ADD COLUMN color TEXT NOT NULL DEFAULT '';          -- '#rrggbb' o '' (sin color)\nALTER TABLE users ADD COLUMN use_color_theme BOOLEAN NOT NULL DEFAULT FALSE; -- usar su color como template (solo para esa persona)\n"
   }
 ];

@@ -13,7 +13,6 @@ import { buildScorecardGrid, statusFor } from "@/lib/domain/scorecard-shared";
 import { currentQuarter, weekStartISO } from "@/lib/utils/dates";
 import { quoteOfTheDay } from "@/lib/domain/quotes";
 import { greetingFor } from "@/lib/domain/greeting";
-import { QUOTE_CATEGORIES } from "@/lib/domain/quotes-catalog";
 
 function StatCard({
   label,
@@ -99,7 +98,7 @@ export default async function DashboardPage() {
       <div className="mb-6">
         <p className="text-sm font-medium text-muted">{greeting.salute} 👋</p>
         <h1 className="text-2xl font-bold sm:text-3xl">{greeting.phrase}</h1>
-        <p className="mt-1 text-sm text-muted">Así está tu negocio esta semana.</p>
+        <p className="mt-1 text-sm text-muted">Así está tu semana.</p>
       </div>
 
       {activeMeeting && (
@@ -178,15 +177,7 @@ export default async function DashboardPage() {
           <blockquote className="-mt-4 text-xl font-medium leading-relaxed text-balance sm:text-2xl">
             {quote.text}
           </blockquote>
-          <figcaption className="mt-4 text-sm text-muted">
-            — {quote.author || "Anónimo"}
-            {quote.category && (
-              <span className="ml-2 rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent-soft-foreground">
-                {QUOTE_CATEGORIES[quote.category] ?? quote.category}
-              </span>
-            )}
-          </figcaption>
-          <p className="mt-3 text-[11px] uppercase tracking-widest text-muted">Frase del día</p>
+          <figcaption className="mt-4 text-sm text-muted">— {quote.author || "Anónimo"}</figcaption>
         </figure>
       )}
     </div>

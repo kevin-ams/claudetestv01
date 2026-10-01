@@ -3,6 +3,8 @@ import { getSession } from "@/lib/auth/session";
 import { isTeamAdmin } from "@/lib/auth/access";
 import { listRoles } from "@/lib/domain/roles";
 import { MemberControls } from "./member-controls";
+import { avatarUrl, PRONOUNS, teamProfiles } from "@/lib/domain/profile";
+import { UserAvatar } from "@/components/user-avatar";
 import Link from "next/link";
 import { listTeamMembersDetailed } from "@/lib/domain/users";
 import { getTeam } from "@/lib/domain/teams";
@@ -15,11 +17,12 @@ export default async function TeamSettingsPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [team, members, roles, admin] = await Promise.all([
+  const [team, members, roles, admin, profiles] = await Promise.all([
     getTeam(session.teamId),
     listTeamMembersDetailed(session.teamId),
     listRoles(session.teamId),
     isTeamAdmin(),
+    teamProfiles(session.teamId),
   ]);
 
   return (
@@ -52,8 +55,21 @@ export default async function TeamSettingsPage() {
         <ul className="flex flex-col gap-2">
           {members.map((m) => (
             <li key={m.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-              <div>
-                <p className="font-medium">{m.name}</p>
+              <div className="flex items-start gap-3">
+                <UserAvatar
+                  name={m.name}
+                  src={profiles[m.id] ? avatarUrl(profiles[m.id]) : null}
+                  color={profiles[m.id]?.color || undefined}
+                />
+                <div>
+                <p className="font-medium">
+                  {m.name}
+                  {profiles[m.id]?.pronoun && (
+                    <span className="ml-1.5 text-xs font-normal text-muted">
+                      ({PRONOUNS.find((p) => p.key === profiles[m.id].pronoun)?.label.toLowerCase()})
+                    </span>
+                  )}
+                </p>
                 <p className="text-xs text-muted">
                   {m.email}
                   {m.seat_title && ` · ${m.seat_title}`}
@@ -61,6 +77,7 @@ export default async function TeamSettingsPage() {
                 {m.email.endsWith("@marketing.local") && (
                   <p className="text-xs text-yellow">Sin acceso todavía: asigna su correo y contraseña.</p>
                 )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 {admin && m.id !== session.userId && (

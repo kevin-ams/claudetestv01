@@ -45,6 +45,26 @@ export async function updateSeat(
   `;
 }
 
-export async function deleteSeat(seatId: number) {
-  await db().sql`DELETE FROM accountability_seats WHERE id = ${seatId}`;
+/** Elimina un puesto; los que dependían de él suben a reportar al puesto de arriba. */
+export async function deleteSeat(teamId: number, seatId: number) {
+  await db().sql`
+    UPDATE accountability_seats c
+    SET parent_seat_id = p.parent_seat_id
+    FROM accountability_seats p
+    WHERE p.id = ${seatId} AND p.team_id = ${teamId} AND c.parent_seat_id = p.id
+  `;
+  await db().sql`DELETE FROM accountability_seats WHERE id = ${seatId} AND team_id = ${teamId}`;
+}
+
+/** ¿Se puede poner `parentId` como jefe de `seatId`? (mismo equipo y sin ciclos) */
+export async function canReportTo(teamId: number, seatId: number | null, parentId: number | null): Promise<boolean> {
+  if (parentId === null) return true;
+  const seats = await listSeats(teamId);
+  if (!seats.some((s) => s.id === parentId)) return false;
+  if (seatId === null) return true;
+  for (let cur: number | null = parentId; cur !== null; ) {
+    if (cur === seatId) return false;
+    cur = seats.find((s) => s.id === cur)?.parent_seat_id ?? null;
+  }
+  return true;
 }

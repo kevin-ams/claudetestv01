@@ -103,7 +103,9 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 ## Módulos
 
 - **V/TO** (`/vto`): Vision/Traction Organizer editable por secciones.
-- **Organigrama** (`/accountability`): árbol de asientos con roles/responsabilidades.
+- **Organigrama** (`/accountability`): árbol de puestos con roles/responsabilidades. Cada
+  puesto tiene "Reporta a": cambiarlo solo mueve ese puesto (y a quienes dependen de él).
+  Al eliminar un puesto, sus dependientes no se borran: pasan a reportar al nivel de arriba.
 - **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos y fecha por hito.
 - **Metas de carrera** (`/metas`): meta mensual de leads y de presupuesto por carrera,
   en una tabla de 12 meses editable, con filtros y opción de copiar un mes a otro.
@@ -116,6 +118,10 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   costo por lead por semana; leads por responsable y por programa; tendencia de un
   indicador del Scorecard contra su meta; y carreras más lejos de su meta. Filtros por
   rango de fechas, programa, responsable, nivel y carrera; cada gráfica tiene vista en tabla.
+- **Mi perfil** (`/perfil`, desde el nombre en la barra superior): cada persona edita su
+  nombre, pronombre (él, ella, elle), foto (recortada a 512 px; en Netlify Blobs o
+  `.data/uploads`), color personal (en su avatar y, si quiere, como color de la plataforma
+  solo para ella) y contraseña.
 - **Ajustes** (`/ajustes`): índice de configuraciones (Equipo, Roles y accesos, Equipos, Apariencia, Hitos, Anuncios, Demo, Diagnóstico, Exportar).
   - **Equipo** (`/ajustes/equipo`): personas, accesos, rol de cada persona y nombre del
     equipo. Se puede agregar a alguien que ya tiene cuenta solo con su correo.
@@ -171,6 +177,7 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 - **Dashboard** (`/`): saludo que cambia según la hora (y rota entre varias frases), las
   Noticias compartidas en la reunión, indicadores rápidos y la **frase del día**: una frase
   motivacional distinta cada día, sin repetir hasta recorrer todas las activas.
+- **V/TO** (`/vto`): ya no incluye la tarjeta de Issues (viven en su propio módulo).
 - **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
   Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
   todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { getAccess } from "@/lib/auth/access";
 import { MODULES } from "@/lib/auth/modules";
+import { avatarUrl, getProfile } from "@/lib/domain/profile";
 import { getTeam } from "@/lib/domain/teams";
 import { getUserTeams, isUserInTeam } from "@/lib/domain/users";
 import { Sidebar } from "./sidebar";
@@ -22,7 +23,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   // o una base reiniciada): si el usuario ya no está en ese equipo, se cierra.
   if (!(await isUserInTeam(session.userId, session.teamId))) redirect("/salir");
 
-  const [access, team, teams, announcements, openTodos, openIssues, cookieStore] = await Promise.all([
+  const [access, team, teams, announcements, openTodos, openIssues, cookieStore, profile] = await Promise.all([
     getAccess(),
     getTeam(session.teamId),
     getUserTeams(session.userId),
@@ -30,19 +31,27 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     countOpenTodos(session.teamId),
     countOpenIssues(session.teamId),
     cookies(),
+    getProfile(session.userId),
   ]);
+  // Color de la plataforma: el personal si la persona lo eligió, si no el del equipo.
+  const themeColor =
+    profile?.use_color_theme && profile.color ? profile.color : (team?.theme_color ?? DEFAULT_THEME_COLOR);
 
   return (
     <AppShell initialCollapsed={cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed"}>
       {/* Color del template del equipo (Ajustes > Apariencia). */}
-      <style>{brandStyleSheet(team?.theme_color ?? DEFAULT_THEME_COLOR)}</style>
+      <style>{brandStyleSheet(themeColor)}</style>
       <Sidebar
         teamName={team?.name ?? "Equipo"}
         counts={{ todos: openTodos, issues: openIssues }}
         allowed={MODULES.filter((m) => access?.level(m.key) !== "none").map((m) => m.key)}
       />
       <div className="flex min-w-0 flex-1 flex-col transition-[padding] duration-200 md:pl-64 md:group-data-[collapsed=true]/shell:pl-16">
-        <Topbar session={session} teams={teams} />
+        <Topbar
+          session={session}
+          teams={teams}
+          avatar={profile ? { src: avatarUrl(profile), color: profile.color } : null}
+        />
         {team?.is_demo && <DemoBanner />}
         <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
         {announcements.ads.length > 0 && (

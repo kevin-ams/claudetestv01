@@ -276,17 +276,6 @@ export default async function VTOPage() {
               Ir a Rocks →
             </Link>
           </Card>
-
-          <Card className="block gap-0 p-5">
-            <h3 className="font-semibold">Issues List</h3>
-            <p className="mt-1 text-sm text-muted">
-              La lista maestra de obstáculos y oportunidades de la organización
-              vive en su propio módulo.
-            </p>
-            <Link href="/issues" className={`${buttonVariants({ variant: "outline" })} mt-3`}>
-              Ir a Issues →
-            </Link>
-          </Card>
         </section>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
 import { labelOf, logActivity } from "@/lib/domain/activity";
-import { createSeat, updateSeat, deleteSeat } from "@/lib/domain/accountability";
+import { canReportTo, createSeat, updateSeat, deleteSeat } from "@/lib/domain/accountability";
 
 function linesOf(formData: FormData, key: string): string[] {
   const raw = String(formData.get(key) ?? "");
@@ -27,6 +27,7 @@ function userId(formData: FormData): number | null {
 
 export async function createSeatAction(formData: FormData) {
   const session = await requireModule("accountability");
+  if (!(await canReportTo(session.teamId, null, parentId(formData)))) throw new Error("Puesto superior inválido");
   await createSeat({
     teamId: session.teamId,
     parentSeatId: parentId(formData),
@@ -41,6 +42,7 @@ export async function createSeatAction(formData: FormData) {
 
 export async function updateSeatAction(seatId: number, formData: FormData) {
   const session = await requireModule("accountability");
+  if (!(await canReportTo(session.teamId, seatId, parentId(formData)))) throw new Error("Un puesto no puede reportar a sí mismo ni a quien depende de él");
   await updateSeat(seatId, {
     title: String(formData.get("title") ?? "").trim(),
     userId: userId(formData),
@@ -54,7 +56,7 @@ export async function updateSeatAction(seatId: number, formData: FormData) {
 export async function deleteSeatAction(seatId: number) {
   const session = await requireModule("accountability");
   const label = await labelOf("accountability_seats", seatId);
-  await deleteSeat(seatId);
+  await deleteSeat(session.teamId, seatId);
   await logActivity(session, "accountability", "Eliminó asiento del organigrama", label);
   revalidatePath("/accountability");
 }

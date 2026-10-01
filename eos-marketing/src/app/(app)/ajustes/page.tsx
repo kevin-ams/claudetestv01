@@ -13,6 +13,12 @@ import { THEME_PRESETS } from "@/lib/theme";
 
 const SECTIONS = [
   {
+    href: "/perfil",
+    icon: "🙂",
+    title: "Mi perfil",
+    description: "Tu nombre, pronombre (él, ella, elle), foto, color personal y contraseña.",
+  },
+  {
     href: "/ajustes/equipo",
     icon: "👥",
     title: "Equipo",
@@ -104,6 +110,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
     "/ajustes/roles": `${roles.length} roles`,
     "/ajustes/log": "Solo administradores",
+    "/perfil": "Para cada persona",
     "/ajustes/frases": `${quotes.filter((q) => q.active).length} frases activas`,
     "/ajustes/equipos": `${teamCount} equipo(s)`,
     "/ajustes/hitos": `${milestones.length} hitos`,
