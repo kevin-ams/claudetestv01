@@ -114,6 +114,24 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   tarjetas se arrastran entre hitos, llevan etiquetas, responsable y estado on/off track.
   Ruta crítica (CPM) con duraciones y dependencias por hito: fechas planeadas, holgura,
   hitos atrasados y fecha de lanzamiento prevista.
+- **Calendario editorial** (`/calendario`): plan de contenido por mes y semana (cada semana
+  pertenece al mes de su lunes). Cada pieza tiene fecha, tema, pilar, capa (Hero/Hub/Hygiene),
+  asignación, frente, audiencia, facultad/carrera, CTA, estado y nota; el estado se cambia en la
+  misma fila. Resumen del mes: publicadas vs. total y por persona, mezcla por capa contra el
+  objetivo (Hero 10 %, Hub 50 %, Hygiene 35 %, piso SEO de Hygiene ≥ 25 %) y mezcla por pilar.
+  Por semana: piezas planificadas, buffer esporádico/reactivo (3 slots) y fechas clave (días
+  internacionales). Incluye banco de ideas (Banco Hygiene, piezas sin semana), filtros por persona,
+  estado, capa y texto, y listas editables (pilares, estados, frentes).
+- **Control de coberturas** (`/coberturas`): registro de coberturas por fecha con facultad,
+  horario, asignación, tipo, estado, paquete (Express ≈2-3 h, Estándar ≈4-5 h, Ampliada ≈6-8 h,
+  Especial/Hero 2+ días), tiempo estimado y real, horas fuera de horario y horas repuestas. Muestra
+  por persona realizadas, agendadas y saldo de horas por reponer, más las coberturas realizadas
+  por semana. Navega por mes o ve todo el registro; tipos, estados y paquetes son editables.
+- **Plantilla Comunicación GES** (Ajustes › Equipos): crea el equipo "Comunicación GES" con quien
+  la usa como Administrador, más Cesar y David (correo provisional `@comunicacion-ges.local`: define
+  su acceso real en Ajustes › Equipo), e importa el plan de contenido (calendario Ago–Oct, banco
+  Hygiene, días internacionales, coberturas) y el Scorecard (16 indicadores, metas de Cesar, David
+  y General, y sus valores semanales). Los datos vienen de `src/lib/domain/ges-seed.json`.
 - **Análisis** (`/analisis`): gráficas de leads contra meta, consumo contra presupuesto y
   costo por lead por semana; leads por responsable y por programa; tendencia de un
   indicador del Scorecard contra su meta; y carreras más lejos de su meta. Filtros por

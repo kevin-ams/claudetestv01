@@ -43,3 +43,45 @@ export function formatWeekRange(weekStart: string): string {
 export function lastClosedWeek(): string {
   return shiftWeek(weekStartISO(), -1);
 }
+
+/** "2026-09" del mes actual (o de la fecha dada). */
+export function monthISO(date: Date = new Date()): string {
+  return format(date, "yyyy-MM");
+}
+
+export function isMonthISO(v: unknown): v is string {
+  return typeof v === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(v);
+}
+
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split("-").map(Number);
+  return format(new Date(y, m - 1 + delta, 1), "yyyy-MM");
+}
+
+/** "septiembre 2026". */
+export function formatMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return format(new Date(y, m - 1, 1), "MMMM yyyy", { locale: es });
+}
+
+/** Lunes que caen dentro del mes: cada semana pertenece al mes de su lunes. */
+export function mondaysOfMonth(month: string): string[] {
+  const [y, m] = month.split("-").map(Number);
+  const out: string[] = [];
+  let d = startOfWeek(new Date(y, m - 1, 1), { weekStartsOn: 1 });
+  if (d.getMonth() !== m - 1) d = addWeeks(d, 1);
+  while (d.getMonth() === m - 1) {
+    out.push(format(d, "yyyy-MM-dd"));
+    d = addWeeks(d, 1);
+  }
+  return out;
+}
+
+/** Fecha corta "mié 5 ago" de un ISO yyyy-MM-dd. */
+export function formatShortDate(iso: string): string {
+  return format(parseISO(iso), "EEE d MMM", { locale: es });
+}
+
+export function addDaysISO(iso: string, days: number): string {
+  return format(addDays(parseISO(iso), days), "yyyy-MM-dd");
+}

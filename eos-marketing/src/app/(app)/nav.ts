@@ -1,4 +1,6 @@
 import {
+  Calendar,
+  Camera,
   ChartColumn,
   ChartLine,
   CircleExclamation,
@@ -48,6 +50,13 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: "/indicadores", label: "Indicadores de carrera", Icon: GraduationCap },
       { href: "/metas", label: "Metas de carrera", Icon: Target },
       { href: "/control", label: "Control de carrera", Icon: Route },
+    ],
+  },
+  {
+    label: "Contenido",
+    items: [
+      { href: "/calendario", label: "Calendario editorial", Icon: Calendar },
+      { href: "/coberturas", label: "Control de coberturas", Icon: Camera },
     ],
   },
   {

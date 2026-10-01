@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button, Card, Input } from "@heroui/react";
 import { switchTeamAction } from "@/lib/auth/actions";
-import { createTeamAction, type TeamResult } from "./actions";
+import { createTeamAction, importGesTeamAction, type TeamResult } from "./actions";
 
 export function SwitchTeamButton({ teamId }: { teamId: number }) {
   const [pending, startTransition] = useTransition();
@@ -48,6 +48,39 @@ export function NewTeamForm() {
             Crear y entrar
           </Button>
         </form>
+        {result && !result.ok && <p className="mt-2 text-sm text-red">{result.message}</p>}
+      </Card.Content>
+    </Card>
+  );
+}
+
+export function GesTemplateCard() {
+  const [result, setResult] = useState<TeamResult | null>(null);
+  const [pending, startTransition] = useTransition();
+  return (
+    <Card>
+      <Card.Header>
+        <Card.Title>Plantilla: Comunicación GES</Card.Title>
+        <Card.Description>
+          Crea el equipo Comunicación GES contigo como Administrador, Cesar y David (con correo provisional: define su
+          correo y contraseña reales en Ajustes › Equipo), e importa el plan de contenido: calendario editorial Ago–Oct,
+          banco Hygiene, días internacionales, registro de coberturas y los 16 indicadores del Scorecard con sus metas y
+          valores semanales.
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <Button
+          variant="secondary"
+          isPending={pending}
+          onPress={() =>
+            startTransition(async () => {
+              const res = await importGesTeamAction();
+              if (res) setResult(res);
+            })
+          }
+        >
+          Crear equipo e importar datos
+        </Button>
         {result && !result.ok && <p className="mt-2 text-sm text-red">{result.message}</p>}
       </Card.Content>
     </Card>

@@ -2,7 +2,8 @@ import { Card, Chip } from "@heroui/react";
 import { getAccess } from "@/lib/auth/access";
 import { getUserTeams } from "@/lib/domain/users";
 import { SettingsHeader } from "../settings-header";
-import { NewTeamForm, SwitchTeamButton } from "./team-forms";
+import { GesTemplateCard, NewTeamForm, SwitchTeamButton } from "./team-forms";
+import { GES_TEAM_NAME } from "@/lib/domain/ges-import";
 
 export default async function TeamsPage() {
   const access = await getAccess();
@@ -43,6 +44,7 @@ export default async function TeamsPage() {
       </Card>
 
       {access.isAdmin && <NewTeamForm />}
+      {access.isAdmin && !teams.some((t) => t.name === GES_TEAM_NAME) && <GesTemplateCard />}
 
       <Card>
         <Card.Header>
