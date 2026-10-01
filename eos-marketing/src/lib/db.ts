@@ -51,12 +51,13 @@ async function openCloud(connectionString: string): Promise<Backend> {
     1114: (v) => v, // timestamp
     1184: (v) => new Date(v).toISOString(), // timestamptz
     1700: (v) => Number(v), // numeric
+    20: (v) => Number(v), // bigint (conteos)
   };
   const typeConfig = {
     getTypeParser: (oid: number, format?: "text" | "binary") =>
       custom[oid] ?? types.getTypeParser(oid, format ?? "text"),
   };
-  const http = neon(connectionString, { types: typeConfig });
+  const http = neon(connectionString);
 
   // Migraciones: una sola vez por arranque, con candado para que dos
   // funciones que arrancan a la vez no las apliquen doble.
@@ -89,9 +90,11 @@ async function openCloud(connectionString: string): Promise<Backend> {
   return {
     async query(text, params) {
       // Cada consulta va en una transacción corta que fija el esquema.
+      // Los formatos van en cada consulta: dentro de una transacción el
+      // driver ignora los de neon() y devolvería fechas como objetos Date.
       const [, rows] = await http.transaction([
         http.query(`SET LOCAL search_path TO ${CLOUD_SCHEMA}`),
-        http.query(text, params as unknown[]),
+        http.query(text, params as unknown[], { types: typeConfig }),
       ]);
       return rows as Row[];
     },

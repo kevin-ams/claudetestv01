@@ -13,6 +13,7 @@ export default function AppError({ error, reset }: { error: Error & { digest?: s
           ? "Tu rol no permite editar este módulo. Pídele a un administrador que te dé acceso de edición."
           : "No se pudo completar la acción. Si estabas haciendo un cambio, puede que tu rol no tenga permiso de edición en este módulo; si no, intenta de nuevo."}
       </p>
+      {error.digest && <p className="mt-3 text-xs text-muted">Código del error: {error.digest}</p>}
       <Button className="mt-6" onPress={reset}>
         Volver a intentar
       </Button>
