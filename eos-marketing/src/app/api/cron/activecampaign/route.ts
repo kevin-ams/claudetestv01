@@ -17,7 +17,10 @@ export async function POST(request: Request) {
     // Sin revelar el secreto: indica si falta configurarlo en el servidor.
     return Response.json({ error: secret.length < 16 ? "CRON_SECRET no está configurado en el servidor" : "No autorizado" }, { status: 401 });
   }
-  if (!isActiveCampaignConfigured()) return Response.json({ error: "ActiveCampaign sin configurar" }, { status: 503 });
+  if (!isActiveCampaignConfigured()) {
+    const missing = ["ACTIVECAMPAIGN_API_URL", "ACTIVECAMPAIGN_API_KEY"].filter((k) => !process.env[k]);
+    return Response.json({ error: `ActiveCampaign sin configurar: falta ${missing.join(" y ")}` }, { status: 503 });
+  }
 
   const url = new URL(request.url);
   const offset = Math.max(0, Number(url.searchParams.get("offset")) || 0);
