@@ -137,3 +137,83 @@ export async function finishSync(input: { teamId: number | null; weekStart: stri
   }
   return teams;
 }
+
+// --- Semanas anteriores (solo administradores) ------------------------------------
+
+export type BackfillRow = {
+  career_id: number;
+  code: string;
+  name: string;
+  /** Leads guardados hoy en esa semana (null = sin dato). */
+  current: number | null;
+  current_source: string | null;
+  /** Tratos que hay ahora en la etapa vinculada (null si la consulta falló). */
+  incoming: number | null;
+  error: string;
+};
+
+/**
+ * Comparativa por tandas de etapas: lo guardado en `weekStart` contra lo que hay hoy en
+ * ActiveCampaign. No escribe nada.
+ */
+export async function previewBackfillChunk(input: {
+  teamId: number;
+  weekStart: string;
+  offset: number;
+  size: number;
+}): Promise<{ done: boolean; next: number; totalStages: number; rows: BackfillRow[] }> {
+  const keys = await stageKeys(input.teamId);
+  const slice = keys.slice(input.offset, input.offset + input.size);
+  const rows: BackfillRow[] = [];
+  for (const key of slice) {
+    const links = (await db().sql`
+      SELECT l.career_id, l.career_value, c.code, c.name, w.leads AS current, w.leads_source AS current_source
+      FROM career_ac_links l
+      JOIN careers c ON c.id = l.career_id AND c.archived = FALSE
+      LEFT JOIN career_weekly w ON w.career_id = l.career_id AND w.week_start = ${input.weekStart}
+      WHERE l.team_id = ${key.team_id} AND l.stage_id = ${key.stage_id}
+    `) as { career_id: number; career_value: string; code: string; name: string; current: number | null; current_source: string | null }[];
+    let stage: Awaited<ReturnType<typeof countStage>> | null = null;
+    let error = "";
+    try {
+      stage = await countStage(key.stage_id);
+    } catch (e) {
+      error = e instanceof Error ? e.message : String(e);
+    }
+    for (const l of links) {
+      rows.push({
+        career_id: l.career_id,
+        code: l.code,
+        name: l.name,
+        current: l.current === null ? null : Number(l.current),
+        current_source: l.current_source,
+        incoming: stage ? countFor(stage, l.career_value) : null,
+        error,
+      });
+    }
+  }
+  const next = input.offset + slice.length;
+  return { done: next >= keys.length, next, totalStages: keys.length, rows };
+}
+
+/** Escribe en `weekStart` los valores confirmados en la comparativa (solo carreras vinculadas del equipo). */
+export async function applyBackfill(input: {
+  teamId: number;
+  weekStart: string;
+  rows: { careerId: number; leads: number }[];
+  userId: number;
+}): Promise<{ updated: number; total: number }> {
+  const linked = new Set((await listLinks(input.teamId)).map((l) => l.career_id));
+  let updated = 0;
+  let total = 0;
+  for (const r of input.rows) {
+    if (!linked.has(r.careerId) || !Number.isInteger(r.leads) || r.leads < 0) continue;
+    await setWeeklyLeads({ careerId: r.careerId, weekStart: input.weekStart, leads: r.leads, source: "activecampaign", userId: input.userId });
+    updated++;
+    total += r.leads;
+  }
+  if (updated) {
+    await logImport({ teamId: input.teamId, kind: "activecampaign", weekStart: input.weekStart, fileName: null, careersUpdated: updated, total, userId: input.userId });
+  }
+  return { updated, total };
+}

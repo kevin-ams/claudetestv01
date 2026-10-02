@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { requireAdmin, requireModule } from "@/lib/auth/access";
 import { labelOf, logActivity } from "@/lib/domain/activity";
-import { deleteLink, saveLink } from "@/lib/domain/ac-sync";
+import { applyBackfill, deleteLink, previewBackfillChunk, saveLink, type BackfillRow } from "@/lib/domain/ac-sync";
 import { getCareer } from "@/lib/domain/careers";
-import { careerValuesInPipeline } from "@/lib/integrations/activecampaign";
+import { careerValuesInPipeline, isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
+import { formatWeekRange, shiftWeek, weekStartISO } from "@/lib/utils/dates";
 
 export type LinkResult = { ok: boolean; message: string };
 
@@ -60,4 +61,48 @@ export async function deleteLinkAction(careerId: number): Promise<LinkResult> {
   await logActivity(session, "indicadores", "Quitó vínculo con ActiveCampaign", await labelOf("careers", careerId));
   refresh();
   return { ok: true, message: "Vínculo quitado." };
+}
+
+// --- Semanas anteriores (solo administradores) ------------------------------------
+
+/** Lunes de una semana ya cerrada (la semana en curso se actualiza con la sincronización normal). */
+function pastWeek(week: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) throw new Error("Semana inválida.");
+  const monday = shiftWeek(week, 0);
+  if (monday >= weekStartISO()) throw new Error("Elige una semana anterior a la semana en curso.");
+  return monday;
+}
+
+export type BackfillStep = { ok: boolean; done: boolean; next: number; total: number; rows: BackfillRow[]; message: string };
+
+export async function backfillPreviewAction(week: string, offset: number): Promise<BackfillStep> {
+  const session = await requireAdmin("Solo un administrador puede actualizar semanas anteriores.");
+  if (!isActiveCampaignConfigured()) return { ok: false, done: true, next: 0, total: 0, rows: [], message: "ActiveCampaign no está configurado." };
+  try {
+    const r = await previewBackfillChunk({ teamId: session.teamId, weekStart: pastWeek(week), offset, size: 4 });
+    if (r.totalStages === 0) return { ok: false, done: true, next: 0, total: 0, rows: [], message: "Ninguna carrera está vinculada a ActiveCampaign." };
+    return { ok: true, done: r.done, next: r.next, total: r.totalStages, rows: r.rows, message: "" };
+  } catch (err) {
+    return { ok: false, done: true, next: offset, total: 0, rows: [], message: err instanceof Error ? err.message : "No se pudo consultar ActiveCampaign." };
+  }
+}
+
+export async function backfillApplyAction(week: string, rows: { careerId: number; leads: number }[]): Promise<LinkResult> {
+  const session = await requireAdmin("Solo un administrador puede actualizar semanas anteriores.");
+  let weekStart: string;
+  try {
+    weekStart = pastWeek(week);
+  } catch (err) {
+    return { ok: false, message: (err as Error).message };
+  }
+  if (!Array.isArray(rows) || rows.length === 0) return { ok: false, message: "No elegiste ninguna carrera." };
+  const r = await applyBackfill({ teamId: session.teamId, weekStart, rows: rows.slice(0, 1000), userId: session.userId });
+  await logActivity(
+    session,
+    "indicadores",
+    "Sobrescribió leads de una semana anterior desde ActiveCampaign",
+    `Semana ${formatWeekRange(weekStart)} · ${r.updated} carrera(s) · ${r.total} lead(s)`
+  );
+  refresh();
+  return { ok: true, message: `Se actualizaron ${r.updated} carrera(s) en la semana ${formatWeekRange(weekStart)} (${r.total} leads).` };
 }

@@ -1,12 +1,14 @@
 import { Card } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
-import { canEdit } from "@/lib/auth/access";
+import { canEdit, isTeamAdmin } from "@/lib/auth/access";
 import { listCareers } from "@/lib/domain/careers";
 import { lastSync, listLinks } from "@/lib/domain/ac-sync";
 import { isActiveCampaignConfigured, listPipelines, type AcPipeline } from "@/lib/integrations/activecampaign";
 import { AcSyncButton } from "@/components/ac-sync-button";
 import { SettingsHeader } from "../settings-header";
 import { LinksEditor } from "./links-editor";
+import { BackfillPanel } from "./backfill-panel";
+import { formatWeekRange, lastNWeeks, lastClosedWeek } from "@/lib/utils/dates";
 
 const WHEN = new Intl.DateTimeFormat("es", {
   dateStyle: "medium",
@@ -18,11 +20,12 @@ export default async function ActiveCampaignPage() {
   const session = await getSession();
   if (!session) return null;
   const configured = isActiveCampaignConfigured();
-  const [careers, links, last, editable] = await Promise.all([
+  const [careers, links, last, editable, admin] = await Promise.all([
     listCareers(session.teamId),
     listLinks(session.teamId),
     lastSync(session.teamId),
     canEdit("indicadores"),
+    isTeamAdmin(),
   ]);
   let pipelines: AcPipeline[] = [];
   let error: string | null = null;
@@ -72,6 +75,15 @@ export default async function ActiveCampaignPage() {
           )}
         </div>
       </Card>
+
+      {configured && !error && admin && links.length > 0 && (
+        <BackfillPanel
+          // Las últimas 26 semanas cerradas, de la más reciente a la más antigua.
+          weeks={lastNWeeks(26, lastClosedWeek())
+            .reverse()
+            .map((w) => ({ value: w, label: formatWeekRange(w) }))}
+        />
+      )}
 
       {configured && !error && (
         <LinksEditor

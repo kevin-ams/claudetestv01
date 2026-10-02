@@ -79,6 +79,10 @@ trato **Nombre de la Carrera** (`%DEAL_NOMBRE_DE_LA_CARRERA%`; se sugiere el que
 - Los leads **solo se guardan en la semana en curso**. **Automático**: cada lunes a las 6:00 a. m. de Guatemala
   (función programada de Netlify). **Manual**: "Sincronizar ahora" en Ajustes o el botón de Indicadores (visible
   en la semana en curso).
+- **Semanas anteriores (solo administradores)**: en Ajustes › Leads desde ActiveCampaign se elige una semana cerrada
+  (últimas 26) y "Ver comparativa" muestra, por carrera, el dato guardado (manual o AC), lo que hay hoy en
+  ActiveCampaign y la diferencia. Se marcan las carreras y se confirma; avisa que sobrescribe y que ActiveCampaign
+  solo da el conteo actual de la etapa, no el histórico.
 - Se consulta una vez cada etapa y se procesa por tandas para no exceder el tiempo de las funciones; se muestra la
   última actualización en Ajustes y en Indicadores.
 - El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
