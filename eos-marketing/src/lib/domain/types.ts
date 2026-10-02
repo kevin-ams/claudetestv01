@@ -18,6 +18,8 @@ export type Team = {
   is_demo: boolean;
   demo_owner_id: number | null;
   theme_color: string;
+  logo_mime: string | null;
+  logo_updated_at: string | null;
 };
 
 export type TeamMember = {
@@ -119,6 +121,9 @@ export type ScorecardMetric = {
   archived: boolean;
   created_at: string;
   shared_all: boolean;
+  /** Indicador calculado: numerador ÷ denominador (× 100 si es %). */
+  calc_numerator_id: number | null;
+  calc_denominator_id: number | null;
 };
 
 export type ScorecardTarget = {

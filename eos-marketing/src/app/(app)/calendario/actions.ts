@@ -41,6 +41,8 @@ async function readPiece(fd: FormData, teamId: number): Promise<PieceInput | str
   else if (!week && pubDate) week = weekStartISO(parseISO(pubDate));
   else if (week && ISO.test(week)) week = weekStartISO(parseISO(week));
   else if (week) return "Semana inválida.";
+  const link = str(fd, "link");
+  if (link && !/^https?:\/\/\S+$/i.test(link)) return "El link debe empezar con http:// o https://";
   const capa = str(fd, "capa");
   const assignee = Number(str(fd, "assignee_id")) || null;
   if (assignee && !(await isUserInTeam(assignee, teamId))) return "Esa persona no pertenece al equipo.";
@@ -54,7 +56,9 @@ async function readPiece(fd: FormData, teamId: number): Promise<PieceInput | str
     frente: str(fd, "frente"),
     audiencia: str(fd, "audiencia"),
     facultad: str(fd, "facultad"),
+    carrera: str(fd, "carrera"),
     cta: str(fd, "cta"),
+    link,
     status: str(fd, "status") || "Programado",
     note: str(fd, "note"),
     is_buffer: fd.get("is_buffer") === "on" || fd.get("is_buffer") === "true",

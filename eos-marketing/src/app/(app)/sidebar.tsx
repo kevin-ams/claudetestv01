@@ -75,10 +75,12 @@ function NavLink({
 
 export function Sidebar({
   teamName,
+  logoUrl,
   counts,
   allowed,
 }: {
   teamName: string;
+  logoUrl: string | null;
   counts: Record<NavBadge, number>;
   allowed: ModuleKey[];
 }) {
@@ -112,12 +114,21 @@ export function Sidebar({
         } ${narrow ? "md:w-16" : ""}`}
       >
         <div className={`flex h-16 shrink-0 items-center gap-2.5 px-3 ${narrow ? "md:justify-center md:px-0" : ""}`}>
-          <span
-            className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground"
-            aria-hidden
-          >
-            {initials(teamName)}
-          </span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoUrl}
+              alt=""
+              className={`h-9 w-auto max-w-24 shrink-0 object-contain ${narrow ? "md:max-w-10" : ""}`}
+            />
+          ) : (
+            <span
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-xs font-bold text-primary-foreground"
+              aria-hidden
+            >
+              {initials(teamName)}
+            </span>
+          )}
           <span className={`min-w-0 flex-1 truncate text-sm font-semibold ${narrow ? "md:hidden" : ""}`}>{teamName}</span>
           <Button
             isIconOnly

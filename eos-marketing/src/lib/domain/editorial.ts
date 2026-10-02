@@ -18,11 +18,17 @@ export function isOptionKind(v: unknown): v is OptionKind {
   return typeof v === "string" && (KINDS as string[]).includes(v);
 }
 
-/** Copia las listas iniciales la primera vez que un equipo abre el módulo. */
+/** Copia las listas iniciales de cada tipo que el equipo todavía no tenga (aunque luego las vacíen, no se repite). */
 export async function ensureOptions(teamId: number) {
-  const rows = await db().sql`SELECT COUNT(*)::int AS n FROM editorial_options WHERE team_id = ${teamId}`;
-  if ((rows[0] as { n: number }).n > 0) return;
-  const items = KINDS.flatMap((kind) =>
+  const rows = (await db().sql`
+    SELECT DISTINCT kind FROM editorial_options WHERE team_id = ${teamId}
+  `) as { kind: string }[];
+  const seeded = await db().sql`SELECT COALESCE(editorial_seeded, '') AS s FROM teams WHERE id = ${teamId}`;
+  const done = new Set([...rows.map((r) => r.kind), ...String((seeded[0] as { s: string } | undefined)?.s ?? "").split(",").filter(Boolean)]);
+  const missing = KINDS.filter((k) => !done.has(k));
+  if (missing.length === 0) return;
+  await db().sql`UPDATE teams SET editorial_seeded = ${KINDS.join(",")} WHERE id = ${teamId}`;
+  const items = missing.flatMap((kind) =>
     DEFAULT_OPTIONS[kind].map((o, i) => ({ kind, value: o.value, hint: o.hint ?? "", sort_order: i }))
   );
   await db().query(
@@ -93,9 +99,9 @@ export async function getPiece(teamId: number, id: number): Promise<EditorialPie
 
 export async function createPiece(teamId: number, p: PieceInput): Promise<EditorialPiece> {
   const rows = await db().sql`
-    INSERT INTO editorial_pieces (team_id, week_start, pub_date, title, pilar, capa, assignee_id, frente, audiencia, facultad, cta, status, note, is_buffer)
+    INSERT INTO editorial_pieces (team_id, week_start, pub_date, title, pilar, capa, assignee_id, frente, audiencia, facultad, carrera, cta, status, note, link, is_buffer)
     VALUES (${teamId}, ${p.week_start}, ${p.pub_date}, ${p.title}, ${p.pilar}, ${p.capa}, ${p.assignee_id}, ${p.frente},
-      ${p.audiencia}, ${p.facultad}, ${p.cta}, ${p.status}, ${p.note}, ${p.is_buffer})
+      ${p.audiencia}, ${p.facultad}, ${p.carrera}, ${p.cta}, ${p.status}, ${p.note}, ${p.link}, ${p.is_buffer})
     RETURNING *
   `;
   return rows[0] as EditorialPiece;
@@ -106,7 +112,7 @@ export async function updatePiece(teamId: number, id: number, p: PieceInput) {
     UPDATE editorial_pieces SET
       week_start = ${p.week_start}, pub_date = ${p.pub_date}, title = ${p.title}, pilar = ${p.pilar}, capa = ${p.capa},
       assignee_id = ${p.assignee_id}, frente = ${p.frente}, audiencia = ${p.audiencia}, facultad = ${p.facultad},
-      cta = ${p.cta}, status = ${p.status}, note = ${p.note}, is_buffer = ${p.is_buffer}, updated_at = NOW()
+      cta = ${p.cta}, carrera = ${p.carrera}, link = ${p.link}, status = ${p.status}, note = ${p.note}, is_buffer = ${p.is_buffer}, updated_at = NOW()
     WHERE id = ${id} AND team_id = ${teamId}
   `;
 }

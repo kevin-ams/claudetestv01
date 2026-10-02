@@ -3,7 +3,7 @@
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Card, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { ScorecardMetric, ScorecardOwner } from "@/lib/domain/types";
 import type { MetricSharing } from "@/lib/domain/scorecard";
 import { MetricSharingControl } from "./metric-sharing";
@@ -12,6 +12,7 @@ import {
   archiveMetricAction,
   createOwnerAction,
   deleteOwnerAction,
+  setMetricCalcAction,
 } from "./actions";
 
 export function ScorecardAdmin({
@@ -26,6 +27,7 @@ export function ScorecardAdmin({
   shareTeams: { id: number; name: string }[];
 }) {
   const [open, setOpen] = useState(false);
+  const manual = metrics.filter((m) => m.calc_numerator_id === null);
 
   return (
     <Card className="block gap-0 p-4">
@@ -45,6 +47,7 @@ export function ScorecardAdmin({
                 <li key={m.id} className="flex items-start justify-between gap-2 border-b border-border pb-1">
                   <span className="pt-1.5">{m.name}</span>
                   <div className="flex items-start gap-1">
+                    <CalcControl metric={m} metrics={metrics} />
                     <MetricSharingControl
                       metricId={m.id}
                       sharing={sharing[m.id] ?? { shared_all: false, team_ids: [] }}
@@ -77,6 +80,30 @@ export function ScorecardAdmin({
                   <option value="sum">Suma (rollup)</option>
                   <option value="average">Promedio (rollup)</option>
                 </AppSelect>
+              </div>
+              <div className="flex flex-col gap-1">
+                <p className="text-xs text-muted">
+                  Opcional — indicador calculado (p. ej. % Hygiene = Hygiene ÷ Cadencia). Si es %, se multiplica por 100.
+                </p>
+                <div className="flex gap-2">
+                  <AppSelect fullWidth name="calcNumeratorId" defaultValue="-" aria-label="Numerador">
+                    <option value="-">Manual (sin cálculo)</option>
+                    {manual.map((x) => (
+                      <option key={x.id} value={String(x.id)}>
+                        {x.name}
+                      </option>
+                    ))}
+                  </AppSelect>
+                  <span className="self-center text-muted">÷</span>
+                  <AppSelect fullWidth name="calcDenominatorId" defaultValue="-" aria-label="Denominador">
+                    <option value="-">—</option>
+                    {manual.map((x) => (
+                      <option key={x.id} value={String(x.id)}>
+                        {x.name}
+                      </option>
+                    ))}
+                  </AppSelect>
+                </div>
               </div>
               <Button variant="primary" type="submit" className="self-start">
                 + Agregar indicador
@@ -115,5 +142,63 @@ export function ScorecardAdmin({
         </div>
       )}
     </Card>
+  );
+}
+
+/** Cambia un indicador entre manual y calculado (numerador ÷ denominador). */
+function CalcControl({ metric, metrics }: { metric: ScorecardMetric; metrics: ScorecardMetric[] }) {
+  const [editing, setEditing] = useState(false);
+  const [num, setNum] = useState(metric.calc_numerator_id ? String(metric.calc_numerator_id) : "-");
+  const [den, setDen] = useState(metric.calc_denominator_id ? String(metric.calc_denominator_id) : "-");
+  const [pending, start] = useTransition();
+  const options = metrics.filter((m) => m.id !== metric.id && m.calc_numerator_id === null);
+  const calc = metric.calc_numerator_id !== null;
+  if (!editing) {
+    return (
+      <Button size="sm" variant="ghost" className={`text-xs ${calc ? "text-primary" : ""}`} onPress={() => setEditing(true)}>
+        {calc ? "Calculado" : "Calcular"}
+      </Button>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-border p-2">
+      <AppSelect aria-label="Numerador" value={num} onChange={(e) => setNum(e.target.value)} className="w-56">
+        <option value="-">Manual (sin cálculo)</option>
+        {options.map((x) => (
+          <option key={x.id} value={String(x.id)}>
+            {x.name}
+          </option>
+        ))}
+      </AppSelect>
+      <span className="text-center text-xs text-muted">÷</span>
+      <AppSelect aria-label="Denominador" value={den} onChange={(e) => setDen(e.target.value)} className="w-56">
+        <option value="-">—</option>
+        {options.map((x) => (
+          <option key={x.id} value={String(x.id)}>
+            {x.name}
+          </option>
+        ))}
+      </AppSelect>
+      <div className="flex gap-1">
+        <Button
+          size="sm"
+          variant="primary"
+          isPending={pending}
+          onPress={() =>
+            start(async () => {
+              const n = num === "-" ? null : Number(num);
+              const d = den === "-" ? null : Number(den);
+              await setMetricCalcAction(metric.id, n, d);
+              setEditing(false);
+            })
+          }
+        >
+          Guardar
+        </Button>
+        <Button size="sm" variant="ghost" onPress={() => setEditing(false)}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -10,18 +10,30 @@ import {
 import { addOptionAction, deleteOptionAction } from "@/app/(app)/calendario/actions";
 
 /** Edita las listas desplegables (pilares, estados, paquetes...). */
-export function OptionsEditor({ options, kinds }: { options: EditorialOptions; kinds: OptionKind[] }) {
-  const [open, setOpen] = useState(false);
+export function OptionsEditor({
+  options,
+  kinds,
+  title = "Listas",
+  defaultOpen = false,
+}: {
+  options: EditorialOptions;
+  kinds: OptionKind[];
+  title?: string;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="font-semibold">Listas</h2>
+          <h2 className="font-semibold">{title}</h2>
           <p className="text-xs text-muted">Opciones de los desplegables: {kinds.map((k) => OPTION_KIND_LABEL[k]).join(", ")}.</p>
         </div>
-        <Button size="sm" variant="outline" onPress={() => setOpen((v) => !v)}>
-          {open ? "Cerrar" : "Editar listas"}
-        </Button>
+        {!defaultOpen && (
+          <Button size="sm" variant="outline" onPress={() => setOpen((v) => !v)}>
+            {open ? "Cerrar" : "Editar listas"}
+          </Button>
+        )}
       </div>
       {open && (
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

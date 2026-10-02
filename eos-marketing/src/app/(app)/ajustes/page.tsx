@@ -5,6 +5,7 @@ import { getUserTeams, listTeamMembers } from "@/lib/domain/users";
 import { listRoles } from "@/lib/domain/roles";
 import { daysSinceLastBackup, lastBackupEvents } from "@/lib/backup";
 import { listQuotes } from "@/lib/domain/quotes";
+import { listOptions } from "@/lib/domain/editorial";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { getTeam } from "@/lib/domain/teams";
@@ -41,6 +42,12 @@ const SECTIONS = [
     icon: "🎨",
     title: "Apariencia",
     description: "Modo claro u oscuro y color del template de la plataforma.",
+  },
+  {
+    href: "/ajustes/listas",
+    icon: "🗂️",
+    title: "Listas de contenido",
+    description: "Facultades e institutos, pilares, estados, frentes, tipos y paquetes de cobertura.",
   },
   {
     href: "/ajustes/frases",
@@ -102,6 +109,7 @@ export default async function AjustesIndexPage() {
     lastBackupEvents().catch(() => []),
     listQuotes(session.teamId),
   ]);
+  const options = await listOptions(session.teamId);
   const backupDays = daysSinceLastBackup(backups);
   const teamCount = userTeams.filter((t) => !t.is_demo).length;
   const activeAds = slots.filter((s) => s.has_image && s.active).length;
@@ -111,6 +119,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/roles": `${roles.length} roles`,
     "/ajustes/log": "Solo administradores",
     "/perfil": "Para cada persona",
+    "/ajustes/listas": `${options.facultad.length} facultades · ${options.pilar.length} pilares`,
     "/ajustes/frases": `${quotes.filter((q) => q.active).length} frases activas`,
     "/ajustes/equipos": `${teamCount} equipo(s)`,
     "/ajustes/hitos": `${milestones.length} hitos`,

@@ -3,7 +3,7 @@
 import { Button, Card, Input, TextArea } from "@heroui/react";
 import { useMemo, useState, useTransition } from "react";
 import { AppSelect } from "@/components/ui/select";
-import { OptionsEditor } from "@/components/editorial/options-editor";
+import Link from "next/link";
 import { StatusSelect } from "@/components/editorial/status-select";
 import { coverageBalance, type Coverage, type EditorialOptions } from "@/lib/domain/editorial-shared";
 import { formatShortDate, formatWeekLabel, weekStartISO } from "@/lib/utils/dates";
@@ -159,7 +159,15 @@ export function CoverageBoard({
         </ul>
       </Card>
 
-      {editable && <OptionsEditor options={options} kinds={["cob_tipo", "cob_estado", "cob_paquete"]} />}
+      {editable && (
+        <p className="text-xs text-muted">
+          Las listas de facultades, tipos, estados y paquetes se editan en{" "}
+          <Link href="/ajustes/listas" className="text-primary underline">
+            Ajustes › Listas de contenido
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
 }
@@ -302,7 +310,14 @@ function CoverageForm({
       }}
     >
       <Input name="title" aria-label="Evento / Cobertura" placeholder="Evento / Cobertura" defaultValue={c?.title ?? ""} required className="md:col-span-4" autoFocus />
-      <Input name="facultad" aria-label="Facultad / Instituto" placeholder="Facultad / Instituto" defaultValue={c?.facultad ?? ""} className="md:col-span-2" />
+      <AppSelect name="facultad" aria-label="Facultad / Instituto" defaultValue={c?.facultad || "-"} className="md:col-span-2">
+        <option value="-">Facultad / instituto…</option>
+        {withCurrent(options.facultad.map((o) => o.value), c?.facultad).map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </AppSelect>
       <label className="flex flex-col text-xs text-muted">
         Fecha
         <Input type="date" name="date" aria-label="Fecha" defaultValue={c?.date ?? defaultDate ?? ""} />

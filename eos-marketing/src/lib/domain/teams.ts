@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { storage } from "@/lib/storage";
 import type { Team } from "./types";
 
 export async function createTeam(name: string): Promise<Team> {
@@ -28,4 +29,31 @@ export async function seedNewTeam(teamId: number) {
 
 export async function setTeamThemeColor(id: number, color: string) {
   await db().sql`UPDATE teams SET theme_color = ${color} WHERE id = ${id}`;
+}
+
+// ---------- Logo de la organización (esquina superior izquierda) ----------
+
+const logoKey = (teamId: number) => `logos/${teamId}`;
+
+export function teamLogoUrl(team: Pick<Team, "id" | "logo_mime" | "logo_updated_at"> | null): string | null {
+  if (!team?.logo_mime) return null;
+  return `/api/logo/${team.id}?v=${Date.parse(team.logo_updated_at ?? "") || 1}`;
+}
+
+export async function setTeamLogo(teamId: number, image: Uint8Array, mime: string) {
+  await (await storage()).put(logoKey(teamId), image);
+  await db().sql`UPDATE teams SET logo_mime = ${mime}, logo_updated_at = NOW() WHERE id = ${teamId}`;
+}
+
+export async function removeTeamLogo(teamId: number) {
+  await (await storage()).remove(logoKey(teamId));
+  await db().sql`UPDATE teams SET logo_mime = NULL, logo_updated_at = NOW() WHERE id = ${teamId}`;
+}
+
+export async function getTeamLogo(teamId: number): Promise<{ image: Uint8Array; mime: string } | null> {
+  const rows = (await db().sql`SELECT logo_mime FROM teams WHERE id = ${teamId}`) as { logo_mime: string | null }[];
+  const mime = rows[0]?.logo_mime;
+  if (!mime) return null;
+  const image = await (await storage()).get(logoKey(teamId));
+  return image ? { image, mime } : null;
 }

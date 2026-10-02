@@ -54,17 +54,33 @@ export async function createMetric(input: {
   direction: Direction;
   format: MetricFormat;
   aggregation: Aggregation;
+  calcNumeratorId?: number | null;
+  calcDenominatorId?: number | null;
 }): Promise<ScorecardMetric> {
   const rows = await db().sql`
     SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM scorecard_metrics WHERE team_id = ${input.teamId}
   `;
   const next = (rows[0] as { next: number }).next;
   const inserted = await db().sql`
-    INSERT INTO scorecard_metrics (team_id, name, predicts, direction, format, aggregation, sort_order)
-    VALUES (${input.teamId}, ${input.name}, ${input.predicts}, ${input.direction}, ${input.format}, ${input.aggregation}, ${next})
+    INSERT INTO scorecard_metrics (team_id, name, predicts, direction, format, aggregation, sort_order, calc_numerator_id, calc_denominator_id)
+    VALUES (${input.teamId}, ${input.name}, ${input.predicts}, ${input.direction}, ${input.format}, ${input.aggregation}, ${next},
+      ${input.calcNumeratorId ?? null}, ${input.calcDenominatorId ?? null})
     RETURNING *
   `;
   return inserted[0] as ScorecardMetric;
+}
+
+/** Vuelve calculado (numerador ÷ denominador) o manual un indicador del equipo. */
+export async function setMetricCalc(teamId: number, metricId: number, numeratorId: number | null, denominatorId: number | null) {
+  const metrics = await listMetrics(teamId);
+  const ok = (id: number | null) => id === null || metrics.some((m) => m.id === id && m.id !== metricId && m.calc_numerator_id === null);
+  if (!metrics.some((m) => m.id === metricId) || !ok(numeratorId) || !ok(denominatorId)) return false;
+  const both = numeratorId !== null && denominatorId !== null;
+  await db().sql`
+    UPDATE scorecard_metrics SET calc_numerator_id = ${both ? numeratorId : null}, calc_denominator_id = ${both ? denominatorId : null}
+    WHERE id = ${metricId} AND team_id = ${teamId}
+  `;
+  return true;
 }
 
 export async function archiveMetric(metricId: number) {

@@ -10,16 +10,26 @@ import {
 } from "@/lib/domain/scorecard";
 import { SharedScorecards } from "./shared-scorecards";
 import { buildScorecardGrid } from "@/lib/domain/scorecard-shared";
-import { lastNWeeks } from "@/lib/utils/dates";
+import { formatWeekLabel, lastNWeeks, shiftWeek, weekStartISO } from "@/lib/utils/dates";
+import { isTeamAdmin } from "@/lib/auth/access";
+import { WeekSlider } from "./week-slider";
 import { ScorecardTable } from "./scorecard-table";
 import { ScorecardAdmin } from "./scorecard-admin";
 import { ExportButton } from "@/components/export-button";
 
-export default async function ScorecardPage() {
+/** Ventana de 13 semanas (un trimestre), de la más antigua a la más nueva, con 3 semanas por delante. */
+const WINDOW = 13;
+const AHEAD = 3;
+
+export default async function ScorecardPage({ searchParams }: PageProps<"/scorecard">) {
   const session = await getSession();
   if (!session) return null;
 
-  const weeks = lastNWeeks(8);
+  const raw = Number((await searchParams).semanas);
+  const offset = Number.isInteger(raw) ? Math.max(-52, Math.min(8, raw)) : 0;
+  const current = weekStartISO();
+  const weeks = lastNWeeks(WINDOW, shiftWeek(current, AHEAD + offset));
+  const admin = await isTeamAdmin();
   const [owners, metrics, targets, entries, sharing, shareTeams, shared] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
@@ -34,7 +44,7 @@ export default async function ScorecardPage() {
   const grid = Object.fromEntries(gridMap);
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div className="mx-auto max-w-7xl">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Scorecard</h1>
@@ -52,7 +62,13 @@ export default async function ScorecardPage() {
         </p>
       ) : (
         <div className="mb-6">
+          <WeekSlider
+            offset={offset}
+            label={`${formatWeekLabel(weeks[0])} – ${formatWeekLabel(weeks[weeks.length - 1])}`}
+          />
           <ScorecardTable
+            canEditTargets={admin}
+            currentWeek={current}
             owners={owners}
             metrics={metrics}
             targets={targets}

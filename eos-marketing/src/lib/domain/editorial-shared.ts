@@ -13,9 +13,11 @@ export type EditorialPiece = {
   frente: string;
   audiencia: string;
   facultad: string;
+  carrera: string;
   cta: string;
   status: string;
   note: string;
+  link: string;
   is_buffer: boolean;
 };
 
@@ -51,13 +53,14 @@ export type Coverage = {
   notes: string;
 };
 
-export type OptionKind = "pilar" | "estado" | "frente" | "cob_tipo" | "cob_estado" | "cob_paquete";
+export type OptionKind = "facultad" | "pilar" | "estado" | "frente" | "cob_tipo" | "cob_estado" | "cob_paquete";
 
 export type EditorialOption = { id: number; kind: OptionKind; value: string; hint: string; sort_order: number };
 
 export type EditorialOptions = Record<OptionKind, EditorialOption[]>;
 
 export const OPTION_KIND_LABEL: Record<OptionKind, string> = {
+  facultad: "Facultades e institutos",
   pilar: "Pilares",
   estado: "Estados de pieza",
   frente: "Frentes",
@@ -68,6 +71,31 @@ export const OPTION_KIND_LABEL: Record<OptionKind, string> = {
 
 /** Listas iniciales (pestaña "Listas" del plan de contenido). */
 export const DEFAULT_OPTIONS: Record<OptionKind, { value: string; hint?: string }[]> = {
+  facultad: [
+    "Universidad Galileo",
+    "FISICC",
+    "FACISA",
+    "FACOM",
+    "FADMOS",
+    "FABIQ",
+    "FACED",
+    "FACTI",
+    "FACTEDE",
+    "IRE",
+    "IIO",
+    "IIB",
+    "IDEA",
+    "ICTA",
+    "IASTRA",
+    "IES",
+    "IVN",
+    "ESEC",
+    "ESA",
+    "ESTEC",
+    "ESIP",
+    "APA",
+    "GES",
+  ].map((value) => ({ value })),
   pilar: [
     { value: "Galileo Tech", hint: "30% · Liderazgo tecnológico" },
     { value: "Divulgacion y guias", hint: "15% · Captación orgánica (SEO)" },

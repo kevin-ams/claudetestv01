@@ -121,12 +121,22 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   objetivo (Hero 10 %, Hub 50 %, Hygiene 35 %, piso SEO de Hygiene ≥ 25 %) y mezcla por pilar.
   Por semana: piezas planificadas, buffer esporádico/reactivo (3 slots) y fechas clave (días
   internacionales). Incluye banco de ideas (Banco Hygiene, piezas sin semana), filtros por persona,
-  estado, capa y texto, y listas editables (pilares, estados, frentes).
+  estado, capa, facultad y texto. Cada pieza puede llevar el link de la publicación. Cada semana tiene
+  **Enviar planificación (PDF)**: resumen de la semana por persona, buffer, fechas clave y coberturas,
+  listo para mandar a jefatura.
 - **Control de coberturas** (`/coberturas`): registro de coberturas por fecha con facultad,
   horario, asignación, tipo, estado, paquete (Express ≈2-3 h, Estándar ≈4-5 h, Ampliada ≈6-8 h,
   Especial/Hero 2+ días), tiempo estimado y real, horas fuera de horario y horas repuestas. Muestra
   por persona realizadas, agendadas y saldo de horas por reponer, más las coberturas realizadas
-  por semana. Navega por mes o ve todo el registro; tipos, estados y paquetes son editables.
+  por semana. Navega por mes o ve todo el registro.
+- **Análisis de contenido** (`/analisis-contenido`): métricas del calendario y de las coberturas por
+  semana, mes, trimestre, año o rango de fechas, comparadas con el periodo anterior: publicadas,
+  cumplimiento, % Hygiene, Hero, buffer usado, reprogramadas/canceladas, coberturas y horas fuera de
+  horario; tendencia de publicadas por semana (o por mes en periodos largos) por capa, mezcla por capa
+  contra el objetivo, tabla por persona y desgloses por pilar, facultad, frente y estado.
+- **Listas de contenido** (Ajustes › Listas de contenido): facultades e institutos, pilares, estados,
+  frentes, tipos, estados y paquetes de cobertura (desplegables del calendario y de coberturas).
+- **Logo de la organización** (Ajustes › Apariencia): imagen que aparece arriba a la izquierda, por equipo.
 - **Plantilla Comunicación GES** (Ajustes › Equipos): crea el equipo "Comunicación GES" con quien
   la usa como Administrador, más Cesar y David (correo provisional `@comunicacion-ges.local`: define
   su acceso real en Ajustes › Equipo), e importa el plan de contenido (calendario Ago–Oct, banco
@@ -186,7 +196,12 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   las asignaciones manuales se recuerdan); el botón de ActiveCampaign está listo para
   conectarse. En la reunión L10 se muestran en modo resumen dentro del Scorecard
   (última semana cerrada).
-- **Scorecard** (`/scorecard`): indicadores semanales por dueño, con meta, semáforo y un dueño "rollup" calculado automáticamente (suma o promedio de los demás).
+- **Scorecard** (`/scorecard`): indicadores semanales por dueño, con meta, semáforo (verde en meta, rojo
+  por debajo, también en el promedio) y un dueño "rollup" calculado automáticamente (suma o promedio de los
+  demás). Muestra 13 semanas en orden cronológico (de la más antigua a la más nueva) con la semana en
+  curso resaltada y 3 semanas por delante; un slider permite ver semanas anteriores. Solo un
+  administrador cambia las metas. Hay indicadores **calculados** (numerador ÷ denominador, × 100 si es %),
+  p. ej. % Hygiene = Hygiene producidas ÷ Cadencia; en el rollup se calculan con los totales.
 - **Issues** (`/issues`): lista IDS priorizable, con fecha específica, conversión a To-Do
   al resolver y botón "Enviar a ClickUp". Cada persona ve primero los suyos; filtros
   "Solo míos", "Todos" (para reordenar prioridades) o los de una persona.

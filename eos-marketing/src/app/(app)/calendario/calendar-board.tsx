@@ -1,10 +1,10 @@
 "use client";
 
-import { Button, Card, Input, TextArea } from "@heroui/react";
+import { Button, buttonVariants, Card, Input, TextArea } from "@heroui/react";
 import { useMemo, useState, useTransition } from "react";
 import { AppSelect } from "@/components/ui/select";
 import { AppCheckbox } from "@/components/ui/checkbox";
-import { OptionsEditor } from "@/components/editorial/options-editor";
+import Link from "next/link";
 import { StatusSelect } from "@/components/editorial/status-select";
 import {
   BUFFER_SLOTS,
@@ -28,15 +28,20 @@ import {
 
 type Member = { id: number; name: string };
 
-const CAPA_CLASS: Record<string, string> = {
-  Hero: "bg-red-bg text-red",
-  Hub: "bg-primary/10 text-primary",
-  Hygiene: "bg-green-bg text-green",
+const CAPA_COLOR: Record<string, string> = {
+  Hero: "var(--capa-hero)",
+  Hub: "var(--capa-hub)",
+  Hygiene: "var(--capa-hygiene)",
 };
 
 function CapaTag({ capa }: { capa: string }) {
   if (!capa) return <span className="text-xs text-muted">—</span>;
-  return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${CAPA_CLASS[capa] ?? ""}`}>{capa}</span>;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium">
+      <span className="size-2.5 rounded-sm" style={{ background: CAPA_COLOR[capa] }} aria-hidden />
+      {capa}
+    </span>
+  );
 }
 
 export function CalendarBoard({
@@ -62,6 +67,7 @@ export function CalendarBoard({
   const [status, setStatus] = useState("");
   const [capa, setCapa] = useState("");
   const [query, setQuery] = useState("");
+  const [facultad, setFacultad] = useState("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,12 +76,13 @@ export function CalendarBoard({
         (!person || (person === "me" ? p.assignee_id === currentUserId : person === "none" ? p.assignee_id === null : p.assignee_id === Number(person))) &&
         (!status || p.status === status) &&
         (!capa || p.capa === capa) &&
-        (!q || `${p.title} ${p.facultad} ${p.note} ${p.pilar} ${p.frente}`.toLowerCase().includes(q))
+        (!facultad || p.facultad === facultad) &&
+        (!q || `${p.title} ${p.facultad} ${p.carrera} ${p.note} ${p.pilar} ${p.frente}`.toLowerCase().includes(q))
     );
-  }, [pieces, person, status, capa, query, currentUserId]);
+  }, [pieces, person, status, capa, facultad, query, currentUserId]);
 
   const statuses = options.estado.map((o) => o.value);
-  const filtering = Boolean(person || status || capa || query.trim());
+  const filtering = Boolean(person || status || capa || facultad || query.trim());
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,9 +115,17 @@ export function CalendarBoard({
             </option>
           ))}
         </AppSelect>
+        <AppSelect aria-label="Facultad" className="w-48" variant="secondary" value={facultad} onChange={(e) => setFacultad(e.target.value)}>
+          <option value="">Todas las facultades</option>
+          {options.facultad.map((o) => (
+            <option key={o.id} value={o.value}>
+              {o.value}
+            </option>
+          ))}
+        </AppSelect>
         <Input aria-label="Buscar pieza" placeholder="Buscar tema, facultad…" value={query} onChange={(e) => setQuery(e.target.value)} className="w-56" />
         {filtering && (
-          <Button size="sm" variant="ghost" onPress={() => { setPerson(""); setStatus(""); setCapa(""); setQuery(""); }}>
+          <Button size="sm" variant="ghost" onPress={() => { setPerson(""); setStatus(""); setCapa(""); setFacultad(""); setQuery(""); }}>
             Limpiar filtros
           </Button>
         )}
@@ -134,7 +149,15 @@ export function CalendarBoard({
 
       <Bank pieces={bank} members={members} options={options} editable={editable} weeks={weeks} />
 
-      {editable && <OptionsEditor options={options} kinds={["pilar", "estado", "frente"]} />}
+      {editable && (
+        <p className="text-xs text-muted">
+          Las listas de facultades, pilares, estados y frentes se editan en{" "}
+          <Link href="/ajustes/listas" className="text-primary underline">
+            Ajustes › Listas de contenido
+          </Link>
+          .
+        </p>
+      )}
     </div>
   );
 }
@@ -185,7 +208,7 @@ function MonthSummary({ pieces, members, options }: { pieces: EditorialPiece[]; 
                   </span>
                 </div>
                 <div className="mt-1 h-1.5 rounded-full bg-border/60">
-                  <div className={`h-1.5 rounded-full ${c === "Hero" ? "bg-red" : c === "Hub" ? "bg-primary" : "bg-green"}`} style={{ width: `${pct}%` }} />
+                  <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, background: CAPA_COLOR[c] }} />
                 </div>
               </div>
             );
@@ -249,7 +272,7 @@ function KeyDates({ dates, editable, options }: { dates: EditorialDate[]; editab
         >
           <Input type="date" name="date" aria-label="Fecha" required />
           <Input name="title" placeholder="Día internacional / mundial" aria-label="Nombre" required className="md:col-span-3" />
-          <Input name="facultad" placeholder="Facultad / Instituto" aria-label="Facultad" />
+          <FacultadSelect options={options} />
           <Input name="carrera" placeholder="Carrera" aria-label="Carrera" />
           <AppSelect name="pilar" aria-label="Pilar sugerido" defaultValue="-">
             <option value="-">Pilar sugerido…</option>
@@ -357,16 +380,26 @@ function WeekSection({
             ))}
           </div>
         </div>
+        <div className="flex gap-2">
+          <a
+            className={buttonVariants({ variant: "secondary", size: "sm" })}
+            href={`/api/calendario/planificacion?semana=${week}`}
+            target="_blank"
+            rel="noopener"
+          >
+            Enviar planificación (PDF)
+          </a>
         {editable && (
-          <div className="flex gap-2">
+          <>
             <Button size="sm" variant="outline" onPress={() => setAdding(adding === "plan" ? null : "plan")}>
               + Pieza
             </Button>
             <Button size="sm" variant="ghost" onPress={() => setAdding(adding === "buffer" ? null : "buffer")}>
               + Esporádica
             </Button>
-          </div>
+          </>
         )}
+        </div>
       </div>
       {adding && (
         <PieceForm
@@ -434,9 +467,22 @@ function PieceTable({
               <tr key={p.id} className={`border-b border-border align-top last:border-0 ${p.status === "Cancelado" ? "opacity-60" : ""}`}>
                 <td className="whitespace-nowrap px-3 py-2 capitalize text-muted">{p.pub_date ? formatShortDate(p.pub_date) : "—"}</td>
                 <td className="px-2 py-2">
-                  <p className={`font-medium ${p.status === "Cancelado" ? "line-through" : ""}`}>{p.title}</p>
+                  <p className={`font-medium ${p.status === "Cancelado" ? "line-through" : ""}`}>
+                    {p.title}
+                    {p.link && (
+                      <a
+                        href={p.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-1.5 text-xs font-normal text-primary underline"
+                        aria-label={`Ver publicación: ${p.title}`}
+                      >
+                        Ver publicación ↗
+                      </a>
+                    )}
+                  </p>
                   <p className="text-xs text-muted">
-                    {[p.facultad, p.audiencia, p.cta && `CTA: ${p.cta}`].filter(Boolean).join(" · ")}
+                    {[[p.facultad, p.carrera].filter(Boolean).join(" / "), p.audiencia, p.cta && `CTA: ${p.cta}`].filter(Boolean).join(" · ")}
                   </p>
                   {p.note && <p className="text-xs italic text-muted">{p.note}</p>}
                 </td>
@@ -625,10 +671,12 @@ function PieceForm({
           <option key={o.id} value={o.value} />
         ))}
       </datalist>
-      <Input name="facultad" aria-label="Facultad / Carrera" placeholder="Facultad / Carrera" defaultValue={v.facultad ?? ""} className="md:col-span-2" />
+      <FacultadSelect options={options} value={v.facultad} />
+      <Input name="carrera" aria-label="Carrera" placeholder="Carrera / programa" defaultValue={v.carrera ?? ""} />
       <Input name="cta" aria-label="CTA sugerido" placeholder="CTA sugerido" defaultValue={v.cta ?? ""} className="md:col-span-2" />
       <Input name="audiencia" aria-label="Audiencia" placeholder="Audiencia" defaultValue={v.audiencia ?? ""} className="md:col-span-3" />
-      <TextArea name="note" aria-label="Nota" placeholder="Nota" defaultValue={v.note ?? ""} className="min-h-10 md:col-span-3" />
+      <Input name="link" type="url" aria-label="Link de la publicación" placeholder="Link de la publicación (https://…)" defaultValue={v.link ?? ""} className="md:col-span-3" />
+      <TextArea name="note" aria-label="Nota" placeholder="Nota" defaultValue={v.note ?? ""} className="min-h-10 md:col-span-6" />
       <div className="flex flex-wrap items-center gap-4 md:col-span-6">
         <AppCheckbox name="is_buffer" defaultChecked={Boolean(v.is_buffer)}>
           Esporádica (usa slot de buffer)
@@ -647,5 +695,21 @@ function PieceForm({
       </div>
       {error && <p className="text-xs text-red md:col-span-6">{error}</p>}
     </form>
+  );
+}
+
+/** Facultad / instituto de la lista de Ajustes (conserva un valor antiguo que ya no esté en la lista). */
+function FacultadSelect({ options, value }: { options: EditorialOptions; value?: string }) {
+  const list = options.facultad.map((o) => o.value);
+  const all = value && !list.includes(value) ? [value, ...list] : list;
+  return (
+    <AppSelect name="facultad" aria-label="Facultad / instituto" defaultValue={value || "-"}>
+      <option value="-">Facultad / instituto…</option>
+      {all.map((f) => (
+        <option key={f} value={f}>
+          {f}
+        </option>
+      ))}
+    </AppSelect>
   );
 }

@@ -145,6 +145,13 @@ export async function importComunicacionGes(admin: { userId: number; teamId: num
       if (value !== null && value !== undefined) await setTarget(metric.id, ownerIds.get(owner)!, Number(value));
     }
   }
+  // % Hygiene = Hygiene producidas ÷ Cadencia (como la columna "Calculado" de Config).
+  const hyg = metricIds.get("% Hygiene sobre el total de la semana");
+  const num = metricIds.get("Hygiene producidas / semana");
+  const den = metricIds.get("Cadencia: piezas publicadas / semana");
+  if (hyg && num && den) {
+    await db().sql`UPDATE scorecard_metrics SET calc_numerator_id = ${num}, calc_denominator_id = ${den} WHERE id = ${hyg}`;
+  }
   const entries = data.entries
     .filter((e) => metricIds.has(e.metric))
     .map((e) => ({
@@ -166,7 +173,12 @@ export async function importComunicacionGes(admin: { userId: number; teamId: num
 
   // ---- Calendario editorial, banco, fechas clave y coberturas ----
   await ensureOptions(team.id);
-  const pieceCols = ["week_start", "pub_date", "title", "pilar", "capa", "assignee_id", "frente", "audiencia", "facultad", "cta", "status", "note", "is_buffer"];
+  const pieceCols = ["week_start", "pub_date", "title", "pilar", "capa", "assignee_id", "frente", "audiencia", "facultad", "carrera", "cta", "status", "note", "is_buffer"];
+  // "FISICC / Ing. en Telecomunicaciones" → facultad y carrera por separado.
+  const split = (v: string) => {
+    const i = v.indexOf("/");
+    return i < 0 ? { facultad: v.trim(), carrera: "" } : { facultad: v.slice(0, i).trim(), carrera: v.slice(i + 1).trim() };
+  };
   await insertRows(
     "editorial_pieces",
     pieceCols,
@@ -181,7 +193,7 @@ export async function importComunicacionGes(admin: { userId: number; teamId: num
         assignee_id: who(p.assignee),
         frente: p.frente,
         audiencia: p.audiencia,
-        facultad: p.facultad,
+        ...split(p.facultad),
         cta: p.cta,
         status: p.status,
         note: p.note,
@@ -197,6 +209,7 @@ export async function importComunicacionGes(admin: { userId: number; teamId: num
         frente: "",
         audiencia: "",
         facultad: "",
+        carrera: "",
         cta: "",
         status: b.status,
         note: "Banco Hygiene",

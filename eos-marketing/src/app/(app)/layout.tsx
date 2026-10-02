@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { getAccess } from "@/lib/auth/access";
 import { MODULES } from "@/lib/auth/modules";
 import { avatarUrl, getProfile } from "@/lib/domain/profile";
-import { getTeam } from "@/lib/domain/teams";
+import { getTeam, teamLogoUrl } from "@/lib/domain/teams";
 import { getUserTeams, isUserInTeam } from "@/lib/domain/users";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
@@ -43,6 +43,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <style>{brandStyleSheet(themeColor)}</style>
       <Sidebar
         teamName={team?.name ?? "Equipo"}
+        logoUrl={teamLogoUrl(team)}
         counts={{ todos: openTodos, issues: openIssues }}
         allowed={MODULES.filter((m) => access?.level(m.key) !== "none").map((m) => m.key)}
       />

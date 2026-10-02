@@ -13,6 +13,7 @@ export const MODULES = [
   { key: "control", label: "Control de carrera", href: "/control" },
   { key: "calendario", label: "Calendario editorial", href: "/calendario" },
   { key: "coberturas", label: "Control de coberturas", href: "/coberturas" },
+  { key: "analisis_contenido", label: "Análisis de contenido", href: "/analisis-contenido" },
   { key: "analisis", label: "Análisis", href: "/analisis" },
   { key: "ajustes", label: "Ajustes (apariencia, hitos, anuncios, demo, exportar)", href: "/ajustes" },
 ] as const;

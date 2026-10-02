@@ -3,6 +3,7 @@ import {
   Camera,
   ChartColumn,
   ChartLine,
+  ChartPie,
   CircleExclamation,
   Clock,
   Compass,
@@ -61,7 +62,10 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   },
   {
     label: "Reportes",
-    items: [{ href: "/analisis", label: "Análisis", Icon: ChartLine }],
+    items: [
+      { href: "/analisis", label: "Análisis", Icon: ChartLine },
+      { href: "/analisis-contenido", label: "Análisis de contenido", Icon: ChartPie },
+    ],
   },
 ];
 

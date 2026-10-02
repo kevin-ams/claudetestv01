@@ -1,6 +1,6 @@
 "use server";
 
-import { requireModule } from "@/lib/auth/access";
+import { requireAdmin, requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
 import { labelOf, logActivity } from "@/lib/domain/activity";
 import {
@@ -11,6 +11,8 @@ import {
   deleteOwner,
   setTarget,
   setMetricSharing,
+  setMetricCalc,
+  listMetrics,
 } from "@/lib/domain/scorecard";
 import type { Direction, MetricFormat, Aggregation } from "@/lib/domain/types";
 
@@ -29,7 +31,16 @@ export async function upsertEntryAction(
 
 export async function createMetricAction(formData: FormData) {
   const session = await requireModule("scorecard");
+  const valid = new Set((await listMetrics(session.teamId)).filter((m) => m.calc_numerator_id === null).map((m) => m.id));
+  const pick = (k: string) => {
+    const n = Number(formData.get(k));
+    return valid.has(n) ? n : null;
+  };
+  const num = pick("calcNumeratorId");
+  const den = pick("calcDenominatorId");
   await createMetric({
+    calcNumeratorId: num !== null && den !== null ? num : null,
+    calcDenominatorId: num !== null && den !== null ? den : null,
     teamId: session.teamId,
     name: String(formData.get("name") ?? "").trim(),
     predicts: String(formData.get("predicts") ?? "").trim(),
@@ -68,8 +79,19 @@ export async function deleteOwnerAction(ownerId: number) {
   revalidatePath("/scorecard");
 }
 
-export async function setTargetAction(metricId: number, ownerId: number, value: number) {
+export async function setMetricCalcAction(metricId: number, numeratorId: number | null, denominatorId: number | null) {
   const session = await requireModule("scorecard");
+  const ok = await setMetricCalc(session.teamId, metricId, numeratorId, denominatorId);
+  if (ok) {
+    await logActivity(session, "scorecard", "Cambió cálculo de indicador", `${await labelOf("scorecard_metrics", metricId)}: ${numeratorId && denominatorId ? `${await labelOf("scorecard_metrics", numeratorId)} ÷ ${await labelOf("scorecard_metrics", denominatorId)}` : "manual"}`);
+  }
+  revalidatePath("/scorecard");
+}
+
+/** Solo un administrador cambia metas. */
+export async function setTargetAction(metricId: number, ownerId: number, value: number) {
+  await requireModule("scorecard");
+  const session = await requireAdmin("Solo un administrador puede cambiar las metas.");
   await setTarget(metricId, ownerId, value);
   await logActivity(session, "scorecard", "Cambió meta del Scorecard", `${await labelOf("scorecard_metrics", metricId)} · ${await labelOf("scorecard_owners", ownerId)}: ${value}`);
   revalidatePath("/scorecard");

@@ -28,7 +28,9 @@ export function buildScorecardGrid(
   const rollupOwners = owners.filter((o) => o.is_rollup);
   const baseOwners = owners.filter((o) => !o.is_rollup);
 
+  const calculated = metrics.filter(isCalculated);
   for (const metric of metrics) {
+    if (isCalculated(metric)) continue;
     for (const week of weeks) {
       for (const rollup of rollupOwners) {
         const values = baseOwners
@@ -47,7 +49,25 @@ export function buildScorecardGrid(
     }
   }
 
+  // Calculados (p. ej. % Hygiene = Hygiene ÷ Cadencia): para cada dueño, incluido el
+  // rollup, se usan sus propios valores, así el total sale de los totales.
+  for (const metric of calculated) {
+    for (const week of weeks) {
+      for (const owner of owners) {
+        const num = grid.get(cellKey(metric.calc_numerator_id!, owner.id, week));
+        const den = grid.get(cellKey(metric.calc_denominator_id!, owner.id, week));
+        const value =
+          num === null || num === undefined || !den ? null : (num / den) * (metric.format === "percentage" ? 100 : 1);
+        grid.set(cellKey(metric.id, owner.id, week), value === null ? null : Math.round(value * 10) / 10);
+      }
+    }
+  }
+
   return grid;
+}
+
+export function isCalculated(m: Pick<ScorecardMetric, "calc_numerator_id" | "calc_denominator_id">) {
+  return m.calc_numerator_id !== null && m.calc_denominator_id !== null;
 }
 
 export function getCell(

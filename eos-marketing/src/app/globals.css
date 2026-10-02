@@ -54,6 +54,11 @@
   --danger: var(--red);
   --danger-foreground: #ffffff;
   --radius: 0.5rem;
+  /* Capas Hero · Hub · Hygiene (paleta categórica validada: azul, naranja, aqua). */
+  --capa-hero: #2a78d6;
+  --capa-hub: #eb6834;
+  --capa-hygiene: #1baf7a;
+  --capa-other: #a3a3a0;
 }
 
 /* Modo oscuro: la clase `dark` la pone el script del <head> según la preferencia. */
@@ -78,6 +83,10 @@
   --chart-goal: #d95926;
   --chart-grid: #2c2c2a;
   --chart-cursor: rgba(255, 255, 255, 0.06);
+  --capa-hero: #3987e5;
+  --capa-hub: #d95926;
+  --capa-hygiene: #199e70;
+  --capa-other: #6b6b68;
 
   --surface-secondary: #1e222a;
   --surface-tertiary: #252a33;
