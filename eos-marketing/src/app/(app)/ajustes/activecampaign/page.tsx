@@ -4,7 +4,6 @@ import { canEdit } from "@/lib/auth/access";
 import { listCareers } from "@/lib/domain/careers";
 import { lastSync, listLinks } from "@/lib/domain/ac-sync";
 import { isActiveCampaignConfigured, listPipelines, type AcPipeline } from "@/lib/integrations/activecampaign";
-import { weekStartISO } from "@/lib/utils/dates";
 import { AcSyncButton } from "@/components/ac-sync-button";
 import { SettingsHeader } from "../settings-header";
 import { LinksEditor } from "./links-editor";
@@ -64,12 +63,12 @@ export default async function ActiveCampaignPage() {
               )}
             </p>
             <p className="text-xs text-muted">
-              Se actualiza sola cada lunes a las 6:00 a. m. (guarda los leads de la semana que cerró). Con el botón se
-              guardan en la semana en curso.
+              Los leads se guardan solo en la semana en curso: se actualiza sola cada lunes a las 6:00 a. m. y con el
+              botón cuando quieras. Las semanas anteriores no cambian.
             </p>
           </div>
           {configured && !error && editable && (
-            <AcSyncButton week={weekStartISO()} label="↻ Sincronizar ahora (semana en curso)" variant="primary" disabled={links.length === 0} />
+            <AcSyncButton label="↻ Sincronizar ahora (semana en curso)" variant="primary" disabled={links.length === 0} />
           )}
         </div>
       </Card>

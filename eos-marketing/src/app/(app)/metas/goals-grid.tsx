@@ -12,6 +12,13 @@ import { copyMonthAction, setMonthlyGoalAction, type GoalField } from "./actions
 
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
+/** "Mar", o "Ene 27" para los meses del año siguiente. */
+function monthLabel(month: string, year: number) {
+  const y = Number(month.slice(0, 4));
+  const label = MONTH_LABELS[Number(month.slice(5, 7)) - 1];
+  return y === year ? label : `${label} ${String(y).slice(2)}`;
+}
+
 function GoalCell({
   value,
   onSave,
@@ -60,7 +67,7 @@ function GoalCell({
   );
 }
 
-function CopyMonthForm({ months }: { months: string[] }) {
+function CopyMonthForm({ months, year }: { months: string[]; year: number }) {
   const router = useRouter();
   const [from, setFrom] = useState(months[0]);
   const [to, setTo] = useState(months[1]);
@@ -72,17 +79,17 @@ function CopyMonthForm({ months }: { months: string[] }) {
     <div className="flex flex-wrap items-center gap-2 text-sm">
       <span className="text-muted">Copiar metas de</span>
       <AppSelect className="w-auto" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Mes de origen">
-        {months.map((m, i) => (
+        {months.map((m) => (
           <option key={m} value={m}>
-            {MONTH_LABELS[i]}
+            {monthLabel(m, year)}
           </option>
         ))}
       </AppSelect>
       <span className="text-muted">a</span>
       <AppSelect className="w-auto" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Mes de destino">
-        {months.map((m, i) => (
+        {months.map((m) => (
           <option key={m} value={m}>
-            {MONTH_LABELS[i]}
+            {monthLabel(m, year)}
           </option>
         ))}
       </AppSelect>
@@ -148,7 +155,9 @@ export function GoalsGrid({
   const today = new Date();
   const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
   const monthTotals = months.map((m) => filtered.reduce((sum, c) => sum + valueOf(c.id, m), 0));
-  const yearTotal = monthTotals.reduce((a, b) => a + b, 0);
+  // El total es solo del año; enero y febrero del siguiente se muestran aparte.
+  const inYear = (m: string) => m.startsWith(`${year}-`);
+  const yearTotal = monthTotals.reduce((a, t, i) => a + (inYear(months[i]) ? t : 0), 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -197,7 +206,7 @@ export function GoalsGrid({
           />
           <span className="text-sm text-muted">{filtered.length} carreras</span>
         </div>
-        <CopyMonthForm months={months} />
+        <CopyMonthForm months={months} year={year} />
       </Card>
 
       <Card className="block p-0 gap-0 overflow-x-auto">
@@ -205,17 +214,20 @@ export function GoalsGrid({
           <thead>
             <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
               <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left">Carrera</th>
-              {months.map((m, i) => (
-                <th key={m} className={`px-1 text-right ${m === currentMonth ? "text-primary" : ""}`}>
-                  {MONTH_LABELS[i]}
+              {months.map((m) => (
+                <th
+                  key={m}
+                  className={`px-1 text-right ${m === currentMonth ? "text-primary" : ""} ${inYear(m) ? "" : "bg-background/60"}`}
+                >
+                  {monthLabel(m, year)}
                 </th>
               ))}
-              <th className="px-3 text-right">Total año</th>
+              <th className="px-3 text-right">Total {year}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((c) => {
-              const rowTotal = months.reduce((sum, m) => sum + valueOf(c.id, m), 0);
+              const rowTotal = months.reduce((sum, m) => sum + (inYear(m) ? valueOf(c.id, m) : 0), 0);
               return (
                 <tr key={c.id} className="border-b border-border last:border-0 hover:bg-background/60">
                   <td className="sticky left-0 z-10 max-w-72 bg-card px-3 py-1.5">
@@ -230,7 +242,7 @@ export function GoalsGrid({
                     </p>
                   </td>
                   {months.map((m) => (
-                    <td key={m} className={`px-1 ${m === currentMonth ? "bg-primary/5" : ""}`}>
+                    <td key={m} className={`px-1 ${m === currentMonth ? "bg-primary/5" : inYear(m) ? "" : "bg-background/60"}`}>
                       <GoalCell
                         key={field}
                         value={valueOf(c.id, m)}

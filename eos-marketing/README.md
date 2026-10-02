@@ -76,8 +76,9 @@ trato **Nombre de la Carrera** (`%DEAL_NOMBRE_DE_LA_CARRERA%`; se sugiere el que
 
 - El lead de la semana es la **cantidad de tratos que hay en esa etapa al sincronizar** y reemplaza el dato de
   esa semana (también si se había capturado a mano); las semanas anteriores no cambian. La celda queda marcada "AC".
-- **Automático**: cada lunes a las 6:00 a. m. de Guatemala la función programada de Netlify guarda los leads en
-  la semana que cerró. **Manual**: "Sincronizar ahora" (semana en curso) o el botón de Indicadores (semana elegida).
+- Los leads **solo se guardan en la semana en curso**. **Automático**: cada lunes a las 6:00 a. m. de Guatemala
+  (función programada de Netlify). **Manual**: "Sincronizar ahora" en Ajustes o el botón de Indicadores (visible
+  en la semana en curso).
 - Se consulta una vez cada etapa y se procesa por tandas para no exceder el tiempo de las funciones; se muestra la
   última actualización en Ajustes y en Indicadores.
 - El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
@@ -139,7 +140,7 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   Al eliminar un puesto, sus dependientes no se borran: pasan a reportar al nivel de arriba.
 - **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos y fecha por hito.
 - **Metas de carrera** (`/metas`): meta mensual de leads y de presupuesto por carrera,
-  en una tabla de 12 meses editable, con filtros y opción de copiar un mes a otro.
+  en una tabla editable con los 12 meses del año más enero y febrero del siguiente, con filtros y opción de copiar un mes a otro.
 - **Control de carrera** (`/control`): visualización de los 12 hitos del lanzamiento de cada
   carrera (Definición, Producción, Activación, Mejora continua) y tablero Kanban: las
   tarjetas se arrastran entre hitos, llevan etiquetas, responsable y estado on/off track.

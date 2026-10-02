@@ -1,5 +1,6 @@
 // Sincronización semanal de leads desde ActiveCampaign: cada lunes a las 6:00 a. m. de
-// Guatemala (12:00 UTC). Llama a /api/cron/activecampaign en tandas hasta terminar.
+// Guatemala (12:00 UTC). Llama a /api/cron/activecampaign en tandas hasta terminar; los
+// leads se guardan en la semana en curso.
 async function acWeeklySync() {
   const base = (process.env.APP_URL || process.env.URL || "").replace(/\/$/, "");
   const secret = process.env.CRON_SECRET;
@@ -10,7 +11,7 @@ async function acWeeklySync() {
   let offset = 0;
   let week = "";
   for (let i = 0; i < 25; i++) {
-    const res = await fetch(`${base}/api/cron/activecampaign?offset=${offset}${week ? `&semana=${week}` : ""}`, {
+    const res = await fetch(`${base}/api/cron/activecampaign?offset=${offset}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${secret}` },
     });

@@ -24,7 +24,7 @@ import {
   ActiveCampaignNotConfiguredError,
 } from "@/lib/integrations/activecampaign";
 import { finishSync, syncChunk } from "@/lib/domain/ac-sync";
-import { shiftWeek } from "@/lib/utils/dates";
+import { shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import type { CareerLevel } from "@/lib/domain/types";
 
 export type ActionResult = { ok: boolean; message: string };
@@ -219,13 +219,13 @@ export async function importBudgetAction(payload: BudgetImportPayload): Promise<
 export type SyncStep = { ok: boolean; done: boolean; next: number; total: number; message: string };
 
 /**
- * Sincroniza los leads de la semana desde ActiveCampaign en tandas de etapas
- * (la pantalla llama de nuevo con `offset = next` hasta que `done`). Solo escribe la
- * semana indicada; las semanas anteriores no cambian.
+ * Sincroniza los leads desde ActiveCampaign en tandas de etapas (la pantalla llama de
+ * nuevo con `offset = next` hasta que `done`). Solo escribe la semana en curso; las
+ * demás semanas no cambian.
  */
-export async function syncLeadsStepAction(week: string, offset: number): Promise<SyncStep> {
+export async function syncLeadsStepAction(offset: number): Promise<SyncStep> {
   const session = await requireModule("indicadores");
-  const weekStart = normalizeWeek(week);
+  const weekStart = weekStartISO();
   if (!isActiveCampaignConfigured()) {
     return { ok: false, done: true, next: 0, total: 0, message: new ActiveCampaignNotConfiguredError().message };
   }

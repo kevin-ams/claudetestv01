@@ -4,7 +4,7 @@ import { listAliases, listCareers, listRecentImports, listWeekly, weeklyGoals } 
 import { mergeWeekly, money, num } from "@/lib/domain/careers-shared";
 import { listTeamMembers } from "@/lib/domain/users";
 import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
-import { formatWeekRange, lastClosedWeek, shiftWeek } from "@/lib/utils/dates";
+import { formatWeekRange, lastClosedWeek, shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import { CareerBoard } from "./career-board";
 import Link from "next/link";
 import { lastSync } from "@/lib/domain/ac-sync";
@@ -57,6 +57,7 @@ export default async function IndicadoresPage({
         week={week}
         weekLabel={`Semana ${formatWeekRange(week)}`}
         defaultWeek={lastClosedWeek()}
+        currentWeek={weekStartISO()}
         careers={careers.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
         aliases={aliases}
         members={members}

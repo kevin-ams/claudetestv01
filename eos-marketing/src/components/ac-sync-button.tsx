@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { syncLeadsStepAction, type SyncStep } from "@/app/(app)/indicadores/actions";
 
-/** "Actualizar leads desde ActiveCampaign": corre la sincronización por tandas y muestra el avance. */
+/**
+ * "Actualizar leads desde ActiveCampaign": corre la sincronización por tandas y muestra el
+ * avance. Siempre escribe la semana en curso.
+ */
 export function AcSyncButton({
-  week,
   label = "↻ Actualizar leads desde ActiveCampaign",
   variant = "outline",
   disabled,
 }: {
-  week: string;
   label?: string;
   variant?: "outline" | "primary" | "secondary";
   disabled?: boolean;
@@ -28,7 +29,7 @@ export function AcSyncButton({
     let offset = 0;
     try {
       for (let i = 0; i < 200; i++) {
-        const step = await syncLeadsStepAction(week, offset);
+        const step = await syncLeadsStepAction(offset);
         setProgress({ done: step.next, total: step.total });
         if (step.done) {
           setResult(step);

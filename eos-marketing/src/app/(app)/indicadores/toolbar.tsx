@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Chip, Input } from "@heroui/react";
+import { Button, Chip, Input, buttonVariants } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,6 +18,7 @@ export function Toolbar({
   week,
   weekLabel,
   defaultWeek,
+  currentWeek,
   careers,
   aliases,
   members,
@@ -27,6 +28,7 @@ export function Toolbar({
   week: string;
   weekLabel: string;
   defaultWeek: string;
+  currentWeek: string;
   careers: Pick<Career, "id" | "code" | "name">[];
   aliases: Record<string, number>;
   members: PublicUser[];
@@ -62,10 +64,15 @@ export function Toolbar({
         )}
 
         <div className="ml-auto flex flex-wrap gap-2">
-          {acConfigured ? (
-            <AcSyncButton week={week} />
-          ) : (
+          {!acConfigured ? (
             <Chip size="sm" color="warning" variant="soft">ActiveCampaign sin configurar</Chip>
+          ) : week === currentWeek ? (
+            <AcSyncButton />
+          ) : (
+            // Los leads de ActiveCampaign solo se guardan en la semana en curso.
+            <Link href={weekHref(currentWeek)} className={buttonVariants({ variant: "outline" })}>
+              Ir a la semana en curso para actualizar leads
+            </Link>
           )}
           <Button variant="outline" onPress={() => setPanel(panel === "import" ? null : "import")}>
             ⇪ Importar consumo (CSV)

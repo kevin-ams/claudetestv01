@@ -3,8 +3,9 @@ import { listCareers, listMonthlyGoals } from "@/lib/domain/careers";
 import { listTeamMembers } from "@/lib/domain/users";
 import { GoalsGrid } from "./goals-grid";
 
+/** Los 12 meses del año más enero y febrero del siguiente, para planificar el arranque del próximo año. */
 function monthsOf(year: number) {
-  return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}-01`);
+  return Array.from({ length: 14 }, (_, i) => `${year + Math.floor(i / 12)}-${String((i % 12) + 1).padStart(2, "0")}-01`);
 }
 
 export default async function MetasPage({
