@@ -65,7 +65,22 @@ La primera vez, abre el sitio y verás `/setup` para crear el equipo y el admini
 | `EOS_DATA_DIR` | Carpeta de la base de datos local (por defecto `.data/pglite`). |
 | `EOS_TIMEZONE` | Zona horaria para semanas y fechas (por defecto `America/Guatemala`). |
 | `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
-| `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Para activar la sincronización de leads (la consulta está preparada en `src/lib/integrations/activecampaign.ts`, falta implementarla). |
+| `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Leads semanales desde ActiveCampaign (Ajustes › Leads desde ActiveCampaign). |
+| `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función programada `netlify/functions/ac-weekly-sync.mts` (lunes 12:00 UTC). |
+
+## Leads desde ActiveCampaign
+
+En **Ajustes › Leads desde ActiveCampaign** cada carrera se vincula a un **embudo** y una **etapa** de tratos
+(por defecto la de "Interesado - Cola de Asesor") y, si el embudo tiene varias carreras, al valor del campo del
+trato **Nombre de la Carrera** (`%DEAL_NOMBRE_DE_LA_CARRERA%`; se sugiere el que coincide con el nombre).
+
+- El lead de la semana es la **cantidad de tratos que hay en esa etapa al sincronizar** y reemplaza el dato de
+  esa semana (también si se había capturado a mano); las semanas anteriores no cambian. La celda queda marcada "AC".
+- **Automático**: cada lunes a las 6:00 a. m. de Guatemala la función programada de Netlify guarda los leads en
+  la semana que cerró. **Manual**: "Sincronizar ahora" (semana en curso) o el botón de Indicadores (semana elegida).
+- Se consulta una vez cada etapa y se procesa por tandas para no exceder el tiempo de las funciones; se muestra la
+  última actualización en Ajustes y en Indicadores.
+- El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
 
 ## Correos (Resend)
 

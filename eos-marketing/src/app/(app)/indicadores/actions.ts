@@ -20,9 +20,10 @@ import { aliasKey, CAREER_LEVELS } from "@/lib/domain/careers-shared";
 import { isUserInTeam } from "@/lib/domain/users";
 import { seedMarketingTeam } from "@/lib/domain/marketing-seed";
 import {
-  fetchWeeklyLeadsByCareer,
+  isActiveCampaignConfigured,
   ActiveCampaignNotConfiguredError,
 } from "@/lib/integrations/activecampaign";
+import { finishSync, syncChunk } from "@/lib/domain/ac-sync";
 import { shiftWeek } from "@/lib/utils/dates";
 import type { CareerLevel } from "@/lib/domain/types";
 
@@ -213,45 +214,42 @@ export async function importBudgetAction(payload: BudgetImportPayload): Promise<
   };
 }
 
-// --- ActiveCampaign (preparado, sin conectar) -------------------------------
+// --- ActiveCampaign -----------------------------------------------------------
 
-export async function syncActiveCampaignAction(week: string): Promise<ActionResult> {
+export type SyncStep = { ok: boolean; done: boolean; next: number; total: number; message: string };
+
+/**
+ * Sincroniza los leads de la semana desde ActiveCampaign en tandas de etapas
+ * (la pantalla llama de nuevo con `offset = next` hasta que `done`). Solo escribe la
+ * semana indicada; las semanas anteriores no cambian.
+ */
+export async function syncLeadsStepAction(week: string, offset: number): Promise<SyncStep> {
   const session = await requireModule("indicadores");
   const weekStart = normalizeWeek(week);
-  const weekEnd = shiftWeek(weekStart, 1);
-
+  if (!isActiveCampaignConfigured()) {
+    return { ok: false, done: true, next: 0, total: 0, message: new ActiveCampaignNotConfiguredError().message };
+  }
   try {
-    const { leadsByCode } = await fetchWeeklyLeadsByCareer(weekStart, weekEnd);
-    const careers = await listCareers(session.teamId);
-    const byCode = new Map(careers.filter((c) => c.code).map((c) => [c.code.toUpperCase(), c.id]));
-
-    let updated = 0;
-    let total = 0;
-    for (const [code, leads] of Object.entries(leadsByCode)) {
-      const careerId = byCode.get(code.toUpperCase());
-      if (!careerId) continue;
-      await setWeeklyLeads({ careerId, weekStart, leads, source: "activecampaign", userId: session.userId });
-      updated++;
-      total += leads;
+    const r = await syncChunk({ teamId: session.teamId, weekStart, offset, size: 4, userId: session.userId });
+    if (r.totalStages === 0) {
+      return { ok: false, done: true, next: 0, total: 0, message: "Ninguna carrera está vinculada a ActiveCampaign. Vincúlalas en Ajustes › Leads desde ActiveCampaign." };
     }
-    await logImport({
-      teamId: session.teamId,
-      kind: "activecampaign",
-      weekStart,
-      fileName: null,
-      careersUpdated: updated,
-      total,
-      userId: session.userId,
-    });
+    if (!r.done) return { ok: true, done: false, next: r.next, total: r.totalStages, message: r.errors.join(" · ") };
+    const [team] = await finishSync({ teamId: session.teamId, weekStart, userId: session.userId, auto: false });
+    await logActivity(session, "indicadores", "Sincronizó leads desde ActiveCampaign", team ? `${team.ok} carrera(s) · ${team.total} lead(s) · semana ${weekStart}` : weekStart);
     refresh();
-    return { ok: true, message: `Leads actualizados desde ActiveCampaign en ${updated} carrera(s).` };
-  } catch (err) {
-    if (err instanceof ActiveCampaignNotConfiguredError) {
-      return { ok: false, message: err.message };
-    }
+    revalidatePath("/ajustes/activecampaign");
     return {
-      ok: false,
-      message: err instanceof Error ? err.message : "No se pudo actualizar desde ActiveCampaign.",
+      ok: !team?.failed,
+      done: true,
+      next: r.next,
+      total: r.totalStages,
+      message: team
+        ? `Leads actualizados desde ActiveCampaign: ${team.ok} carrera(s), ${team.total} lead(s) en la semana del ${weekStart}.` +
+          (team.failed ? ` ${team.failed} carrera(s) con error: revisa Ajustes › Leads desde ActiveCampaign.` : "")
+        : "Sin cambios.",
     };
+  } catch (err) {
+    return { ok: false, done: true, next: offset, total: 0, message: err instanceof Error ? err.message : "No se pudo actualizar desde ActiveCampaign." };
   }
 }

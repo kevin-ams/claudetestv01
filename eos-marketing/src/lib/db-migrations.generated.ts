@@ -59,5 +59,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "015_email",
     "sql": "-- Correos: enlaces para crear o restablecer contraseña y destinatarios de la planificación semanal.\nCREATE TABLE password_tokens (\n  id SERIAL PRIMARY KEY,\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  token_hash TEXT NOT NULL UNIQUE,         -- sha256 del token (el token solo viaja en el correo)\n  purpose TEXT NOT NULL DEFAULT 'reset',   -- 'reset' | 'invite'\n  expires_at TIMESTAMPTZ NOT NULL,\n  used_at TIMESTAMPTZ,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_password_tokens_user ON password_tokens(user_id);\n\nALTER TABLE teams ADD COLUMN planning_recipients TEXT NOT NULL DEFAULT '';\n"
+  },
+  {
+    "name": "016_activecampaign",
+    "sql": "-- Leads desde ActiveCampaign: cada carrera se vincula a un embudo y una etapa de tratos\n-- (y, si el embudo tiene varias carreras, al valor del campo \"Nombre de la Carrera\").\nCREATE TABLE career_ac_links (\n  career_id INTEGER PRIMARY KEY REFERENCES careers(id) ON DELETE CASCADE,\n  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  pipeline_id TEXT NOT NULL,\n  pipeline_name TEXT NOT NULL DEFAULT '',\n  stage_id TEXT NOT NULL,\n  stage_name TEXT NOT NULL DEFAULT '',\n  career_value TEXT NOT NULL DEFAULT '',   -- '' = todos los tratos de la etapa\n  last_count INTEGER,\n  last_synced_at TIMESTAMPTZ,\n  last_error TEXT NOT NULL DEFAULT '',\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_career_ac_links_team ON career_ac_links(team_id);\n\nALTER TABLE teams ADD COLUMN ac_last_sync_at TIMESTAMPTZ;\nALTER TABLE teams ADD COLUMN ac_last_sync_detail TEXT NOT NULL DEFAULT '';\n"
   }
 ];

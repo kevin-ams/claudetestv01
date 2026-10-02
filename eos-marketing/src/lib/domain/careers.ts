@@ -91,7 +91,8 @@ export async function setWeeklyLeads(input: {
   weekStart: string;
   leads: number | null;
   source: LeadsSource;
-  userId: number;
+  /** null = sincronización automática. */
+  userId: number | null;
 }) {
   const source = input.leads === null ? null : input.source;
   await db().sql`
@@ -158,7 +159,7 @@ export async function logImport(input: {
   fileName: string | null;
   careersUpdated: number;
   total: number;
-  userId: number;
+  userId: number | null;
 }) {
   await db().sql`
     INSERT INTO career_imports (team_id, kind, week_start, file_name, careers_updated, total, created_by)

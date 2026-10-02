@@ -1,14 +1,15 @@
 "use client";
 
-import { Button, Chip, Input, Tooltip } from "@heroui/react";
+import { Button, Chip, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Career, PublicUser } from "@/lib/domain/types";
 import { CAREER_LEVELS } from "@/lib/domain/careers-shared";
 import { shiftWeek } from "@/lib/utils/dates";
-import { createCareerAction, syncActiveCampaignAction, type ActionResult } from "./actions";
+import { createCareerAction } from "./actions";
+import { AcSyncButton } from "@/components/ac-sync-button";
 import { BudgetImporter } from "./budget-importer";
 
 type Panel = "import" | "add" | null;
@@ -35,8 +36,6 @@ export function Toolbar({
   const router = useRouter();
   const params = useSearchParams();
   const [panel, setPanel] = useState<Panel>(null);
-  const [syncResult, setSyncResult] = useState<ActionResult | null>(null);
-  const [syncing, startSync] = useTransition();
 
   function weekHref(target: string) {
     const next = new URLSearchParams(params.toString());
@@ -63,24 +62,11 @@ export function Toolbar({
         )}
 
         <div className="ml-auto flex flex-wrap gap-2">
-          <Tooltip delay={300}>
-            <Button variant="outline"
-              className="h-auto min-h-9 max-w-full whitespace-normal py-1.5 text-left"
-              isDisabled={syncing}
-              onPress={() =>
-                startSync(async () => {
-                  setSyncResult(await syncActiveCampaignAction(week));
-                  router.refresh();
-                })
-              }
-            >
-              {syncing ? "Actualizando..." : "↻ Actualizar leads desde ActiveCampaign"}
-              {!acConfigured && <Chip size="sm" color="warning" variant="soft">Pendiente</Chip>}
-            </Button>
-            <Tooltip.Content>
-              <p>{acConfigured ? "Traer los leads de la semana desde ActiveCampaign" : "Integración pendiente de conectar"}</p>
-            </Tooltip.Content>
-          </Tooltip>
+          {acConfigured ? (
+            <AcSyncButton week={week} />
+          ) : (
+            <Chip size="sm" color="warning" variant="soft">ActiveCampaign sin configurar</Chip>
+          )}
           <Button variant="outline" onPress={() => setPanel(panel === "import" ? null : "import")}>
             ⇪ Importar consumo (CSV)
           </Button>
@@ -89,15 +75,6 @@ export function Toolbar({
           </Button>
         </div>
       </div>
-
-      {syncResult && (
-        <div className={`rounded-lg px-3 py-2 text-sm ${syncResult.ok ? "bg-green-bg text-green" : "bg-yellow-bg text-yellow"}`}>
-          {syncResult.message}
-          <Button size="sm" variant="ghost" className="ml-3" onPress={() => setSyncResult(null)}>
-            Cerrar
-          </Button>
-        </div>
-      )}
 
       {panel === "import" && (
         <BudgetImporter careers={careers} aliases={aliases} week={week} onClose={() => setPanel(null)} />

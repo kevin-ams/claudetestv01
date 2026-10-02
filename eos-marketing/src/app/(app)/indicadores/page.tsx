@@ -6,6 +6,14 @@ import { listTeamMembers } from "@/lib/domain/users";
 import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { formatWeekRange, lastClosedWeek, shiftWeek } from "@/lib/utils/dates";
 import { CareerBoard } from "./career-board";
+import Link from "next/link";
+import { lastSync } from "@/lib/domain/ac-sync";
+
+const AC_WHEN = new Intl.DateTimeFormat("es", {
+  dateStyle: "medium",
+  timeStyle: "short",
+  timeZone: process.env.EOS_TIMEZONE || "America/Guatemala",
+});
 import { Toolbar } from "./toolbar";
 import { ExportButton } from "@/components/export-button";
 import { LoadCatalogButton } from "./load-catalog-button";
@@ -29,6 +37,7 @@ export default async function IndicadoresPage({
     listAliases(session.teamId),
     listRecentImports(session.teamId),
   ]);
+  const acLast = await lastSync(session.teamId);
   const rows = mergeWeekly(careers, weekly, goals);
   const programs = [...new Set(careers.map((c) => c.program))].sort((a, b) => a.localeCompare(b, "es"));
 
@@ -54,6 +63,15 @@ export default async function IndicadoresPage({
         programs={programs}
         acConfigured={isActiveCampaignConfigured()}
       />
+      {isActiveCampaignConfigured() && (
+        <p className="-mt-2 text-xs text-muted">
+          Leads de ActiveCampaign · última actualización:{" "}
+          {acLast.at ? `${AC_WHEN.format(new Date(acLast.at))} (${acLast.detail})` : "todavía no se ha sincronizado"} ·{" "}
+          <Link href="/ajustes/activecampaign" className="text-primary underline">
+            vincular carreras
+          </Link>
+        </p>
+      )}
 
       {careers.length === 0 ? (
         <Card className="flex flex-col gap-3 p-6">
