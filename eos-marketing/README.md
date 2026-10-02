@@ -93,7 +93,7 @@ La app envía correos con [Resend](https://resend.com) por su API HTTP (sin depe
 - **Planificación semanal** del Calendario editorial con el PDF adjunto; recuerda los destinatarios del equipo.
 - **Correo de prueba** en Ajustes › Diagnóstico.
 
-Variables (en Netlify): `RESEND_API_KEY` (secreta), `RESEND_FROM` (p. ej. `EOS Nivel 10 <eos@amscreativeint.com>`;
+Variables (en Netlify): `RESEND_API_KEY` (secreta), `RESEND_FROM` (p. ej. `Nombre <remitente@tudominio.com>`;
 sin ella se usa `onboarding@resend.dev`, que solo entrega al dueño de la cuenta de Resend) y `APP_URL`
 (dirección pública para los enlaces, p. ej. `https://eos.amscreativeint.com`). Los enlaces se guardan solo como
 hash (tabla `password_tokens`, fuera de los respaldos).

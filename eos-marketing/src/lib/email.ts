@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 /**
  * Correos con Resend (https://resend.com) usando su API HTTP.
  * - RESEND_API_KEY: llave de envío (variable secreta en Netlify).
- * - RESEND_FROM: remitente, p. ej. "EOS Nivel 10 <eos@amscreativeint.com>". Sin dominio
+ * - RESEND_FROM: remitente, p. ej. "Nombre <remitente@tudominio.com>". Sin dominio
  *   verificado solo funciona "onboarding@resend.dev", que entrega únicamente al dueño de la cuenta.
  * - APP_URL: dirección pública para los enlaces (si falta, se usa la del navegador).
  */
