@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { canEdit } from "@/lib/auth/access";
 import { listBank, listKeyDates, listOptions, listPieces, pieceWeekRange } from "@/lib/domain/editorial";
 import { listTeamMembers } from "@/lib/domain/users";
+import { getTeam } from "@/lib/domain/teams";
 import {
   addDaysISO,
   formatMonth,
@@ -32,6 +33,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/calen
     canEdit("calendario"),
     pieceWeekRange(session.teamId),
   ]);
+  const team = await getTeam(session.teamId);
 
   const nav = buttonVariants({ variant: "outline", size: "sm" });
   return (
@@ -81,6 +83,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/calen
         options={options}
         currentUserId={session.userId}
         editable={editable}
+        planningRecipients={team?.planning_recipients ?? ""}
       />
     </div>
   );

@@ -57,3 +57,8 @@ export async function getTeamLogo(teamId: number): Promise<{ image: Uint8Array; 
   const image = await (await storage()).get(logoKey(teamId));
   return image ? { image, mime } : null;
 }
+
+/** Correos a los que se envía la planificación semanal (p. ej. jefatura). */
+export async function setPlanningRecipients(teamId: number, recipients: string) {
+  await db().sql`UPDATE teams SET planning_recipients = ${recipients} WHERE id = ${teamId}`;
+}

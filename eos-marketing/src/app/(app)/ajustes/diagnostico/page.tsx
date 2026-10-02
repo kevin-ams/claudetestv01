@@ -4,6 +4,8 @@ import { daysSinceLastBackup, lastBackupEvents } from "@/lib/backup";
 import { BackupPanel } from "./backup-panel";
 import { runDiagnostics } from "@/lib/domain/diagnostics";
 import { SettingsHeader } from "../settings-header";
+import { emailConfigured, emailFrom } from "@/lib/email";
+import { EmailPanel } from "./email-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ export default async function DiagnosticoPage() {
       <BackupPanel
         events={events.map((e) => ({ ...e, when: WHEN.format(new Date(e.created_at)) }))}
         canEdit={admin} days={daysSinceLastBackup(events)} />
+      <EmailPanel configured={emailConfigured()} from={emailFrom()} canTest={admin} />
       <p
         role="status"
         className={`rounded-lg px-3 py-2 text-sm font-semibold ${failed ? "bg-red-bg text-red" : "bg-green-bg text-green"}`}

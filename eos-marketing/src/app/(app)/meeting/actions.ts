@@ -20,7 +20,12 @@ import {
 import { getAccess } from "@/lib/auth/access";
 import { createTodo } from "@/lib/domain/todos";
 import { createIssue } from "@/lib/domain/issues";
-import { isUserInTeam } from "@/lib/domain/users";
+import { isUserInTeam, listTeamMembers } from "@/lib/domain/users";
+import { meetingRecap } from "@/lib/domain/meeting-recap";
+import { getTeam } from "@/lib/domain/teams";
+import { buildMeetingSummaryPdf } from "@/lib/pdf/meeting-summary";
+import { DEFAULT_THEME_COLOR } from "@/lib/theme";
+import { appUrl, emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
 import type { IssueTerm } from "@/lib/domain/types";
 
 export async function startNewMeetingAction() {
@@ -160,4 +165,51 @@ export async function rateAttendeeAction(meetingId: number, userId: number, rati
     await rateMeeting(meetingId, userId, value);
   }
   revalidatePath(`/meeting/${meetingId}`);
+}
+
+/**
+ * Envía el resumen PDF por correo: a quienes asistieron (o a todo el equipo si no se
+ * pasó lista) y, opcionalmente, a otros correos (p. ej. jefatura).
+ */
+export async function sendMeetingSummaryAction(
+  meetingId: number,
+  extraRecipients: string
+): Promise<{ ok: boolean; message: string }> {
+  const session = await requireModule("meeting", "view");
+  const recap = await meetingRecap(meetingId, session.teamId);
+  if (!recap) return { ok: false, message: "Reunión no encontrada." };
+  const extra = parseRecipients(extraRecipients);
+  if (extra.invalid) return { ok: false, message: `Correo inválido: ${extra.invalid}` };
+
+  const members = await listTeamMembers(session.teamId);
+  const present = new Set(recap.attendance.filter((a) => a.present).map((a) => a.user_id));
+  const people = present.size ? members.filter((m) => present.has(m.id)) : members;
+  // Los correos provisionales (*.local) no existen: se omiten.
+  const to = [...new Set([...people.map((m) => m.email.toLowerCase()), ...extra.emails])].filter((e) => !e.endsWith(".local"));
+  if (to.length === 0) return { ok: false, message: "No hay correos válidos a quién enviar." };
+
+  const team = await getTeam(session.teamId);
+  const pdf = await buildMeetingSummaryPdf(recap, team?.theme_color ?? DEFAULT_THEME_COLOR);
+  const date = (recap.meeting.started_at ?? recap.meeting.created_at).slice(0, 10);
+  const base = await appUrl();
+  const avg = recap.average !== null ? `${recap.average.toFixed(1)}/10` : "sin calificar";
+  const result = await sendEmail({
+    to,
+    replyTo: session.email,
+    subject: `Resumen Reunión L10 · ${recap.teamName} · ${date}`,
+    html: emailLayout({
+      title: `Resumen de la Reunión L10`,
+      intro: `${escapeHtml(session.name)} comparte el resumen de la reunión #${recap.meeting.id} de <b>${escapeHtml(recap.teamName)}</b> (${date}). Va adjunto en PDF.`,
+      body: `<ul style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#374151;padding-left:18px">
+<li>Calificación: <b>${avg}</b></li>
+<li>To-Dos nuevos: <b>${recap.todos.created.length}</b> · pendientes revisados: <b>${recap.todos.pending.length}</b></li>
+<li>Issues resueltos: <b>${recap.issues.solved.length}</b> · nuevos: <b>${recap.issues.created.length}</b></li>
+<li>Indicadores fuera de meta: <b>${recap.scorecard.offTrack.length}</b></li></ul>`,
+      cta: { label: "Abrir EOS Nivel 10", url: `${base}/meeting` },
+      color: team?.theme_color,
+    }),
+    attachments: [{ filename: `resumen-reunion-L10-${recap.meeting.id}_${date}.pdf`, content: pdf }],
+  });
+  if (result.ok) await logActivity(session, "meeting", "Envió resumen por correo", `Reunión #${meetingId} → ${to.join(", ")}`);
+  return result;
 }

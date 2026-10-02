@@ -18,7 +18,10 @@ import {
 } from "@/lib/domain/editorial";
 import { CAPAS } from "@/lib/domain/editorial-shared";
 import { isUserInTeam } from "@/lib/domain/users";
-import { weekStartISO } from "@/lib/utils/dates";
+import { formatWeekRange, weekStartISO } from "@/lib/utils/dates";
+import { weekPlanPdf } from "@/lib/domain/week-plan";
+import { setPlanningRecipients } from "@/lib/domain/teams";
+import { emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
 import { parseISO } from "date-fns";
 
 export type ActionResult = { ok: boolean; message: string };
@@ -149,4 +152,31 @@ export async function deleteOptionAction(kind: string, id: number) {
   await deleteOption(session.teamId, id);
   revalidatePath("/calendario");
   revalidatePath("/coberturas");
+}
+
+/** Envía por correo el PDF de planificación de la semana; recuerda los destinatarios del equipo. */
+export async function sendWeekPlanAction(week: string, recipients: string): Promise<ActionResult> {
+  const session = await requireModule("calendario", "view");
+  if (!ISO.test(week)) return { ok: false, message: "Semana inválida." };
+  const { emails, invalid } = parseRecipients(recipients);
+  if (invalid) return { ok: false, message: `Correo inválido: ${invalid}` };
+  if (emails.length === 0) return { ok: false, message: "Escribe al menos un correo." };
+
+  const { pdf, week: monday, team, pieces } = await weekPlanPdf(session.teamId, week);
+  await setPlanningRecipients(session.teamId, emails.join(", "));
+  const range = formatWeekRange(monday);
+  const active = pieces.filter((p) => !["Cancelado", "Reprogramado"].includes(p.status));
+  const result = await sendEmail({
+    to: emails,
+    replyTo: session.email,
+    subject: `Planificación de contenido · ${team?.name ?? "Equipo"} · ${range}`,
+    html: emailLayout({
+      title: "Planificación semanal de contenido",
+      intro: `${escapeHtml(session.name)} comparte la planificación de <b>${escapeHtml(team?.name ?? "el equipo")}</b> para la semana del <b>${escapeHtml(range)}</b>: ${active.length} pieza(s). El detalle va adjunto en PDF.`,
+      color: team?.theme_color,
+    }),
+    attachments: [{ filename: `planificacion-contenido_${monday}.pdf`, content: pdf }],
+  });
+  if (result.ok) await logActivity(session, "calendario", "Envió planificación por correo", `Semana ${monday} → ${emails.join(", ")}`);
+  return result;
 }

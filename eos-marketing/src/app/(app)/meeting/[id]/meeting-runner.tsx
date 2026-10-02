@@ -28,8 +28,10 @@ import { TodoList } from "../../todos/todo-list";
 import { CareerSummary } from "../../indicadores/career-summary";
 import { careerLabel, num, type CareerRow } from "@/lib/domain/careers-shared";
 import { QuickCreateBar, QuickCreateModal, type QuickDraft } from "./quick-create";
+import { SendEmailInline } from "@/components/send-email-button";
 import {
   advanceSegmentAction,
+  sendMeetingSummaryAction,
   addHeadlineAction,
   rateMeetingAction,
   completeMeetingAction,
@@ -461,6 +463,12 @@ export function MeetingRunner({
           <Link href="/meeting" className={buttonVariants({ variant: "outline" })}>
             Volver al historial
           </Link>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <SendEmailInline
+            send={(extra) => sendMeetingSummaryAction(meeting.id, extra)}
+            hint="Se envía con el PDF adjunto a quienes asistieron (o a todo el equipo si no se pasó lista). Puedes agregar otros correos, p. ej. jefatura."
+          />
         </div>
         <p className="mt-3 text-xs text-muted">
           Incluye calificación, Scorecard, indicadores, Rocks, noticias, To-Dos pendientes y nuevos, IDS y mensajes a cascadear.

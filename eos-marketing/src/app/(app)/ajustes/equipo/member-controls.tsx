@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
-import { removeMemberAction, setMemberRoleAction, type MemberResult } from "./actions";
+import { removeMemberAction, sendAccessEmailAction, setMemberRoleAction, type MemberResult } from "./actions";
 
 /** Rol de la persona (solo administradores lo cambian) y botón para quitarla del equipo. */
 export function MemberControls({
@@ -48,6 +48,11 @@ export function MemberControls({
           ))}
         </AppSelect>
         {!isSelf && (
+          <Button size="sm" variant="ghost" isDisabled={pending} onPress={() => run(() => sendAccessEmailAction(userId))}>
+            Enviar acceso
+          </Button>
+        )}
+        {!isSelf && (
           <Button
             size="sm"
             variant="ghost"
@@ -61,7 +66,7 @@ export function MemberControls({
           </Button>
         )}
       </div>
-      {result && !result.ok && <span className="text-xs text-red">{result.message}</span>}
+      {result && <span className={`max-w-80 text-right text-xs ${result.ok ? "text-green" : "text-red"}`}>{result.message}</span>}
     </div>
   );
 }

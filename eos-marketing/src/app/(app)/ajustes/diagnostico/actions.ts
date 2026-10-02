@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAccess } from "@/lib/auth/access";
 import { parseBackup, recordBackupEvent, restoreBackup } from "@/lib/backup";
 import { logActivity } from "@/lib/domain/activity";
+import { appUrl, emailFrom, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 
 export type RestoreResult = { ok: boolean; message: string };
 
@@ -27,4 +28,19 @@ export async function restoreBackupAction(formData: FormData): Promise<RestoreRe
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "No se pudo restaurar el respaldo." };
   }
+}
+
+/** Correo de prueba a quien lo pide (para comprobar Resend y el dominio). */
+export async function sendTestEmailAction(): Promise<RestoreResult> {
+  const access = await getAccess();
+  if (!access?.isAdmin) return { ok: false, message: "Solo un administrador puede enviar la prueba." };
+  const s = access.session;
+  return sendEmail({
+    to: [s.email],
+    subject: "Prueba de correo · EOS Nivel 10",
+    html: emailLayout({
+      title: "¡El correo funciona!",
+      intro: `Hola ${escapeHtml(s.name)}, este es un correo de prueba enviado desde ${escapeHtml(await appUrl())} con el remitente <b>${escapeHtml(emailFrom())}</b>.`,
+    }),
+  });
 }

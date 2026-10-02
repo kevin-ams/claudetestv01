@@ -24,7 +24,9 @@ import {
   deletePieceAction,
   savePieceAction,
   setPieceStatusAction,
+  sendWeekPlanAction,
 } from "./actions";
+import { SendEmailInline } from "@/components/send-email-button";
 
 type Member = { id: number; name: string };
 
@@ -53,7 +55,9 @@ export function CalendarBoard({
   options,
   currentUserId,
   editable,
+  planningRecipients,
 }: {
+  planningRecipients: string;
   weeks: string[];
   pieces: EditorialPiece[];
   bank: EditorialPiece[];
@@ -144,6 +148,7 @@ export function CalendarBoard({
           members={members}
           options={options}
           editable={editable}
+          planningRecipients={planningRecipients}
         />
       ))}
 
@@ -329,6 +334,7 @@ function KeyDates({ dates, editable, options }: { dates: EditorialDate[]; editab
 // ---------------- Semana ----------------
 
 function WeekSection({
+  planningRecipients,
   index,
   week,
   pieces,
@@ -346,6 +352,7 @@ function WeekSection({
   members: Member[];
   options: EditorialOptions;
   editable: boolean;
+  planningRecipients: string;
 }) {
   const [adding, setAdding] = useState<null | "plan" | "buffer">(null);
   const s = summarizePieces(allWeekPieces);
@@ -380,14 +387,24 @@ function WeekSection({
             ))}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          <SendEmailInline
+            label="✉ Enviar planificación"
+            variant="secondary"
+            size="sm"
+            requireRecipients
+            defaultRecipients={planningRecipients}
+            placeholder="Correos de jefatura, separados por coma"
+            hint="Se envía el PDF de esta semana. Los correos quedan guardados para la próxima vez."
+            send={(to) => sendWeekPlanAction(week, to)}
+          />
           <a
-            className={buttonVariants({ variant: "secondary", size: "sm" })}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
             href={`/api/calendario/planificacion?semana=${week}`}
             target="_blank"
             rel="noopener"
           >
-            Enviar planificación (PDF)
+            Ver PDF
           </a>
         {editable && (
           <>

@@ -67,6 +67,22 @@ La primera vez, abre el sitio y verás `/setup` para crear el equipo y el admini
 | `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Para activar la sincronización de leads (la consulta está preparada en `src/lib/integrations/activecampaign.ts`, falta implementarla). |
 
+## Correos (Resend)
+
+La app envía correos con [Resend](https://resend.com) por su API HTTP (sin dependencias extra):
+
+- **¿Olvidaste tu contraseña?** en el login: enlace de un solo uso, vence en 1 hora (`/recuperar` → `/restablecer`).
+- **Acceso por correo**: al agregar a alguien (Ajustes › Equipo) o con el botón "Enviar acceso", la persona
+  recibe un enlace (7 días) para crear su contraseña.
+- **Resumen de la Reunión L10** con el PDF adjunto, a quienes asistieron y a otros correos opcionales.
+- **Planificación semanal** del Calendario editorial con el PDF adjunto; recuerda los destinatarios del equipo.
+- **Correo de prueba** en Ajustes › Diagnóstico.
+
+Variables (en Netlify): `RESEND_API_KEY` (secreta), `RESEND_FROM` (p. ej. `EOS Nivel 10 <eos@amscreativeint.com>`;
+sin ella se usa `onboarding@resend.dev`, que solo entrega al dueño de la cuenta de Resend) y `APP_URL`
+(dirección pública para los enlaces, p. ej. `https://eos.amscreativeint.com`). Los enlaces se guardan solo como
+hash (tabla `password_tokens`, fuera de los respaldos).
+
 ## Interfaz (HeroUI v3)
 
 Toda la interfaz usa [HeroUI v3](https://heroui.com) (`@heroui/react`, Tailwind 4 + React

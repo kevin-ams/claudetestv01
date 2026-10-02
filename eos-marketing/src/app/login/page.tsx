@@ -5,7 +5,8 @@ import { getSession } from "@/lib/auth/session";
 import { Card } from "@heroui/react";
 import { LoginForm } from "./login-form";
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const { restablecida } = await searchParams;
   const session = await getSession();
   if (session && (await isUserInTeam(session.userId, session.teamId))) redirect("/");
 
@@ -24,7 +25,15 @@ export default async function LoginPage() {
           </Card.Description>
         </Card.Header>
         <Card.Content>
+          {restablecida && (
+            <p role="status" className="mt-4 rounded-lg bg-green-bg px-3 py-2 text-sm text-green">
+              Contraseña guardada. Ya puedes entrar.
+            </p>
+          )}
           <LoginForm />
+          <Link href="/recuperar" className="mt-3 inline-block text-sm text-primary underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
         </Card.Content>
         <Card.Footer className="text-xs text-muted">
           <span>

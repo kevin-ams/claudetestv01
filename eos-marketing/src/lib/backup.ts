@@ -10,7 +10,7 @@ import { MIGRATIONS } from "@/lib/db-migrations.generated";
  */
 
 export const BACKUP_FORMAT = "eos-marketing-respaldo";
-const SKIP = new Set(["_migrations", "backup_events"]);
+const SKIP = new Set(["_migrations", "backup_events", "password_tokens"]);
 const ident = (name: string) => `"${name.replace(/"/g, '""')}"`;
 
 type Backup = {

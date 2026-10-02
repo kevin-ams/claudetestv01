@@ -20,6 +20,7 @@ export type Team = {
   theme_color: string;
   logo_mime: string | null;
   logo_updated_at: string | null;
+  planning_recipients: string;
 };
 
 export type TeamMember = {
