@@ -13,7 +13,10 @@ export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET ?? "";
   const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const ok = secret.length >= 16 && given.length === secret.length && timingSafeEqual(Buffer.from(given), Buffer.from(secret));
-  if (!ok) return Response.json({ error: "No autorizado" }, { status: 401 });
+  if (!ok) {
+    // Sin revelar el secreto: indica si falta configurarlo en el servidor.
+    return Response.json({ error: secret.length < 16 ? "CRON_SECRET no está configurado en el servidor" : "No autorizado" }, { status: 401 });
+  }
   if (!isActiveCampaignConfigured()) return Response.json({ error: "ActiveCampaign sin configurar" }, { status: 503 });
 
   const url = new URL(request.url);
