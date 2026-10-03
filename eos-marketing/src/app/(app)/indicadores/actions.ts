@@ -221,6 +221,8 @@ export type SyncStep = {
   done: boolean;
   pipelinesDone: number;
   pipelinesTotal: number;
+  dealsDone: number;
+  dealsTotal: number;
   checked: number;
   message: string;
 };
@@ -240,13 +242,19 @@ function freshAfter(startedAt: string): Date {
 export async function syncLeadsStepAction(startedAt: string, write = true): Promise<SyncStep> {
   const session = await requireModule("indicadores");
   const weekStart = weekStartISO();
-  const empty = { pipelinesDone: 0, pipelinesTotal: 0, checked: 0 };
+  const empty = { pipelinesDone: 0, pipelinesTotal: 0, dealsDone: 0, dealsTotal: 0, checked: 0 };
   if (!isActiveCampaignConfigured()) {
     return { ok: false, done: true, ...empty, message: new ActiveCampaignNotConfiguredError().message };
   }
   try {
     const r = await scanStep({ teamId: session.teamId, freshAfter: freshAfter(startedAt), budgetMs: 8000 });
-    const progress = { pipelinesDone: r.pipelinesDone, pipelinesTotal: r.pipelinesTotal, checked: r.checked };
+    const progress = {
+      pipelinesDone: r.pipelinesDone,
+      pipelinesTotal: r.pipelinesTotal,
+      dealsDone: r.dealsDone,
+      dealsTotal: r.dealsTotal,
+      checked: r.checked,
+    };
     if (r.pipelinesTotal === 0) {
       return { ok: false, done: true, ...empty, message: "Ninguna carrera está vinculada a ActiveCampaign. Vincúlalas en Ajustes › Leads desde ActiveCampaign." };
     }

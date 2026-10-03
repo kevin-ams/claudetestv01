@@ -67,5 +67,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "017_ac_entries",
     "sql": "-- Leads calificados desde ActiveCampaign: fecha en que cada trato entró por primera vez a un\n-- embudo vinculado (sale del historial de cambios de etapa del trato). El lead de la semana es\n-- la cantidad de tratos que entraron al embudo en esa semana, filtrados por carrera.\nCREATE TABLE ac_deal_entries (\n  deal_id TEXT NOT NULL,\n  pipeline_id TEXT NOT NULL,\n  career_value TEXT NOT NULL DEFAULT '',\n  career_norm TEXT NOT NULL DEFAULT '',    -- sin tildes ni mayúsculas, para comparar\n  entered_at TIMESTAMPTZ,                   -- NULL = no se encontró la entrada al embudo\n  deal_mdate TEXT NOT NULL DEFAULT '',      -- última modificación revisada (si cambia, se vuelve a revisar)\n  checked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  PRIMARY KEY (deal_id, pipeline_id)\n);\nCREATE INDEX idx_ac_deal_entries_pipeline ON ac_deal_entries(pipeline_id, entered_at);\n\n-- Avance de la revisión de cada embudo (se retoma donde quedó).\nCREATE TABLE ac_pipeline_scans (\n  pipeline_id TEXT PRIMARY KEY,\n  since_date TEXT NOT NULL,                 -- revisar tratos modificados desde esta fecha (AAAA-MM-DD)\n  page_offset INTEGER NOT NULL DEFAULT 0,\n  next_since TEXT NOT NULL DEFAULT '',      -- fecha de modificación más reciente vista en esta pasada\n  scanned_at TIMESTAMPTZ,                   -- última vez que se terminó de revisar\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n"
+  },
+  {
+    "name": "018_ac_scan_progress",
+    "sql": "-- Avance por tratos de la revisión de cada embudo (para la barra de avance).\nALTER TABLE ac_pipeline_scans ADD COLUMN deals_total INTEGER NOT NULL DEFAULT 0;\nALTER TABLE ac_pipeline_scans ADD COLUMN deals_done INTEGER NOT NULL DEFAULT 0;\n"
   }
 ];

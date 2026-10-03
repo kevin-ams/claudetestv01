@@ -29,12 +29,14 @@ const PAGE = 100;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// ActiveCampaign permite ~5 solicitudes por segundo: se espacian las llamadas de este proceso.
-let lastCall = 0;
+// ActiveCampaign permite ~5 solicitudes por segundo: cada llamada de este proceso reserva su
+// turno (también cuando hay varias en paralelo).
+let nextSlot = 0;
 async function throttle() {
-  const wait = lastCall + 220 - Date.now();
-  if (wait > 0) await sleep(wait);
-  lastCall = Date.now();
+  const now = Date.now();
+  const slot = Math.max(now, nextSlot);
+  nextSlot = slot + 220;
+  if (slot > now) await sleep(slot - now);
 }
 
 async function acGet<T>(path: string): Promise<T> {
@@ -154,7 +156,12 @@ export type AcDeal = { id: string; stage: string; cdate: string; mdate: string; 
  * Una página de tratos del embudo modificados desde `since` (AAAA-MM-DD), del más antiguo
  * al más reciente, con su "Nombre de la Carrera".
  */
-export async function dealsUpdatedSince(pipelineId: string, since: string, offset: number, limit: number): Promise<AcDeal[]> {
+export async function dealsUpdatedSince(
+  pipelineId: string,
+  since: string,
+  offset: number,
+  limit: number
+): Promise<{ deals: AcDeal[]; total: number }> {
   const fieldId = await getCareerFieldId();
   const r = await acGet<Omit<DealsPage, "deals"> & { deals: { id: string; stage?: string; cdate?: string; mdate?: string }[] }>(
     `deals?filters[group]=${encodeURIComponent(pipelineId)}&filters[updated_after]=${encodeURIComponent(since)}` +
@@ -167,19 +174,24 @@ export async function dealsUpdatedSince(pipelineId: string, since: string, offse
     const deal = String(d.deal_id ?? d.deal ?? d.dealId ?? "");
     careerByDeal.set(deal, String(d.custom_field_text_value ?? d.custom_field_text_blob ?? d.fieldValue ?? "").trim());
   }
-  return r.deals.map((d) => ({
+  const deals = r.deals.map((d) => ({
     id: String(d.id),
     stage: String(d.stage ?? ""),
     cdate: String(d.cdate ?? ""),
     mdate: String(d.mdate ?? ""),
     career: careerByDeal.get(String(d.id)) ?? "",
   }));
+  return { deals, total: Number(r.meta?.total ?? 0) || 0 };
 }
 
 export type StageChange = { from: string; to: string; at: string };
 
-/** Cambios de etapa del trato (incluye los cambios de embudo), en orden cronológico. */
-export async function dealStageChanges(dealId: string): Promise<StageChange[]> {
+/**
+ * Cambios de etapa del trato (incluye los cambios de embudo), en orden cronológico. El
+ * historial viene del más antiguo al más reciente: se deja de paginar en cuanto `enough`
+ * dice que ya se encontró lo necesario (p. ej. la entrada al embudo).
+ */
+export async function dealStageChanges(dealId: string, enough: (changes: StageChange[]) => boolean = () => false): Promise<StageChange[]> {
   const out: StageChange[] = [];
   for (let page = 0; page < 30; page++) {
     const r = await acGet<{ dealActivities?: Record<string, unknown>[] }>(
@@ -190,9 +202,10 @@ export async function dealStageChanges(dealId: string): Promise<StageChange[]> {
       if (a.dataType !== "d_stageid") continue;
       out.push({ from: String(a.dataOldval ?? ""), to: String(a.dataAction ?? ""), at: String(a.cdate ?? "") });
     }
-    if (rows.length < PAGE) break;
+    out.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    if (rows.length < PAGE || enough(out)) break;
   }
-  return out.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  return out;
 }
 
 let stageGroups: { at: number; map: Promise<Map<string, string>> } | undefined;
@@ -219,11 +232,24 @@ export async function stageGroupMap(): Promise<Map<string, string>> {
  * en el primer cambio de una etapa de otro embudo a una de este. null si no se encuentra.
  */
 export function firstEntry(deal: AcDeal, changes: StageChange[], groupOf: Map<string, string>, pipelineId: string): string | null {
+  // Sin cambios de etapa: el trato sigue en la etapa donde nació.
+  if (!changes.length) return groupOf.get(deal.stage) === pipelineId ? deal.cdate || null : null;
+  return entryFound(deal, changes, groupOf, pipelineId) ?? null;
+}
+
+/** La entrada al embudo según los cambios leídos hasta ahora; undefined = falta historial. */
+function entryFound(deal: AcDeal, changes: StageChange[], groupOf: Map<string, string>, pipelineId: string): string | null | undefined {
+  if (!changes.length) return undefined;
   const inPipeline = (stage: string) => groupOf.get(stage) === pipelineId;
-  const initial = changes.length ? changes[0].from : deal.stage;
-  if (initial && inPipeline(initial)) return deal.cdate || null;
+  if (inPipeline(changes[0].from)) return deal.cdate || null;
   for (const c of changes) if (inPipeline(c.to) && !inPipeline(c.from)) return c.at;
-  return null;
+  return undefined;
+}
+
+/** Fecha de entrada al embudo leyendo solo el historial necesario. */
+export async function dealEntry(deal: AcDeal, groupOf: Map<string, string>, pipelineId: string): Promise<string | null> {
+  const changes = await dealStageChanges(deal.id, (c) => entryFound(deal, c, groupOf, pipelineId) !== undefined);
+  return firstEntry(deal, changes, groupOf, pipelineId);
 }
 
 export const normCareer = norm;
@@ -292,7 +318,11 @@ export async function probeDealHistory(pipelineId: string) {
         await acRaw(`deals/${dealId}/dealStageHistories`),
       ]
     : [];
+  const ids = (r: { body: unknown }) => ((r.body as { deals?: { id: string }[] })?.deals ?? []).map((d) => String(d.id));
+  const page0 = await acRaw(`deals?filters[group]=${g}&orders[mdate]=ASC&limit=2&offset=0`);
+  const page1 = await acRaw(`deals?filters[group]=${g}&orders[mdate]=ASC&limit=2&offset=2`);
   const filters = [
+    { path: "offset=0 vs offset=2", status: page1.status, total: `${ids(page0).join(",")} | ${ids(page1).join(",")}` },
     await acRaw(`deals?filters[group]=${g}&limit=1`),
     await acRaw(`deals?filters[group]=${g}&filters[updated_after]=${weekAgo}&limit=1`),
     await acRaw(`deals?filters[group]=${g}&filters[created_after]=${weekAgo}&limit=1`),
@@ -302,6 +332,6 @@ export async function probeDealHistory(pipelineId: string) {
     recentStatus: recent.status,
     deals,
     history: history.map((h) => ({ path: h.path.replace(`/${dealId}/`, "/{id}/").replace(`=${dealId}&`, "={id}&"), status: h.status, body: scrub(h.body) })),
-    filters: filters.map((f) => ({ path: f.path, status: f.status, total: total(f) })),
+    filters: filters.map((f) => ({ path: f.path, status: f.status, total: "body" in f ? total(f) : f.total })),
   };
 }

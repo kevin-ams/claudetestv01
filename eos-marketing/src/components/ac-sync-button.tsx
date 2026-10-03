@@ -5,42 +5,60 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { syncLeadsStepAction, type SyncStep } from "@/app/(app)/indicadores/actions";
 
-export type ScanProgress = { pipelinesDone: number; pipelinesTotal: number; checked: number };
+export type ScanProgress = { pipelinesDone: number; pipelinesTotal: number; dealsDone: number; dealsTotal: number; checked: number };
 
 /**
  * Revisa el historial de ActiveCampaign en tandas hasta terminar (cada tanda es una llamada
- * al servidor). Con `write`, al final guarda los leads de la semana en curso.
+ * al servidor). Con `write`, al final guarda los leads de la semana en curso. Se detiene si
+ * varias tandas seguidas no avanzan.
  */
 export async function runLeadsScan(write: boolean, onProgress: (p: ScanProgress) => void): Promise<SyncStep> {
   const startedAt = new Date().toISOString();
   let checked = 0;
+  let stalled = 0;
+  let lastKey = "";
+  const fail = (message: string): SyncStep => ({
+    ok: false,
+    done: true,
+    pipelinesDone: 0,
+    pipelinesTotal: 0,
+    dealsDone: 0,
+    dealsTotal: 0,
+    checked,
+    message,
+  });
   try {
     for (let i = 0; i < 3000; i++) {
       const step = await syncLeadsStepAction(startedAt, write);
       checked += step.checked;
-      onProgress({ pipelinesDone: step.pipelinesDone, pipelinesTotal: step.pipelinesTotal, checked });
+      onProgress({ ...step, checked });
       if (step.done) return { ...step, checked };
+      const key = `${step.pipelinesDone}/${step.dealsDone}`;
+      stalled = step.checked === 0 && key === lastKey ? stalled + 1 : 0;
+      lastKey = key;
+      if (stalled >= 5) return fail(`La revisión no avanza. ${step.message || "Vuelve a intentarlo en unos minutos (retoma donde quedó)."}`);
     }
-    return { ok: false, done: true, pipelinesDone: 0, pipelinesTotal: 0, checked, message: "La revisión tomó demasiado; vuelve a intentarlo (retoma donde quedó)." };
+    return fail("La revisión tomó demasiado; vuelve a intentarlo (retoma donde quedó).");
   } catch {
-    return { ok: false, done: true, pipelinesDone: 0, pipelinesTotal: 0, checked, message: "Se interrumpió la revisión. Vuelve a intentarlo: retoma donde quedó." };
+    return fail("Se interrumpió la revisión. Vuelve a intentarlo: retoma donde quedó.");
   }
 }
 
 /** Barra de avance de la revisión del historial. */
 export function ScanProgressBar({ progress }: { progress: ScanProgress | null }) {
-  const pct = progress?.pipelinesTotal ? Math.round((progress.pipelinesDone / progress.pipelinesTotal) * 100) : 0;
+  const total = progress?.dealsTotal ?? 0;
+  const pct = total ? Math.round(((progress?.dealsDone ?? 0) / total) * 100) : 0;
   return (
     <div className="flex w-full max-w-md flex-col gap-1" role="status" aria-live="polite">
       <div className="h-2 overflow-hidden rounded-full bg-border" aria-hidden>
         <div
-          className={`h-full rounded-full bg-primary transition-all duration-500 ${progress?.pipelinesTotal ? "" : "w-1/3 animate-pulse"}`}
-          style={progress?.pipelinesTotal ? { width: `${Math.max(pct, 3)}%` } : undefined}
+          className={`h-full rounded-full bg-primary transition-all duration-500 ${total ? "" : "w-1/3 animate-pulse"}`}
+          style={total ? { width: `${Math.min(100, Math.max(pct, 3))}%` } : undefined}
         />
       </div>
       <p className="text-xs text-muted">
-        {progress?.pipelinesTotal
-          ? `Embudos revisados: ${progress.pipelinesDone} de ${progress.pipelinesTotal} · ${progress.checked} trato(s) con historial leído`
+        {progress
+          ? `${total ? `${pct}% · tratos revisados: ${progress.dealsDone} de ${total}` : "Contando tratos…"} · embudos: ${progress.pipelinesDone} de ${progress.pipelinesTotal} · historiales leídos: ${progress.checked}`
           : "Conectando con ActiveCampaign…"}
         {" · "}no cierres esta página.
       </p>

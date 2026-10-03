@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { dealStageChanges, dealsUpdatedSince, firstEntry, normCareer, stageGroupMap } from "@/lib/integrations/activecampaign";
+import { dealEntry, dealsUpdatedSince, normCareer, stageGroupMap } from "@/lib/integrations/activecampaign";
 import { logImport, setWeeklyLeads } from "./careers";
 import { formatWeekRange } from "@/lib/utils/dates";
 
@@ -68,16 +68,37 @@ async function linkedPipelines(teamId: number | null): Promise<string[]> {
   return rows.map((r) => r.pipeline_id);
 }
 
-type ScanRow = { pipeline_id: string; since_date: string; page_offset: number; next_since: string; scanned_at: string | null };
+type ScanRow = {
+  pipeline_id: string;
+  since_date: string;
+  page_offset: number;
+  next_since: string;
+  scanned_at: string | null;
+  deals_total: number;
+  deals_done: number;
+};
 
 export type ScanProgress = {
   done: boolean;
   pipelinesDone: number;
   pipelinesTotal: number;
-  /** Tratos cuyo historial se revisó en esta tanda. */
+  /** Tratos revisados / por revisar en esta pasada (todos los embudos). */
+  dealsDone: number;
+  dealsTotal: number;
+  /** Tratos cuyo historial se leyó en esta tanda. */
   checked: number;
   errors: string[];
 };
+
+/** Corre `fn` sobre los elementos con `size` en paralelo (las llamadas a la API se espacian solas). */
+async function pool<T>(items: T[], size: number, fn: (item: T) => Promise<void>) {
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(size, items.length) }, async () => {
+      while (i < items.length) await fn(items[i++]);
+    })
+  );
+}
 
 /**
  * Revisa el historial de los tratos de los embudos vinculados durante `budgetMs` y guarda la
@@ -91,28 +112,34 @@ export async function scanStep(input: { teamId: number | null; freshAfter: Date;
   const pipelines = await linkedPipelines(input.teamId);
   const errors: string[] = [];
   let checked = 0;
-  if (pipelines.length === 0) return { done: true, pipelinesDone: 0, pipelinesTotal: 0, checked, errors };
-
   const since0 = isoDate(new Date(Date.now() - HISTORY_DAYS * 864e5));
   for (const id of pipelines) {
     await db().sql`INSERT INTO ac_pipeline_scans (pipeline_id, since_date) VALUES (${id}, ${since0}) ON CONFLICT (pipeline_id) DO NOTHING`;
   }
   const isFresh = (r: ScanRow) => r.page_offset === 0 && r.scanned_at !== null && new Date(r.scanned_at) >= input.freshAfter;
   const load = async () =>
-    ((await db().sql`SELECT pipeline_id, since_date, page_offset, next_since, scanned_at FROM ac_pipeline_scans`) as ScanRow[]).filter((r) =>
-      pipelines.includes(r.pipeline_id)
-    );
+    (
+      (await db().sql`
+        SELECT pipeline_id, since_date, page_offset, next_since, scanned_at, deals_total, deals_done FROM ac_pipeline_scans
+      `) as ScanRow[]
+    ).filter((r) => pipelines.includes(r.pipeline_id));
 
   let groupOf: Map<string, string> | null = null;
   for (const scan of await load()) {
     if (isFresh(scan)) continue;
-    if (left() < 1500) break;
+    if (left() < 2500) break;
     try {
       groupOf ??= await stageGroupMap();
+      const groups = groupOf;
       let { page_offset: offset, next_since: nextSince } = scan;
-      // Páginas de tratos modificados desde since_date, del más antiguo al más reciente.
-      while (left() > 1500) {
-        const deals = await dealsUpdatedSince(scan.pipeline_id, scan.since_date, offset, PAGE_SIZE);
+      let prevFirst = "";
+      while (left() > 2500) {
+        const { deals, total } = await dealsUpdatedSince(scan.pipeline_id, scan.since_date, offset, PAGE_SIZE);
+        // Fin del embudo: página incompleta, ya se pasó el total, o la API repite la misma página.
+        const repeated = deals.length > 0 && deals[0].id === prevFirst;
+        if (repeated) errors.push(`Embudo ${scan.pipeline_id}: ActiveCampaign repitió la misma página de tratos; el conteo puede quedar incompleto.`);
+        const last = deals.length < PAGE_SIZE || offset + deals.length >= total || repeated;
+        prevFirst = deals[0]?.id ?? "";
         const known = new Map(
           (
             (await db().sql`
@@ -121,16 +148,15 @@ export async function scanStep(input: { teamId: number | null; freshAfter: Date;
             `) as { deal_id: string; deal_mdate: string }[]
           ).map((r) => [r.deal_id, r.deal_mdate])
         );
+        for (const deal of deals) if (deal.mdate > nextSince) nextSince = deal.mdate;
+        const pending = deals.filter((d) => known.get(d.id) !== d.mdate);
         let finishedPage = true;
-        for (const deal of deals) {
-          if (deal.mdate > nextSince) nextSince = deal.mdate;
-          if (known.get(deal.id) === deal.mdate) continue;
-          if (left() < 1500) {
+        await pool(pending, 3, async (deal) => {
+          if (left() < 2500) {
             finishedPage = false;
-            break;
+            return;
           }
-          const changes = await dealStageChanges(deal.id);
-          const entered = firstEntry(deal, changes, groupOf, scan.pipeline_id);
+          const entered = await dealEntry(deal, groups, scan.pipeline_id);
           await db().sql`
             INSERT INTO ac_deal_entries (deal_id, pipeline_id, career_value, career_norm, entered_at, deal_mdate, checked_at)
             VALUES (${deal.id}, ${scan.pipeline_id}, ${deal.career}, ${normCareer(deal.career)}, ${entered}, ${deal.mdate}, NOW())
@@ -139,21 +165,30 @@ export async function scanStep(input: { teamId: number | null; freshAfter: Date;
               deal_mdate = EXCLUDED.deal_mdate, checked_at = NOW()
           `;
           checked++;
+        });
+        if (!finishedPage) {
+          // Lo ya guardado se salta en la próxima tanda (misma fecha de modificación).
+          await db().sql`
+            UPDATE ac_pipeline_scans SET deals_total = ${total}, deals_done = ${offset}, updated_at = NOW()
+            WHERE pipeline_id = ${scan.pipeline_id}
+          `;
+          break;
         }
-        if (!finishedPage) break;
-        if (deals.length < PAGE_SIZE) {
+        if (last) {
           // Embudo al día: la próxima pasada empieza un día antes de la última modificación vista.
           const next = nextSince ? isoDate(new Date(Date.parse(nextSince) - 864e5)) : scan.since_date;
           await db().sql`
             UPDATE ac_pipeline_scans SET since_date = ${next < scan.since_date ? scan.since_date : next}, page_offset = 0,
-              next_since = '', scanned_at = NOW(), updated_at = NOW()
+              next_since = '', scanned_at = NOW(), deals_total = ${Math.max(total, offset + deals.length)},
+              deals_done = ${Math.max(total, offset + deals.length)}, updated_at = NOW()
             WHERE pipeline_id = ${scan.pipeline_id}
           `;
           break;
         }
         offset += deals.length;
         await db().sql`
-          UPDATE ac_pipeline_scans SET page_offset = ${offset}, next_since = ${nextSince}, updated_at = NOW()
+          UPDATE ac_pipeline_scans SET page_offset = ${offset}, next_since = ${nextSince}, deals_total = ${total},
+            deals_done = ${offset}, updated_at = NOW()
           WHERE pipeline_id = ${scan.pipeline_id}
         `;
       }
@@ -164,12 +199,20 @@ export async function scanStep(input: { teamId: number | null; freshAfter: Date;
         WHERE pipeline_id = ${scan.pipeline_id}
       `;
       // Para no quedarse atascado: se marca como revisado y se reintenta en la siguiente pasada.
-      await db().sql`UPDATE ac_pipeline_scans SET scanned_at = NOW(), updated_at = NOW() WHERE pipeline_id = ${scan.pipeline_id}`;
+      await db().sql`UPDATE ac_pipeline_scans SET scanned_at = NOW(), page_offset = 0, updated_at = NOW() WHERE pipeline_id = ${scan.pipeline_id}`;
     }
   }
   const after = await load();
-  const pipelinesDone = after.filter(isFresh).length;
-  return { done: pipelinesDone === pipelines.length, pipelinesDone, pipelinesTotal: pipelines.length, checked, errors };
+  const fresh = after.filter(isFresh);
+  return {
+    done: fresh.length === pipelines.length,
+    pipelinesDone: fresh.length,
+    pipelinesTotal: pipelines.length,
+    dealsDone: after.reduce((n, r) => n + (isFresh(r) ? r.deals_total : r.deals_done), 0),
+    dealsTotal: after.reduce((n, r) => n + r.deals_total, 0),
+    checked,
+    errors,
+  };
 }
 
 /** Leads calificados de la semana por carrera vinculada: tratos que entraron al embudo esa semana. */
