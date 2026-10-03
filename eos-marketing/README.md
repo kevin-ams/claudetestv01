@@ -66,25 +66,28 @@ La primera vez, abre el sitio y verás `/setup` para crear el equipo y el admini
 | `EOS_TIMEZONE` | Zona horaria para semanas y fechas (por defecto `America/Guatemala`). |
 | `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Leads semanales desde ActiveCampaign (Ajustes › Leads desde ActiveCampaign). |
-| `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función programada `netlify/functions/ac-weekly-sync.mts` (lunes 12:00 UTC). |
+| `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función programada `netlify/functions/ac-weekly-sync.mts` (cada hora, minuto 7). |
 
 ## Leads desde ActiveCampaign
 
-En **Ajustes › Leads desde ActiveCampaign** cada carrera se vincula a un **embudo** y una **etapa** de tratos
-(por defecto la de "Interesado - Cola de Asesor") y, si el embudo tiene varias carreras, al valor del campo del
-trato **Nombre de la Carrera** (`%DEAL_NOMBRE_DE_LA_CARRERA%`; se sugiere el que coincide con el nombre).
+En **Ajustes › Leads desde ActiveCampaign** cada carrera se vincula al **embudo** del director/carrera y, si el
+embudo tiene varias carreras, al valor del campo del trato **Nombre de la Carrera** (`%DEAL_NOMBRE_DE_LA_CARRERA%`;
+se sugiere el que coincide con el nombre).
 
-- El lead de la semana es la **cantidad de tratos que hay en esa etapa al sincronizar** y reemplaza el dato de
-  esa semana (también si se había capturado a mano); las semanas anteriores no cambian. La celda queda marcada "AC".
-- Los leads **solo se guardan en la semana en curso**. **Automático**: cada lunes a las 6:00 a. m. de Guatemala
-  (función programada de Netlify). **Manual**: "Sincronizar ahora" en Ajustes o el botón de Indicadores (visible
-  en la semana en curso).
-- **Semanas anteriores (solo administradores)**: en Ajustes › Leads desde ActiveCampaign se elige una semana cerrada
-  (últimas 26) y "Ver comparativa" muestra, por carrera, el dato guardado (manual o AC), lo que hay hoy en
-  ActiveCampaign y la diferencia. Se marcan las carreras y se confirma; avisa que sobrescribe y que ActiveCampaign
-  solo da el conteo actual de la etapa, no el histórico.
-- Se consulta una vez cada etapa y se procesa por tandas para no exceder el tiempo de las funciones; se muestra la
-  última actualización en Ajustes y en Indicadores.
+- **Lead calificado** = trato que **entra al embudo** (normalmente a "Interesado - Cola de Asesor"). La fecha de
+  entrada sale del historial del trato (`deals/{id}/dealActivities`, cambios `d_stageid`): si nació en una etapa
+  del embudo, su fecha de creación; si no, el primer cambio desde una etapa de otro embudo. Cada trato cuenta una
+  sola vez, en la semana (lunes a domingo, hora de Guatemala) en que entró, aunque después se mueva o se cierre.
+- Las fechas se guardan en `ac_deal_entries`; `ac_pipeline_scans` recuerda hasta dónde se revisó cada embudo. Solo
+  se vuelve a leer el historial de un trato si cambió. La primera revisión cubre los tratos modificados en las
+  últimas 27 semanas y puede tardar varios minutos (≈5 consultas por segundo a ActiveCampaign).
+- **Automático**: cada hora la función programada revisa lo nuevo y escribe la **semana en curso**; los lunes
+  también cierra la semana anterior. **Manual**: "Sincronizar ahora" en Ajustes o el botón de Indicadores (visible
+  en la semana en curso), con barra de avance.
+- **Semanas anteriores (solo administradores)**: se elige una semana cerrada (últimas 26) y "Ver comparativa"
+  muestra, por carrera, el dato guardado (manual o AC), el dato real del historial y la diferencia. Se marcan las
+  carreras y se confirma; avisa que sobrescribe.
+- **Ajustes › Diagnóstico › Historial de tratos** prueba (solo lectura) que la API entregue el historial.
 - El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
 
 ## Correos (Resend)

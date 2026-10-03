@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireModule } from "@/lib/auth/access";
 import { labelOf, logActivity } from "@/lib/domain/activity";
-import { applyBackfill, deleteLink, previewBackfillChunk, saveLink, type BackfillRow } from "@/lib/domain/ac-sync";
+import { applyBackfill, backfillPreview, deleteLink, saveLink, type BackfillRow } from "@/lib/domain/ac-sync";
 import { getCareer } from "@/lib/domain/careers";
 import { careerValuesInPipeline, isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { formatWeekRange, shiftWeek, weekStartISO } from "@/lib/utils/dates";
@@ -36,7 +36,7 @@ export async function saveLinkAction(input: {
   const session = await requireModule("indicadores");
   const career = await getCareer(input.careerId);
   if (!career || career.team_id !== session.teamId) return { ok: false, message: "Carrera no encontrada." };
-  if (!/^\d+$/.test(input.pipelineId) || !/^\d+$/.test(input.stageId)) return { ok: false, message: "Elige el embudo y la etapa." };
+  if (!/^\d+$/.test(input.pipelineId)) return { ok: false, message: "Elige el embudo." };
   await saveLink(session.teamId, {
     career_id: input.careerId,
     pipeline_id: input.pipelineId,
@@ -49,7 +49,7 @@ export async function saveLinkAction(input: {
     session,
     "indicadores",
     "Vinculó carrera a ActiveCampaign",
-    `${await labelOf("careers", input.careerId)} → ${input.pipelineName} › ${input.stageName}${input.careerValue.trim() ? ` · ${input.careerValue.trim()}` : ""}`
+    `${await labelOf("careers", input.careerId)} → ${input.pipelineName}${input.careerValue.trim() ? ` · ${input.careerValue.trim()}` : ""}`
   );
   refresh();
   return { ok: true, message: "Vínculo guardado." };
@@ -73,17 +73,18 @@ function pastWeek(week: string): string {
   return monday;
 }
 
-export type BackfillStep = { ok: boolean; done: boolean; next: number; total: number; rows: BackfillRow[]; message: string };
+export type BackfillPreview = { ok: boolean; rows: BackfillRow[]; message: string };
 
-export async function backfillPreviewAction(week: string, offset: number): Promise<BackfillStep> {
+/** Comparativa de la semana (la pantalla primero pone al día el historial con la barra de avance). */
+export async function backfillPreviewAction(week: string): Promise<BackfillPreview> {
   const session = await requireAdmin("Solo un administrador puede actualizar semanas anteriores.");
-  if (!isActiveCampaignConfigured()) return { ok: false, done: true, next: 0, total: 0, rows: [], message: "ActiveCampaign no está configurado." };
+  if (!isActiveCampaignConfigured()) return { ok: false, rows: [], message: "ActiveCampaign no está configurado." };
   try {
-    const r = await previewBackfillChunk({ teamId: session.teamId, weekStart: pastWeek(week), offset, size: 4 });
-    if (r.totalStages === 0) return { ok: false, done: true, next: 0, total: 0, rows: [], message: "Ninguna carrera está vinculada a ActiveCampaign." };
-    return { ok: true, done: r.done, next: r.next, total: r.totalStages, rows: r.rows, message: "" };
+    const rows = await backfillPreview(session.teamId, pastWeek(week));
+    if (rows.length === 0) return { ok: false, rows, message: "Ninguna carrera está vinculada a ActiveCampaign." };
+    return { ok: true, rows, message: "" };
   } catch (err) {
-    return { ok: false, done: true, next: offset, total: 0, rows: [], message: err instanceof Error ? err.message : "No se pudo consultar ActiveCampaign." };
+    return { ok: false, rows: [], message: err instanceof Error ? err.message : "No se pudo calcular la comparativa." };
   }
 }
 

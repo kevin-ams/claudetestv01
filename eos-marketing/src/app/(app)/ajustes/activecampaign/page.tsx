@@ -42,7 +42,7 @@ export default async function ActiveCampaignPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <SettingsHeader
         title="Leads desde ActiveCampaign"
-        description="Vincula cada carrera a un embudo y una etapa de tratos. El lead de la semana es la cantidad de tratos que hay en esa etapa al sincronizar, y reemplaza el dato de esa semana (las semanas anteriores no cambian)."
+        description="Vincula cada carrera al embudo del director/carrera. El lead calificado de la semana es la cantidad de tratos que entraron a ese embudo (normalmente a “Interesado - Cola de Asesor”) entre el lunes y el domingo, según el historial de cada trato en ActiveCampaign."
       />
 
       <Card className="p-4">
@@ -66,8 +66,9 @@ export default async function ActiveCampaignPage() {
               )}
             </p>
             <p className="text-xs text-muted">
-              Los leads se guardan solo en la semana en curso: se actualiza sola cada lunes a las 6:00 a. m. y con el
-              botón cuando quieras. Las semanas anteriores no cambian.
+              Se actualiza sola cada hora y con el botón cuando quieras; solo escribe la semana en curso (los lunes cierra
+              también la semana anterior). La primera vez revisa el historial de las últimas 27 semanas y puede tardar
+              varios minutos.
             </p>
           </div>
           {configured && !error && editable && (

@@ -61,9 +61,9 @@ export function LinksEditor({
         <thead>
           <tr className="border-y border-border text-left text-xs uppercase tracking-wide text-muted">
             <th className="px-4 py-2">Carrera</th>
-            <th className="px-2">Embudo › etapa</th>
+            <th className="px-2">Embudo</th>
             <th className="px-2">Carrera en ActiveCampaign</th>
-            <th className="px-2 text-right">Último conteo</th>
+            <th className="px-2 text-right">Semana en curso</th>
             {editable && <th className="w-28 px-2" />}
           </tr>
         </thead>
@@ -99,7 +99,6 @@ export function LinksEditor({
                   {l ? (
                     <>
                       <p>{l.pipeline_name}</p>
-                      <p className="text-xs text-muted">› {l.stage_name}</p>
                     </>
                   ) : (
                     <Chip size="sm" variant="soft">
@@ -107,7 +106,7 @@ export function LinksEditor({
                     </Chip>
                   )}
                 </td>
-                <td className="px-2 py-2 text-xs">{l ? l.career_value || <span className="text-muted">Todos los tratos de la etapa</span> : "—"}</td>
+                <td className="px-2 py-2 text-xs">{l ? l.career_value || <span className="text-muted">Todos los tratos del embudo</span> : "—"}</td>
                 <td className="px-2 py-2 text-right">
                   {l?.last_error ? (
                     <span className="text-xs text-red" title={l.last_error}>
@@ -151,7 +150,6 @@ function LinkForm({
 }) {
   const [pipelineId, setPipelineId] = useState(link?.pipeline_id ?? "-");
   const pipeline = pipelines.find((p) => p.id === pipelineId);
-  const [stageId, setStageId] = useState(link?.stage_id ?? "-");
   const [value, setValue] = useState(link?.career_value ?? "");
   const [values, setValues] = useState<{ value: string; count: number }[] | null>(null);
   const [loadingValues, startValues] = useTransition();
@@ -179,14 +177,12 @@ function LinkForm({
   const choosePipeline = (id: string) => {
     setPipelineId(id);
     const p = pipelines.find((x) => x.id === id);
-    // Por defecto, la etapa de "cola de asesor".
-    const cola = p?.stages.find((s) => /cola/i.test(s.title)) ?? p?.stages[0];
-    setStageId(cola?.id ?? "-");
     setValues(null);
     if (p) loadValues(id, true);
   };
 
-  const stage = pipeline?.stages.find((s) => s.id === stageId);
+  // Solo de referencia: la etapa de entrada ("Interesado - Cola de Asesor"). El lead cuenta al entrar al embudo.
+  const stage = pipeline?.stages.find((s) => /cola/i.test(s.title)) ?? pipeline?.stages[0];
   const listId = `ac-values-${career.id}`;
 
   return (
@@ -194,14 +190,14 @@ function LinkForm({
       className="flex flex-col gap-3 rounded-lg border border-border bg-card p-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!pipeline || !stage) return setResult({ ok: false, message: "Elige el embudo y la etapa." });
+        if (!pipeline) return setResult({ ok: false, message: "Elige el embudo." });
         start(async () => {
           const r = await saveLinkAction({
             careerId: career.id,
             pipelineId: pipeline.id,
             pipelineName: pipeline.title,
-            stageId: stage.id,
-            stageName: stage.title,
+            stageId: stage?.id ?? "",
+            stageName: stage?.title ?? "",
             careerValue: value,
           });
           setResult(r);
@@ -212,7 +208,7 @@ function LinkForm({
       <p className="font-medium">
         {career.name} <span className="text-xs font-normal text-muted">· {career.program}{career.code && ` · ${career.code}`}</span>
       </p>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2">
         <label className="flex flex-col gap-1 text-xs text-muted">
           Embudo
           <AppSelect aria-label="Embudo" value={pipelineId} onChange={(e) => choosePipeline(e.target.value)}>
@@ -225,21 +221,10 @@ function LinkForm({
           </AppSelect>
         </label>
         <label className="flex flex-col gap-1 text-xs text-muted">
-          Etapa
-          <AppSelect aria-label="Etapa" value={stageId} onChange={(e) => setStageId(e.target.value)} disabled={!pipeline}>
-            <option value="-">Elegir etapa…</option>
-            {(pipeline?.stages ?? []).map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.title}
-              </option>
-            ))}
-          </AppSelect>
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-muted">
           Carrera en ActiveCampaign (Nombre de la Carrera)
           <Input
             aria-label="Nombre de la carrera en ActiveCampaign"
-            placeholder={loadingValues ? "Buscando carreras del embudo…" : "Vacío = todos los tratos de la etapa"}
+            placeholder={loadingValues ? "Buscando carreras del embudo…" : "Vacío = todos los tratos del embudo"}
             value={value}
             onChange={(e) => setValue(e.target.value)}
             list={listId}

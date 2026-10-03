@@ -1,13 +1,13 @@
 import "server-only";
 
 /**
- * Integración con ActiveCampaign (API v3) para los leads semanales por carrera.
+ * Integración con ActiveCampaign (API v3) para los leads calificados por carrera.
  *
- * Cada carrera se vincula en Ajustes › Leads desde ActiveCampaign a un embudo y una
- * etapa de tratos (p. ej. "Interesado - Cola de Asesor"). Si el embudo tiene varias
- * carreras, se filtra por el campo del trato "Nombre de la Carrera"
- * (%DEAL_NOMBRE_DE_LA_CARRERA%). El lead de la semana es la cantidad de tratos que
- * están en esa etapa al momento de sincronizar.
+ * Cada carrera se vincula en Ajustes › Leads desde ActiveCampaign a un embudo (el del
+ * director/carrera) y, si el embudo tiene varias carreras, al valor del campo del trato
+ * "Nombre de la Carrera" (%DEAL_NOMBRE_DE_LA_CARRERA%). Un lead calificado es un trato que
+ * entra a ese embudo (normalmente a "Interesado - Cola de Asesor"); la fecha de entrada sale
+ * del historial de cambios de etapa del trato (dealActivities, tipo d_stageid).
  *
  * Variables: ACTIVECAMPAIGN_API_URL (https://<cuenta>.api-us1.com) y
  * ACTIVECAMPAIGN_API_KEY (secreta).
@@ -26,15 +26,22 @@ export function isActiveCampaignConfigured(): boolean {
 /** Campo personalizado del trato con el nombre de la carrera. */
 export const CAREER_FIELD_TAG = "DEAL_NOMBRE_DE_LA_CARRERA";
 const PAGE = 100;
-/** Tope de páginas por etapa (10,000 tratos) para no exceder el tiempo de la función. */
-const MAX_PAGES = 100;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// ActiveCampaign permite ~5 solicitudes por segundo: se espacian las llamadas de este proceso.
+let lastCall = 0;
+async function throttle() {
+  const wait = lastCall + 220 - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCall = Date.now();
+}
 
 async function acGet<T>(path: string): Promise<T> {
   if (!isActiveCampaignConfigured()) throw new ActiveCampaignNotConfiguredError();
   const base = process.env.ACTIVECAMPAIGN_API_URL!.replace(/\/$/, "");
   for (let attempt = 0; ; attempt++) {
+    await throttle();
     const res = await fetch(`${base}/api/3/${path}`, {
       headers: { "Api-Token": process.env.ACTIVECAMPAIGN_API_KEY!, Accept: "application/json" },
       cache: "no-store",
@@ -141,24 +148,85 @@ export async function careerValuesInPipeline(pipelineId: string): Promise<{ valu
   return [...counts.entries()].map(([value, count]) => ({ value, count })).sort((a, b) => b.count - a.count);
 }
 
+export type AcDeal = { id: string; stage: string; cdate: string; mdate: string; career: string };
+
 /**
- * Tratos que hay ahora en la etapa, agrupados por "Nombre de la Carrera".
- * `total` = todos los tratos de la etapa (para vínculos sin filtro de carrera).
+ * Una página de tratos del embudo modificados desde `since` (AAAA-MM-DD), del más antiguo
+ * al más reciente, con su "Nombre de la Carrera".
  */
-export async function countStage(stageId: string): Promise<{ total: number; byCareer: Map<string, number> }> {
-  const deals = await dealsWithCareer(`filters[stage]=${encodeURIComponent(stageId)}`, MAX_PAGES);
-  const byCareer = new Map<string, number>();
-  for (const d of deals) {
-    const k = norm(d.career);
-    byCareer.set(k, (byCareer.get(k) ?? 0) + 1);
+export async function dealsUpdatedSince(pipelineId: string, since: string, offset: number, limit: number): Promise<AcDeal[]> {
+  const fieldId = await getCareerFieldId();
+  const r = await acGet<Omit<DealsPage, "deals"> & { deals: { id: string; stage?: string; cdate?: string; mdate?: string }[] }>(
+    `deals?filters[group]=${encodeURIComponent(pipelineId)}&filters[updated_after]=${encodeURIComponent(since)}` +
+      `&orders[mdate]=ASC&limit=${limit}&offset=${offset}&include=dealCustomFieldData`
+  );
+  const careerByDeal = new Map<string, string>();
+  for (const d of r.dealCustomFieldData ?? []) {
+    const field = String(d.custom_field_id ?? d.dealCustomFieldMetum ?? d.customFieldId ?? "");
+    if (field !== fieldId) continue;
+    const deal = String(d.deal_id ?? d.deal ?? d.dealId ?? "");
+    careerByDeal.set(deal, String(d.custom_field_text_value ?? d.custom_field_text_blob ?? d.fieldValue ?? "").trim());
   }
-  return { total: deals.length, byCareer };
+  return r.deals.map((d) => ({
+    id: String(d.id),
+    stage: String(d.stage ?? ""),
+    cdate: String(d.cdate ?? ""),
+    mdate: String(d.mdate ?? ""),
+    career: careerByDeal.get(String(d.id)) ?? "",
+  }));
 }
 
-/** Cuántos tratos corresponden a un vínculo dado el conteo de su etapa. */
-export function countFor(stage: { total: number; byCareer: Map<string, number> }, careerValue: string): number {
-  return careerValue.trim() ? (stage.byCareer.get(norm(careerValue)) ?? 0) : stage.total;
+export type StageChange = { from: string; to: string; at: string };
+
+/** Cambios de etapa del trato (incluye los cambios de embudo), en orden cronológico. */
+export async function dealStageChanges(dealId: string): Promise<StageChange[]> {
+  const out: StageChange[] = [];
+  for (let page = 0; page < 30; page++) {
+    const r = await acGet<{ dealActivities?: Record<string, unknown>[] }>(
+      `deals/${encodeURIComponent(dealId)}/dealActivities?limit=${PAGE}&offset=${page * PAGE}`
+    );
+    const rows = r.dealActivities ?? [];
+    for (const a of rows) {
+      if (a.dataType !== "d_stageid") continue;
+      out.push({ from: String(a.dataOldval ?? ""), to: String(a.dataAction ?? ""), at: String(a.cdate ?? "") });
+    }
+    if (rows.length < PAGE) break;
+  }
+  return out.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
 }
+
+let stageGroups: { at: number; map: Promise<Map<string, string>> } | undefined;
+/** Etapa → embudo (para saber cuándo un cambio de etapa fue una entrada al embudo). */
+export async function stageGroupMap(): Promise<Map<string, string>> {
+  if (!stageGroups || Date.now() - stageGroups.at > 10 * 60 * 1000) {
+    const map = (async () => {
+      const m = new Map<string, string>();
+      for (let offset = 0; offset < 10000; offset += PAGE) {
+        const r = await acGet<{ dealStages: { id: string; group: string }[] }>(`dealStages?limit=${PAGE}&offset=${offset}`);
+        for (const st of r.dealStages) m.set(String(st.id), String(st.group));
+        if (r.dealStages.length < PAGE) break;
+      }
+      return m;
+    })();
+    stageGroups = { at: Date.now(), map };
+    map.catch(() => (stageGroups = undefined));
+  }
+  return stageGroups.map;
+}
+
+/**
+ * Primera vez que el trato entró al embudo: al crearse, si nació en una etapa del embudo, o
+ * en el primer cambio de una etapa de otro embudo a una de este. null si no se encuentra.
+ */
+export function firstEntry(deal: AcDeal, changes: StageChange[], groupOf: Map<string, string>, pipelineId: string): string | null {
+  const inPipeline = (stage: string) => groupOf.get(stage) === pipelineId;
+  const initial = changes.length ? changes[0].from : deal.stage;
+  if (initial && inPipeline(initial)) return deal.cdate || null;
+  for (const c of changes) if (inPipeline(c.to) && !inPipeline(c.from)) return c.at;
+  return null;
+}
+
+export const normCareer = norm;
 
 // --- Diagnóstico: historial de tratos ------------------------------------------------
 

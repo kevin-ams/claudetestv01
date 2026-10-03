@@ -6,17 +6,19 @@ import { useState, useTransition } from "react";
 import { AppSelect } from "@/components/ui/select";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import type { BackfillRow } from "@/lib/domain/ac-sync";
+import { runLeadsScan, ScanProgressBar, type ScanProgress } from "@/components/ac-sync-button";
 import { backfillApplyAction, backfillPreviewAction, type LinkResult } from "./actions";
 
 /**
- * Solo administradores: trae de ActiveCampaign los leads de una semana anterior, muestra la
- * comparativa contra lo guardado y, tras confirmar, sobrescribe las carreras elegidas.
+ * Solo administradores: calcula con el historial de ActiveCampaign los leads calificados de una
+ * semana anterior, muestra la comparativa contra lo guardado y, tras confirmar, sobrescribe las
+ * carreras elegidas.
  */
 export function BackfillPanel({ weeks }: { weeks: { value: string; label: string }[] }) {
   const router = useRouter();
   const [week, setWeek] = useState(weeks[0]?.value ?? "");
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<ScanProgress | null>(null);
   const [rows, setRows] = useState<BackfillRow[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState("");
@@ -29,24 +31,21 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
     setError("");
     setResult(null);
     setProgress(null);
-    const all: BackfillRow[] = [];
-    let offset = 0;
     try {
-      for (let i = 0; i < 200; i++) {
-        const step = await backfillPreviewAction(week, offset);
-        if (!step.ok) {
-          setError(step.message);
-          return;
-        }
-        all.push(...step.rows);
-        setProgress({ done: step.next, total: step.total });
-        if (step.done) break;
-        offset = step.next;
+      // Primero se pone al día el historial (con barra de avance); después se calcula la semana.
+      const scan = await runLeadsScan(false, setProgress);
+      if (!scan.ok) {
+        setError(scan.message);
+        return;
       }
-      all.sort((a, b) => a.name.localeCompare(b.name, "es"));
-      setRows(all);
+      const r = await backfillPreviewAction(week);
+      if (!r.ok) {
+        setError(r.message);
+        return;
+      }
+      setRows(r.rows);
       // Por defecto, solo las carreras que cambian.
-      setSelected(new Set(all.filter((r) => r.incoming !== null && r.incoming !== r.current).map((r) => r.career_id)));
+      setSelected(new Set(r.rows.filter((x) => x.incoming !== x.current).map((x) => x.career_id)));
     } catch {
       setError("Se interrumpió la consulta. Vuelve a intentarlo.");
     } finally {
@@ -63,17 +62,17 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
     });
   }
 
-  const chosen = (rows ?? []).filter((r) => selected.has(r.career_id) && r.incoming !== null);
+  const chosen = (rows ?? []).filter((r) => selected.has(r.career_id));
   const overwrites = chosen.filter((r) => r.current !== null).length;
   const manual = chosen.filter((r) => r.current !== null && r.current_source !== "activecampaign").length;
   const sumCurrent = chosen.reduce((s, r) => s + (r.current ?? 0), 0);
-  const sumIncoming = chosen.reduce((s, r) => s + (r.incoming ?? 0), 0);
+  const sumIncoming = chosen.reduce((s, r) => s + r.incoming, 0);
 
   function apply() {
     startApply(async () => {
       const r = await backfillApplyAction(
         week,
-        chosen.map((x) => ({ careerId: x.career_id, leads: x.incoming! }))
+        chosen.map((x) => ({ careerId: x.career_id, leads: x.incoming }))
       );
       setResult(r);
       if (r.ok) {
@@ -88,8 +87,8 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
       <div>
         <h2 className="font-semibold">Actualizar una semana anterior</h2>
         <p className="text-sm text-muted">
-          Solo administradores. Trae de ActiveCampaign los tratos que hay <b>hoy</b> en la etapa de cada carrera y los
-          guarda en la semana que elijas. Antes de guardar verás la comparativa.
+          Solo administradores. Calcula con el historial de ActiveCampaign los leads calificados (tratos que entraron al
+          embudo de la carrera) de la semana que elijas. Antes de guardar verás la comparativa.
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -101,15 +100,12 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
           ))}
         </AppSelect>
         <Button variant="outline" onPress={preview} isDisabled={loading || !week}>
-          {loading
-            ? progress
-              ? `Consultando ${progress.done}/${progress.total} etapas…`
-              : "Consultando ActiveCampaign…"
-            : "Ver comparativa"}
+          {loading ? "Revisando historial…" : "Ver comparativa"}
         </Button>
         {error && <span className="text-sm text-red">{error}</span>}
         {result && <span className={`text-sm ${result.ok ? "text-green" : "text-red"}`}>{result.message}</span>}
       </div>
+      {loading && <ScanProgressBar progress={progress} />}
 
       {rows && (
         <Modal.Backdrop isOpen onOpenChange={(open) => !open && !applying && setRows(null)}>
@@ -122,7 +118,8 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
                   <p className="font-semibold">⚠ Esto sobrescribe datos de una semana anterior</p>
                   <ul className="mt-1 list-disc pl-5">
                     <li>
-                      ActiveCampaign solo da los tratos que hay <b>hoy</b> en la etapa, no los que había esa semana.
+                      El dato nuevo son los tratos que <b>entraron al embudo</b> de la carrera esa semana, según su historial
+                      en ActiveCampaign. Los tratos eliminados ya no aparecen.
                     </li>
                     <li>
                       Las carreras marcadas reemplazan su valor actual
@@ -142,20 +139,19 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
                         <th className="w-8 px-2 py-2" />
                         <th className="px-2">Carrera</th>
                         <th className="px-2 text-right">Guardado</th>
-                        <th className="px-2 text-right">ActiveCampaign hoy</th>
+                        <th className="px-2 text-right">ActiveCampaign</th>
                         <th className="px-2 text-right">Diferencia</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((r) => {
-                        const diff = r.incoming !== null ? r.incoming - (r.current ?? 0) : null;
+                        const diff = r.incoming - (r.current ?? 0);
                         return (
                           <tr key={r.career_id} className="border-b border-border last:border-0">
                             <td className="px-2 py-1.5">
                               <AppCheckbox
                                 aria-label={`Actualizar ${r.name}`}
                                 checked={selected.has(r.career_id)}
-                                disabled={r.incoming === null}
                                 onChange={(e) => toggle(r.career_id, e.target.checked)}
                               />
                             </td>
@@ -174,20 +170,14 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
                               )}
                             </td>
                             <td className="px-2 text-right font-semibold tabular-nums">
-                              {r.incoming === null ? (
-                                <span className="text-xs font-normal text-red" title={r.error}>
-                                  Error
-                                </span>
-                              ) : (
-                                r.incoming
-                              )}
+                              {r.incoming}
                             </td>
                             <td
                               className={`px-2 text-right tabular-nums ${
-                                diff === null || diff === 0 ? "text-muted" : diff > 0 ? "text-green" : "text-red"
+                                diff === 0 ? "text-muted" : diff > 0 ? "text-green" : "text-red"
                               }`}
                             >
-                              {diff === null ? "—" : diff === 0 ? "igual" : `${diff > 0 ? "+" : ""}${diff}`}
+                              {diff === 0 ? "igual" : `${diff > 0 ? "+" : ""}${diff}`}
                             </td>
                           </tr>
                         );

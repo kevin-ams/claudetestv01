@@ -23,7 +23,7 @@ import {
   isActiveCampaignConfigured,
   ActiveCampaignNotConfiguredError,
 } from "@/lib/integrations/activecampaign";
-import { finishSync, syncChunk } from "@/lib/domain/ac-sync";
+import { finishSync, scanStep, writeWeek } from "@/lib/domain/ac-sync";
 import { shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import type { CareerLevel } from "@/lib/domain/types";
 
@@ -216,40 +216,57 @@ export async function importBudgetAction(payload: BudgetImportPayload): Promise<
 
 // --- ActiveCampaign -----------------------------------------------------------
 
-export type SyncStep = { ok: boolean; done: boolean; next: number; total: number; message: string };
+export type SyncStep = {
+  ok: boolean;
+  done: boolean;
+  pipelinesDone: number;
+  pipelinesTotal: number;
+  checked: number;
+  message: string;
+};
+
+/** Momento en que empezó la sincronización (lo manda la pantalla): los embudos revisados después cuentan como al día. */
+function freshAfter(startedAt: string): Date {
+  const t = Date.parse(startedAt);
+  const now = Date.now();
+  return new Date(Number.isFinite(t) && t <= now && t > now - 864e5 ? t : now);
+}
 
 /**
- * Sincroniza los leads desde ActiveCampaign en tandas de etapas (la pantalla llama de
- * nuevo con `offset = next` hasta que `done`). Solo escribe la semana en curso; las
- * demás semanas no cambian.
+ * Revisa en tandas el historial de los tratos de los embudos vinculados (la pantalla llama de
+ * nuevo hasta que `done`). Con `write`, al terminar escribe los leads calificados de la semana
+ * en curso; las demás semanas no cambian.
  */
-export async function syncLeadsStepAction(offset: number): Promise<SyncStep> {
+export async function syncLeadsStepAction(startedAt: string, write = true): Promise<SyncStep> {
   const session = await requireModule("indicadores");
   const weekStart = weekStartISO();
+  const empty = { pipelinesDone: 0, pipelinesTotal: 0, checked: 0 };
   if (!isActiveCampaignConfigured()) {
-    return { ok: false, done: true, next: 0, total: 0, message: new ActiveCampaignNotConfiguredError().message };
+    return { ok: false, done: true, ...empty, message: new ActiveCampaignNotConfiguredError().message };
   }
   try {
-    const r = await syncChunk({ teamId: session.teamId, weekStart, offset, size: 4, userId: session.userId });
-    if (r.totalStages === 0) {
-      return { ok: false, done: true, next: 0, total: 0, message: "Ninguna carrera está vinculada a ActiveCampaign. Vincúlalas en Ajustes › Leads desde ActiveCampaign." };
+    const r = await scanStep({ teamId: session.teamId, freshAfter: freshAfter(startedAt), budgetMs: 8000 });
+    const progress = { pipelinesDone: r.pipelinesDone, pipelinesTotal: r.pipelinesTotal, checked: r.checked };
+    if (r.pipelinesTotal === 0) {
+      return { ok: false, done: true, ...empty, message: "Ninguna carrera está vinculada a ActiveCampaign. Vincúlalas en Ajustes › Leads desde ActiveCampaign." };
     }
-    if (!r.done) return { ok: true, done: false, next: r.next, total: r.totalStages, message: r.errors.join(" · ") };
-    const [team] = await finishSync({ teamId: session.teamId, weekStart, userId: session.userId, auto: false });
+    if (!r.done) return { ok: true, done: false, ...progress, message: r.errors.join(" · ") };
+    if (!write) return { ok: !r.errors.length, done: true, ...progress, message: r.errors.join(" · ") };
+    const counts = await writeWeek({ teamId: session.teamId, weekStart, userId: session.userId, current: true });
+    const [team] = await finishSync({ teamId: session.teamId, weekStart, userId: session.userId, auto: false, counts, log: true });
     await logActivity(session, "indicadores", "Sincronizó leads desde ActiveCampaign", team ? `${team.ok} carrera(s) · ${team.total} lead(s) · semana ${weekStart}` : weekStart);
     refresh();
     revalidatePath("/ajustes/activecampaign");
     return {
-      ok: !team?.failed,
+      ok: !r.errors.length,
       done: true,
-      next: r.next,
-      total: r.totalStages,
-      message: team
-        ? `Leads actualizados desde ActiveCampaign: ${team.ok} carrera(s), ${team.total} lead(s) en la semana del ${weekStart}.` +
-          (team.failed ? ` ${team.failed} carrera(s) con error: revisa Ajustes › Leads desde ActiveCampaign.` : "")
-        : "Sin cambios.",
+      ...progress,
+      message:
+        (team
+          ? `Leads calificados actualizados: ${team.ok} carrera(s), ${team.total} lead(s) en la semana del ${weekStart}.`
+          : "Sin cambios.") + (r.errors.length ? ` Con errores: ${r.errors.join(" · ")}` : ""),
     };
   } catch (err) {
-    return { ok: false, done: true, next: offset, total: 0, message: err instanceof Error ? err.message : "No se pudo actualizar desde ActiveCampaign." };
+    return { ok: false, done: true, ...empty, message: err instanceof Error ? err.message : "No se pudo actualizar desde ActiveCampaign." };
   }
 }
