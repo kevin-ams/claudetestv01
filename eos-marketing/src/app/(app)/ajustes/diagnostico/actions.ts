@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAccess } from "@/lib/auth/access";
 import { parseBackup, recordBackupEvent, restoreBackup } from "@/lib/backup";
 import { logActivity } from "@/lib/domain/activity";
+import { probeDealHistory } from "@/lib/integrations/activecampaign";
 import { appUrl, emailFrom, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 
 export type RestoreResult = { ok: boolean; message: string };
@@ -43,4 +44,17 @@ export async function sendTestEmailAction(): Promise<RestoreResult> {
       intro: `Hola ${escapeHtml(s.name)}, este es un correo de prueba enviado desde ${escapeHtml(await appUrl())} con el remitente <b>${escapeHtml(emailFrom())}</b>.`,
     }),
   });
+}
+
+/** Prueba (solo lectura) del historial de tratos en ActiveCampaign. */
+export async function probeAcHistoryAction(pipelineId: string): Promise<{ ok: boolean; message: string }> {
+  const access = await getAccess();
+  if (!access?.isAdmin) return { ok: false, message: "Solo un administrador puede correr esta prueba." };
+  if (!/^\d+$/.test(pipelineId)) return { ok: false, message: "Elige un embudo." };
+  try {
+    const r = await probeDealHistory(pipelineId);
+    return { ok: true, message: JSON.stringify(r, null, 2) };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "No se pudo consultar ActiveCampaign." };
+  }
 }

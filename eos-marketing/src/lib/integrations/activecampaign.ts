@@ -159,3 +159,81 @@ export async function countStage(stageId: string): Promise<{ total: number; byCa
 export function countFor(stage: { total: number; byCareer: Map<string, number> }, careerValue: string): number {
   return careerValue.trim() ? (stage.byCareer.get(norm(careerValue)) ?? 0) : stage.total;
 }
+
+// --- Diagnóstico: historial de tratos ------------------------------------------------
+
+/** Respuesta cruda (sin lanzar error) para la prueba de Diagnóstico. */
+async function acRaw(path: string): Promise<{ path: string; status: number; body: unknown }> {
+  if (!isActiveCampaignConfigured()) throw new ActiveCampaignNotConfiguredError();
+  const base = process.env.ACTIVECAMPAIGN_API_URL!.replace(/\/$/, "");
+  const res = await fetch(`${base}/api/3/${path}`, {
+    headers: { "Api-Token": process.env.ACTIVECAMPAIGN_API_KEY!, Accept: "application/json" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(20000),
+  });
+  const text = await res.text().catch(() => "");
+  let body: unknown = text.slice(0, 300);
+  try {
+    body = JSON.parse(text);
+  } catch {}
+  return { path, status: res.status, body };
+}
+
+/**
+ * Deja solo campos técnicos (fechas, tipos, ids, valores de etapa) y recorta textos, para
+ * no mostrar nombres, correos ni notas de los contactos.
+ */
+function scrub(value: unknown, depth = 0): unknown {
+  if (Array.isArray(value)) return value.slice(0, 15).map((v) => scrub(v, depth + 1));
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) {
+      if (v && typeof v === "object") {
+        if (depth < 3 && !/links/i.test(k)) out[k] = scrub(v, depth + 1);
+      } else if (/date|type|action|val|stage|group|^id$|deal|status|^meta$|total|^d_/i.test(k)) {
+        out[k] = typeof v === "string" ? v.slice(0, 60) : v;
+      } else {
+        out[k] = "…";
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+const total = (r: { body: unknown }) => (r.body as Meta)?.meta?.total ?? null;
+
+/** Comprueba si la API entrega el historial de cambios de etapa/embudo de un trato y los filtros por fecha. */
+export async function probeDealHistory(pipelineId: string) {
+  const g = encodeURIComponent(pipelineId);
+  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+  const recent = await acRaw(`deals?filters[group]=${g}&orders[mdate]=DESC&limit=3`);
+  const deals = ((recent.body as { deals?: Record<string, unknown>[] })?.deals ?? []).map((d) => ({
+    id: String(d.id),
+    stage: d.stage,
+    group: d.group,
+    cdate: d.cdate,
+    mdate: d.mdate,
+    edate: d.edate,
+  }));
+  const dealId = deals[0]?.id;
+  const history = dealId
+    ? [
+        await acRaw(`deals/${dealId}/dealActivities?limit=15`),
+        await acRaw(`dealActivities?filters[deal]=${dealId}&limit=15`),
+        await acRaw(`deals/${dealId}/dealStageHistories`),
+      ]
+    : [];
+  const filters = [
+    await acRaw(`deals?filters[group]=${g}&limit=1`),
+    await acRaw(`deals?filters[group]=${g}&filters[updated_after]=${weekAgo}&limit=1`),
+    await acRaw(`deals?filters[group]=${g}&filters[created_after]=${weekAgo}&limit=1`),
+  ];
+  return {
+    pipelineId,
+    recentStatus: recent.status,
+    deals,
+    history: history.map((h) => ({ path: h.path.replace(`/${dealId}/`, "/{id}/").replace(`=${dealId}&`, "={id}&"), status: h.status, body: scrub(h.body) })),
+    filters: filters.map((f) => ({ path: f.path, status: f.status, total: total(f) })),
+  };
+}

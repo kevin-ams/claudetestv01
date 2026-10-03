@@ -6,6 +6,8 @@ import { runDiagnostics } from "@/lib/domain/diagnostics";
 import { SettingsHeader } from "../settings-header";
 import { emailConfigured, emailFrom } from "@/lib/email";
 import { EmailPanel } from "./email-panel";
+import { AcHistoryPanel } from "./ac-history-panel";
+import { isActiveCampaignConfigured, listPipelines } from "@/lib/integrations/activecampaign";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function DiagnosticoPage() {
     lastBackupEvents().catch(() => []),
     isTeamAdmin(),
   ]);
+  const pipelines = admin && isActiveCampaignConfigured() ? await listPipelines().catch(() => []) : [];
   const failed = checks.filter((c) => !c.ok).length;
 
   return (
@@ -36,6 +39,7 @@ export default async function DiagnosticoPage() {
         events={events.map((e) => ({ ...e, when: WHEN.format(new Date(e.created_at)) }))}
         canEdit={admin} days={daysSinceLastBackup(events)} />
       <EmailPanel configured={emailConfigured()} from={emailFrom()} canTest={admin} />
+      {pipelines.length > 0 && <AcHistoryPanel pipelines={pipelines.map((p) => ({ id: p.id, title: p.title }))} />}
       <p
         role="status"
         className={`rounded-lg px-3 py-2 text-sm font-semibold ${failed ? "bg-red-bg text-red" : "bg-green-bg text-green"}`}
