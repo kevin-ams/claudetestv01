@@ -141,6 +141,10 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Calendario editorial › Importar desde Google Sheets**: se pega el enlace del Plan de contenido publicado en la
+  Web, se elige una sección "SEMANA …" y se ven los cambios antes de guardar (piezas nuevas, actualizadas por mismo
+  tema, sin cambios y las que solo están en la app, que se pueden quitar). Lo vacío en la hoja no borra lo capturado
+  en la app. Lee la pestaña con la columna "Pieza / Tema"; las filas después de "[+] … BUFFER" son de buffer.
 - **Eventos para la L10** (`/meeting`): antes de la reunión cada equipo agrega sus eventos (título, fecha
   opcional y detalle). Se leen en el segmento de Noticias de la L10 y, al finalizarla, quedan ligados a esa
   reunión (salen en el resumen PDF). "Enviar a otro equipo" copia el evento a la próxima L10 de los equipos

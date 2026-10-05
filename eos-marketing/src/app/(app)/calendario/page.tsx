@@ -12,8 +12,10 @@ import {
   mondaysOfMonth,
   monthISO,
   shiftMonth,
+  weekStartISO,
 } from "@/lib/utils/dates";
 import { CalendarBoard } from "./calendar-board";
+import { SheetImport } from "./sheet-import";
 
 export default async function CalendarioPage({ searchParams }: PageProps<"/calendario">) {
   const session = await getSession();
@@ -61,6 +63,7 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/calen
           )}
         </div>
       </div>
+      {editable && <SheetImport currentWeek={weekStartISO()} />}
       {pieces.length === 0 && range.min && (
         <p className="text-sm text-muted">
           No hay piezas en este mes. El calendario tiene piezas del{" "}

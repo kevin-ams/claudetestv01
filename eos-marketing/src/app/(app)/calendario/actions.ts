@@ -23,6 +23,7 @@ import { weekPlanPdf } from "@/lib/domain/week-plan";
 import { setPlanningRecipients } from "@/lib/domain/teams";
 import { emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
 import { parseISO } from "date-fns";
+import { importSheetWeek, previewSheetWeek, readSheetWeeks } from "@/lib/domain/editorial-sheet";
 
 export type ActionResult = { ok: boolean; message: string };
 
@@ -179,4 +180,57 @@ export async function sendWeekPlanAction(week: string, recipients: string): Prom
   });
   if (result.ok) await logActivity(session, "calendario", "Envió planificación por correo", `Semana ${monday} → ${emails.join(", ")}`);
   return result;
+}
+
+// --- Importar semanas desde Google Sheets ---------------------------------------
+
+export type SheetWeekInfo = { key: string; label: string; weekStart: string | null; count: number };
+
+async function loadSheet(url: string) {
+  const weeks = await readSheetWeeks(String(url ?? "").slice(0, 500));
+  if (weeks.length === 0) throw new Error("La hoja no tiene semanas con piezas.");
+  return weeks;
+}
+
+export async function sheetWeeksAction(url: string): Promise<{ ok: boolean; message: string; weeks: SheetWeekInfo[] }> {
+  await requireModule("calendario");
+  try {
+    const weeks = await loadSheet(url);
+    return {
+      ok: true,
+      message: "",
+      weeks: weeks.map((w) => ({ key: w.key, label: w.label, weekStart: w.weekStart, count: w.pieces.length })),
+    };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "No se pudo leer la hoja.", weeks: [] };
+  }
+}
+
+export async function sheetPreviewAction(url: string, key: string) {
+  const session = await requireModule("calendario");
+  try {
+    const week = (await loadSheet(url)).find((w) => w.key === key);
+    if (!week) return { ok: false as const, message: "No se encontró esa semana en la hoja." };
+    return { ok: true as const, message: "", week: week.weekStart, ...(await previewSheetWeek(session.teamId, week)) };
+  } catch (e) {
+    return { ok: false as const, message: e instanceof Error ? e.message : "No se pudo leer la hoja." };
+  }
+}
+
+export async function sheetImportAction(url: string, key: string, removeMissing: boolean): Promise<ActionResult> {
+  const session = await requireModule("calendario");
+  try {
+    const week = (await loadSheet(url)).find((w) => w.key === key);
+    if (!week?.weekStart) return { ok: false, message: "No se encontró esa semana en la hoja." };
+    const r = await importSheetWeek(session.teamId, week, Boolean(removeMissing));
+    const detail = `${week.label} · ${r.created} nueva(s), ${r.updated} actualizada(s)${r.removed ? `, ${r.removed} quitada(s)` : ""}`;
+    await logActivity(session, "calendario", "Importó semana desde Google Sheets", detail);
+    revalidatePath("/calendario");
+    return {
+      ok: true,
+      message: `Semana ${formatWeekRange(week.weekStart)}: ${r.created} pieza(s) nueva(s), ${r.updated} actualizada(s), ${r.same} sin cambios${r.removed ? `, ${r.removed} quitada(s)` : ""}.`,
+    };
+  } catch (e) {
+    return { ok: false, message: e instanceof Error ? e.message : "No se pudo importar la semana." };
+  }
 }
