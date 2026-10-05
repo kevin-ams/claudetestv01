@@ -71,5 +71,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "018_ac_scan_progress",
     "sql": "-- Avance por tratos de la revisión de cada embudo (para la barra de avance).\nALTER TABLE ac_pipeline_scans ADD COLUMN deals_total INTEGER NOT NULL DEFAULT 0;\nALTER TABLE ac_pipeline_scans ADD COLUMN deals_done INTEGER NOT NULL DEFAULT 0;\n"
+  },
+  {
+    "name": "019_l10_events",
+    "sql": "-- Eventos para la L10: se cargan antes de la reunión y se leen en el segmento de Noticias.\n-- Se pueden enviar a la próxima L10 de otro equipo (se copia el evento a ese equipo).\nCREATE TABLE l10_events (\n  id SERIAL PRIMARY KEY,\n  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,       -- equipo en cuya L10 se lee\n  title TEXT NOT NULL,\n  detail TEXT NOT NULL DEFAULT '',\n  event_date DATE,\n  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,\n  from_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,           -- si lo envió otro equipo\n  origin_id INTEGER REFERENCES l10_events(id) ON DELETE SET NULL,        -- evento original (para \"Enviado a\")\n  meeting_id INTEGER REFERENCES meetings(id) ON DELETE SET NULL,         -- L10 en que se leyó; NULL = pendiente\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_l10_events_team ON l10_events(team_id, meeting_id);\nCREATE INDEX idx_l10_events_origin ON l10_events(origin_id);\n"
   }
 ];

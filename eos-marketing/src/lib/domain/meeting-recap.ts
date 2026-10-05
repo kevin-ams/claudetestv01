@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { Issue, Meeting, MeetingHeadline, Rock, Todo } from "./types";
+import { listMeetingEvents, listPendingEvents, type L10Event } from "./l10-events";
 import { getMeeting, listAttendance, listHeadlines, listRatings, type AttendanceRow } from "./meetings";
 import { getTeam } from "./teams";
 import { listTeamMembers } from "./users";
@@ -22,6 +23,7 @@ export type MeetingRecap = {
   average: number | null;
   durationMinutes: number | null;
   headlines: MeetingHeadline[];
+  events: L10Event[];
   todos: { pending: Todo[]; created: Todo[]; completed: Todo[] };
   issues: { created: Issue[]; solved: Issue[]; stillOpen: number };
   rocks: Rock[];
@@ -47,8 +49,9 @@ export async function meetingRecap(meetingId: number, teamId: number): Promise<M
   const careerWeek = shiftWeek(weekStartISO(new Date(from)), -1);
   const weeks = lastNWeeks(4, careerWeek);
   const { quarter, year } = currentQuarter(new Date(from));
-  const [attendance, team, members, ratings, headlines, todoRows, issueRows, rocks, metrics, owners, targets, entries, careers, weekly, goals] =
+  const [events, attendance, team, members, ratings, headlines, todoRows, issueRows, rocks, metrics, owners, targets, entries, careers, weekly, goals] =
     await Promise.all([
+      meeting.status === "completed" ? listMeetingEvents(teamId, meetingId) : listPendingEvents(teamId),
       listAttendance(meetingId, teamId),
       getTeam(teamId),
       listTeamMembers(teamId),
@@ -98,6 +101,7 @@ export async function meetingRecap(meetingId: number, teamId: number): Promise<M
     average,
     durationMinutes: meeting.started_at ? Math.round((to - from) / 60000) : null,
     headlines,
+    events,
     todos: {
       // Pendientes que traía el equipo al empezar la reunión.
       pending: todos.filter((t) => (ts(t.created_at) ?? 0) < from && (t.status === "open" || inWindow(t.done_at))),

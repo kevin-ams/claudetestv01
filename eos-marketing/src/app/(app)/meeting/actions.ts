@@ -27,6 +27,8 @@ import { buildMeetingSummaryPdf } from "@/lib/pdf/meeting-summary";
 import { DEFAULT_THEME_COLOR } from "@/lib/theme";
 import { appUrl, emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
 import type { IssueTerm } from "@/lib/domain/types";
+import { attachPendingEvents, createEvent, deleteEvent, sendEvent, updateEvent } from "@/lib/domain/l10-events";
+import { listShareableTeams } from "@/lib/domain/scorecard";
 
 export async function startNewMeetingAction() {
   const session = await requireModule("meeting");
@@ -64,6 +66,9 @@ export async function rateMeetingAction(meetingId: number, rating: number) {
 export async function completeMeetingAction(meetingId: number) {
   const session = await requireModule("meeting");
   await completeMeeting(meetingId);
+  // Los eventos pendientes quedan como leídos en esta reunión.
+  const finished = await getMeeting(meetingId);
+  if (finished && finished.team_id === session.teamId) await attachPendingEvents(session.teamId, meetingId);
   await logActivity(session, "meeting", "Finalizó reunión L10", `Reunión #${meetingId}`);
   revalidatePath("/meeting");
   // Queda en la reunión: la pantalla final ofrece descargar el resumen en PDF.
@@ -212,4 +217,66 @@ export async function sendMeetingSummaryAction(
   });
   if (result.ok) await logActivity(session, "meeting", "Envió resumen por correo", `Reunión #${meetingId} → ${to.join(", ")}`);
   return result;
+}
+
+// --- Eventos para la L10 -------------------------------------------------------
+
+export type EventInput = { title: string; detail: string; eventDate: string | null };
+export type EventResult = { ok: boolean; message: string };
+
+function cleanEvent(input: EventInput): EventInput | null {
+  const title = String(input.title ?? "").trim().slice(0, 200);
+  if (!title) return null;
+  const date = String(input.eventDate ?? "").trim();
+  return {
+    title,
+    detail: String(input.detail ?? "").trim().slice(0, 2000),
+    eventDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+  };
+}
+
+function refreshEvents() {
+  revalidatePath("/meeting", "layout");
+}
+
+export async function createEventAction(input: EventInput): Promise<EventResult> {
+  const session = await requireModule("meeting");
+  const e = cleanEvent(input);
+  if (!e) return { ok: false, message: "Escribe el título del evento." };
+  await createEvent({ teamId: session.teamId, ...e, userId: session.userId });
+  await logActivity(session, "meeting", "Agregó evento para la L10", e.title);
+  refreshEvents();
+  return { ok: true, message: "Evento agregado." };
+}
+
+export async function updateEventAction(id: number, input: EventInput): Promise<EventResult> {
+  const session = await requireModule("meeting");
+  const e = cleanEvent(input);
+  if (!e) return { ok: false, message: "Escribe el título del evento." };
+  if (!(await updateEvent({ teamId: session.teamId, id, ...e }))) return { ok: false, message: "No se puede editar este evento." };
+  await logActivity(session, "meeting", "Editó evento para la L10", e.title);
+  refreshEvents();
+  return { ok: true, message: "Evento actualizado." };
+}
+
+export async function deleteEventAction(id: number): Promise<EventResult> {
+  const session = await requireModule("meeting");
+  if (!(await deleteEvent(session.teamId, id))) return { ok: false, message: "No se encontró el evento." };
+  await logActivity(session, "meeting", "Quitó evento de la L10", `Evento #${id}`);
+  refreshEvents();
+  return { ok: true, message: "Evento quitado." };
+}
+
+/** Envía un evento propio a la próxima L10 de otros equipos. */
+export async function sendEventAction(id: number, teamIds: number[]): Promise<EventResult> {
+  const session = await requireModule("meeting");
+  const allowed = await listShareableTeams(session.teamId);
+  const targets = allowed.filter((t) => teamIds.includes(t.id));
+  if (targets.length === 0) return { ok: false, message: "Elige al menos un equipo." };
+  const sent = await sendEvent({ teamId: session.teamId, id, toTeamIds: targets.map((t) => t.id), userId: session.userId });
+  await logActivity(session, "meeting", "Envió evento a otro equipo", `Evento #${id} → ${targets.map((t) => t.name).join(", ")}`);
+  refreshEvents();
+  return sent > 0
+    ? { ok: true, message: `Enviado a la próxima L10 de ${targets.map((t) => t.name).join(", ")}.` }
+    : { ok: false, message: "Ya se había enviado a esos equipos (o el evento ya se leyó)." };
 }

@@ -141,6 +141,10 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Eventos para la L10** (`/meeting`): antes de la reunión cada equipo agrega sus eventos (título, fecha
+  opcional y detalle). Se leen en el segmento de Noticias de la L10 y, al finalizarla, quedan ligados a esa
+  reunión (salen en el resumen PDF). "Enviar a otro equipo" copia el evento a la próxima L10 de los equipos
+  elegidos (aparece como "De: equipo"); el original muestra a quién se envió y si ya se leyó. Tabla `l10_events`.
 - **V/TO** (`/vto`): Vision/Traction Organizer editable por secciones.
 - **Organigrama** (`/accountability`): árbol de puestos con roles/responsabilidades. Cada
   puesto tiene "Reporta a": cambiarlo solo mueve ese puesto (y a quienes dependen de él).

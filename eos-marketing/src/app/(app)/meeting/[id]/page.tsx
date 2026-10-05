@@ -13,6 +13,7 @@ import { mergeWeekly } from "@/lib/domain/careers-shared";
 import { lastNWeeks, currentQuarter, lastClosedWeek, formatWeekRange } from "@/lib/utils/dates";
 import { isClickUpConfigured } from "@/lib/integrations/clickup";
 import { MeetingRunner } from "./meeting-runner";
+import { listMeetingEvents, listPendingEvents } from "@/lib/domain/l10-events";
 
 export default async function MeetingPage({
   params,
@@ -47,6 +48,7 @@ export default async function MeetingPage({
     careerGoals,
     attendance,
     admin,
+    events,
   ] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
@@ -63,6 +65,8 @@ export default async function MeetingPage({
     weeklyGoals(session.teamId, careerWeek),
     listAttendance(meetingId, session.teamId),
     isTeamAdmin(),
+    // En curso: los eventos pendientes; terminada: los que se leyeron en ella.
+    meeting.status === "completed" ? listMeetingEvents(session.teamId, meetingId) : listPendingEvents(session.teamId),
   ]);
   const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
   const milestonesByRock: Record<number, typeof milestones> = {};
@@ -88,6 +92,7 @@ export default async function MeetingPage({
       openIssues={openIssues}
       todos={todos}
       headlines={headlines}
+      events={events}
       ratings={ratings}
       clickupConfigured={isClickUpConfigured()}
       attendance={attendance}

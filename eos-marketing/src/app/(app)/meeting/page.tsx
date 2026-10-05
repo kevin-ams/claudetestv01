@@ -3,6 +3,10 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
 import { listMeetings, getActiveMeeting } from "@/lib/domain/meetings";
 import { StartMeetingButton } from "./start-meeting-button";
+import { canEdit } from "@/lib/auth/access";
+import { listPendingEvents } from "@/lib/domain/l10-events";
+import { listShareableTeams } from "@/lib/domain/scorecard";
+import { EventsPanel } from "./events-panel";
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: "Programada",
@@ -14,9 +18,12 @@ export default async function MeetingListPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [meetings, active] = await Promise.all([
+  const [meetings, active, events, teams, editable] = await Promise.all([
     listMeetings(session.teamId),
     getActiveMeeting(session.teamId),
+    listPendingEvents(session.teamId),
+    listShareableTeams(session.teamId),
+    canEdit("meeting"),
   ]);
 
   return (
@@ -37,6 +44,8 @@ export default async function MeetingListPage() {
           <StartMeetingButton />
         )}
       </div>
+
+      <EventsPanel events={events} teams={teams} editable={editable} activeMeetingId={active?.id ?? null} />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
         Historial

@@ -108,6 +108,15 @@ export async function buildMeetingSummaryPdf(recap: MeetingRecap, brandColor: st
       }))
     );
 
+  // Eventos cargados antes de la reunión
+  L.heading("Eventos");
+  if (recap.events.length === 0) L.empty("No se cargaron eventos.");
+  for (const e of recap.events) {
+    const when = e.event_date ? `${e.event_date.split("-").reverse().join("/")} · ` : "";
+    const from = e.from_team_id !== null ? ` (de ${e.from_team_name ?? "otro equipo"})` : "";
+    L.bullet(`${when}${e.title}${from}${e.detail ? ` — ${e.detail.replace(/\s+/g, " ")}` : ""}`);
+  }
+
   // Noticias
   L.heading("Noticias");
   if (recap.headlines.length === 0) L.empty("No se registraron noticias.");

@@ -43,6 +43,8 @@ import {
 import type { AttendanceRow } from "@/lib/domain/meetings";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { AppSelect } from "@/components/ui/select";
+import type { L10Event } from "@/lib/domain/l10-events";
+import { formatEventDate } from "../events-panel";
 
 function useElapsed(since: string | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -62,19 +64,71 @@ function formatClock(totalSeconds: number) {
   return `${sign}${m}:${String(sec).padStart(2, "0")}`;
 }
 
+/** Eventos cargados antes de la reunión (propios y enviados por otros equipos). */
+function EventsList({ events, onRaiseIssue }: { events: L10Event[]; onRaiseIssue?: (e: L10Event) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <h4 className="text-sm font-semibold">
+        Eventos de la semana <span className="font-normal text-muted">· {events.length}</span>
+      </h4>
+      {events.length === 0 ? (
+        <p className="text-sm text-muted">
+          No se cargaron eventos. Se agregan antes de la reunión en{" "}
+          <Link href="/meeting" className="text-primary underline">
+            Reunión L10
+          </Link>
+          .
+        </p>
+      ) : (
+        <ul className="grid gap-2 md:grid-cols-2">
+          {events.map((e) => (
+            <li
+              key={e.id}
+              className={`card card--default flex flex-row items-start gap-3 p-3 ${e.from_team_id !== null ? "border border-primary/40" : ""}`}
+            >
+              {e.event_date && (
+                <span className="shrink-0 rounded-md bg-background px-2 py-1 text-xs font-semibold capitalize text-primary">
+                  {formatEventDate(e.event_date)}
+                </span>
+              )}
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-medium">{e.title}</p>
+                {e.detail && <p className="whitespace-pre-line text-muted">{e.detail}</p>}
+                <p className="mt-1 text-xs text-muted">
+                  {e.from_team_id !== null && <b className="text-primary">De: {e.from_team_name ?? "otro equipo"} · </b>}
+                  {e.author_name ?? ""}
+                </p>
+              </div>
+              {onRaiseIssue && (
+                <Button size="sm" variant="outline" type="button" className="h-6 shrink-0 px-2 text-[11px] text-red" onPress={() => onRaiseIssue(e)}>
+                  → Issue
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function HeadlinesPanel({
   meetingId,
   headlines,
+  events,
   onRaiseIssue,
 }: {
   meetingId: number;
   headlines: MeetingHeadline[];
-  onRaiseIssue: (headline: MeetingHeadline) => void;
+  events: L10Event[];
+  onRaiseIssue: (headline: { content: string }) => void;
 }) {
   const [customer, setCustomer] = useState("");
   const [employee, setEmployee] = useState("");
 
   return (
+    <div className="flex flex-col gap-6">
+    <EventsList events={events} onRaiseIssue={(e) => onRaiseIssue({ content: e.title })} />
     <div className="grid gap-6 md:grid-cols-2">
       <div>
         <h4 className="mb-2 text-sm font-semibold">Noticias externas</h4>
@@ -142,6 +196,7 @@ function HeadlinesPanel({
           </Button>
         </form>
       </div>
+    </div>
     </div>
   );
 }
@@ -401,6 +456,7 @@ export function MeetingRunner({
   openIssues,
   todos,
   headlines,
+  events,
   ratings,
   clickupConfigured,
   attendance,
@@ -422,6 +478,7 @@ export function MeetingRunner({
   openIssues: Issue[];
   todos: Todo[];
   headlines: MeetingHeadline[];
+  events: L10Event[];
   ratings: { user_id: number; rating: number; user_name: string }[];
   clickupConfigured: boolean;
   attendance: AttendanceRow[];
@@ -634,6 +691,7 @@ export function MeetingRunner({
           <HeadlinesPanel
             meetingId={meeting.id}
             headlines={headlines}
+            events={events}
             onRaiseIssue={(h) => setDraft({ kind: "issue", title: h.content, source: "Noticias" })}
           />
         )}
