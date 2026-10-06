@@ -23,11 +23,13 @@ try {
     )
   `);
   const { rows } = await client.query("SELECT nombre FROM _migraciones");
-  const aplicadas = new Set(rows.map((r) => r.nombre));
+  // Se identifican por su número, por si el nombre cambia (p. ej. guiones en vez de "_").
+  const numero = (n) => n.split("_")[0];
+  const aplicadas = new Set(rows.map((r) => numero(r.nombre)));
 
   const nombres = (await readdir(dir)).sort();
   for (const nombre of nombres) {
-    if (aplicadas.has(nombre)) continue;
+    if (aplicadas.has(numero(nombre))) continue;
     const sql = await readFile(path.join(dir, nombre, "migration.sql"), "utf8");
     await client.query("BEGIN");
     try {

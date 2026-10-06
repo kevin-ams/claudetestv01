@@ -66,8 +66,9 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
 
 ## Producción (Netlify)
 
-Cuando esté lista la versión final, se publica en Netlify como un sitio aparte con
-**base directory = `revision-artes`**:
+Sitio: **ges-revision-artes** → https://ges-revision-artes.netlify.app (variables ya configuradas:
+`AUTH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `APP_URL`, `APP_TIMEZONE`).
+Se publica desde esta carpeta (`revision-artes`):
 
 - Netlify Database aprovisiona Postgres y aplica `netlify/database/migrations` en cada deploy
   (no se usa `DATABASE_URL` ni `db:migrate` allí).
