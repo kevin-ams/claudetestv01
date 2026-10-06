@@ -18,11 +18,13 @@ import {
   crearNuevaVersion,
   deleteArte,
   getArte,
+  listRevisores,
   revisarArte,
   updateArte,
   type ArteDatos,
 } from "@/lib/domain/artes";
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
+import { notificarNuevaVersion } from "@/lib/notificaciones";
 import type { FormState } from "../auth-actions";
 
 const nombre = z.string().trim().min(2, "El nombre es muy corto").max(200);
@@ -214,11 +216,42 @@ export async function nuevaVersionAction(
   if (parsed.data.driveUrl === arte.drive_url) {
     return { error: "El enlace es el mismo de la versión actual. Pega el enlace del archivo corregido." };
   }
-  await crearNuevaVersion(arte, parsed.data, { tipo: "admin", nombre: admin.name, email: admin.email });
+  const autor = { tipo: "admin" as const, nombre: admin.name, email: admin.email };
+  await crearNuevaVersion(arte, parsed.data, autor);
   revalidatePath(`/admin/artes/${arteId}`);
   revalidatePath(`/admin/facultades/${arte.facultad_id}`);
   revalidatePath(`/portal/artes/${arteId}`);
-  return { error: null, ok: true };
+
+  const elegidos = await revisoresElegidos(arte.id, formData);
+  if (elegidos.length === 0) {
+    return { error: null, ok: true, message: `v${arte.version + 1} publicada. No se envió aviso por correo.` };
+  }
+  const actualizado = await getArte(arte.id);
+  const aviso = await notificarNuevaVersion(actualizado!, elegidos, autor);
+  return aviso.ok
+    ? { error: null, ok: true, message: `v${arte.version + 1} publicada. ${aviso.message}` }
+    : { error: `v${arte.version + 1} publicada, pero el aviso no se envió: ${aviso.message}` };
+}
+
+/** Destinatarios marcados en el formulario, solo entre quienes revisaron este arte. */
+async function revisoresElegidos(arteId: number, formData: FormData) {
+  const marcados = new Set(formData.getAll("notificar").map((v) => String(v).toLowerCase()));
+  return (await listRevisores(arteId)).filter((r) => marcados.has(r.email));
+}
+
+export async function notificarAction(
+  arteId: number,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const admin = await requireAdmin();
+  const arte = await getArte(arteId);
+  if (!arte) return { error: "El arte no existe" };
+  const elegidos = await revisoresElegidos(arte.id, formData);
+  if (elegidos.length === 0) return { error: "Elige al menos una persona para notificar." };
+  const aviso = await notificarNuevaVersion(arte, elegidos, { tipo: "admin", nombre: admin.name, email: admin.email });
+  revalidatePath(`/admin/artes/${arteId}`);
+  return aviso.ok ? { error: null, ok: true, message: aviso.message } : { error: aviso.message };
 }
 
 export async function comentarArteAction(

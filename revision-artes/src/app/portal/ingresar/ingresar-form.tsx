@@ -5,10 +5,11 @@ import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
 import { ingresarAction } from "../actions";
 
-export function IngresarForm({ codigo }: { codigo: string }) {
+export function IngresarForm({ codigo, next }: { codigo: string; next: string }) {
   const { state, pending, formProps } = useFormAction(ingresarAction);
   return (
     <form {...formProps} className="mt-6 flex flex-col gap-4">
+      <input type="hidden" name="next" value={next} />
       <TextField name="name" isRequired autoComplete="name">
         <Label>Nombre completo</Label>
         <Input />

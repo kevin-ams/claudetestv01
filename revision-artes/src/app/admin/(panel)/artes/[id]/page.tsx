@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, Card } from "@heroui/react";
 import { requireAdmin } from "@/lib/auth/session";
-import { getArte, listAnotaciones, listRevisiones, listVersiones } from "@/lib/domain/artes";
+import { getArte, listAnotaciones, listRevisiones, listRevisores, listVersiones } from "@/lib/domain/artes";
+import { emailConfigured } from "@/lib/email";
 import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
 import { ConfirmButton } from "@/components/confirm-button";
@@ -14,6 +15,7 @@ import { deleteArteAction, updateArteAction } from "../../actions";
 import { ArteForm } from "../../arte-form";
 import { ComentarioForm } from "./comentario-form";
 import { NuevaVersionForm } from "./nueva-version-form";
+import { NotificarForm } from "./notificar";
 
 export default async function AdminArtePage({ params, searchParams }: PageProps<"/admin/artes/[id]">) {
   await requireAdmin();
@@ -23,13 +25,15 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
   const arte = Number.isInteger(arteId) ? await getArte(arteId) : null;
   if (!arte) notFound();
 
-  const [facultad, carreras, revisiones, versiones, anotaciones] = await Promise.all([
+  const [facultad, carreras, revisiones, versiones, anotaciones, revisores] = await Promise.all([
     getFacultad(arte.facultad_id),
     listCarreras(arte.facultad_id),
     listRevisiones(arte.id),
     listVersiones(arte.id),
     listAnotaciones(arte.id),
+    listRevisores(arte.id),
   ]);
+  const correoConfigurado = emailConfigured();
 
   const vista = versiones.find((x) => String(x.version) === v) ?? versiones.find((x) => x.version === arte.version);
   const urlVista = vista?.drive_url ?? arte.drive_url;
@@ -125,14 +129,34 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
                 </Alert>
               )}
               <NuevaVersionForm
-                key={arte.version}
                 arteId={arte.id}
                 versionActual={arte.version}
                 puntos={pendientes}
                 solicitudes={solicitudes}
+                revisores={revisores}
+                correoConfigurado={correoConfigurado}
               />
             </Card.Content>
           </Card>
+
+          {arte.version > 1 && revisores.length > 0 && (
+            <Card>
+              <Card.Header>
+                <Card.Title>Notificar nueva versión</Card.Title>
+                <Card.Description>
+                  Avisa por correo a quienes revisaron que la v{arte.version} está lista para revisión.
+                </Card.Description>
+              </Card.Header>
+              <Card.Content>
+                <NotificarForm
+                  arteId={arte.id}
+                  version={arte.version}
+                  revisores={revisores}
+                  correoConfigurado={correoConfigurado}
+                />
+              </Card.Content>
+            </Card>
+          )}
 
           <Card>
             <Card.Header>

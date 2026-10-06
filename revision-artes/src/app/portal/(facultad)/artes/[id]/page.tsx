@@ -71,7 +71,7 @@ export default async function PortalArtePage({ params, searchParams }: PageProps
         <Card.Title>Historial</Card.Title>
       </Card.Header>
       <Card.Content>
-        <Historial revisiones={revisiones} anotaciones={anotaciones} showEmail={false} />
+        <Historial revisiones={revisiones} anotaciones={anotaciones} showEmail={false} ocultar={["notificacion"]} />
       </Card.Content>
     </Card>
   );

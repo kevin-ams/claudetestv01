@@ -3,7 +3,9 @@
 import { Alert, Button, Checkbox, Description, Input, Label, TextArea, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
+import type { Revisor } from "@/lib/domain/artes";
 import { nuevaVersionAction } from "../../actions";
+import { CorreoNoConfigurado, RevisoresCheckboxes } from "./notificar";
 
 type PuntoPendiente = { id: number; numero: number; comentario: string; autor: string };
 type Solicitud = { id: number; autor: string; comentario: string };
@@ -18,11 +20,15 @@ export function NuevaVersionForm({
   versionActual,
   puntos,
   solicitudes,
+  revisores,
+  correoConfigurado,
 }: {
   arteId: number;
   versionActual: number;
   puntos: PuntoPendiente[];
   solicitudes: Solicitud[];
+  revisores: Revisor[];
+  correoConfigurado: boolean;
 }) {
   const { state, pending, formProps } = useFormAction(nuevaVersionAction.bind(null, arteId), {
     resetOnSuccess: true,
@@ -77,10 +83,13 @@ export function NuevaVersionForm({
         <Label>¿Qué se cambió?</Label>
         <TextArea rows={3} placeholder="Ej. Se cambió el color del logo y se corrigió la fecha." />
       </TextField>
-      <FormMessage
-        error={state.error}
-        success={state.ok ? `Nueva versión publicada. La facultad ya puede revisarla.` : null}
-      />
+      {revisores.length > 0 && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1 text-sm font-medium">Avisar por correo que la v{versionActual + 1} está lista</legend>
+          {correoConfigurado ? <RevisoresCheckboxes revisores={revisores} /> : <CorreoNoConfigurado />}
+        </fieldset>
+      )}
+      <FormMessage error={state.error} success={state.ok ? (state.message ?? "Listo") : null} />
       <div>
         <Button type="submit" isPending={pending}>
           Publicar v{versionActual + 1} para revisión

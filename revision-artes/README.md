@@ -57,7 +57,11 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
    Drive del archivo corregido, describe qué cambió y marca qué puntos quedaron atendidos. El arte
    pasa a la siguiente versión y vuelve a *Pendiente*. Las versiones anteriores, con sus puntos,
    siguen consultables.
-6. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
+6. **Aviso por correo:** al publicar una nueva versión se puede avisar por correo (Resend) a las
+   personas de la facultad que revisaron el arte (vienen marcadas quienes pidieron cambios o
+   comentaron). El correo trae un botón que lleva directo al arte. También se puede reenviar desde
+   la tarjeta **Notificar nueva versión**. Cada aviso queda en el historial del admin.
+7. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
    Desmarcar *Acceso al portal activo* bloquea a la facultad sin borrar nada.
 
 ## Producción (Netlify)
@@ -69,6 +73,17 @@ Cuando esté lista la versión final, se publica en Netlify como un sitio aparte
   (no se usa `DATABASE_URL` ni `db:migrate` allí).
 - Configura la variable `AUTH_SECRET` (por ejemplo `openssl rand -base64 32`).
 - Opcional: `APP_TIMEZONE` (por defecto `America/Guatemala`) para las fechas del historial.
+
+## Correos (Resend)
+
+Misma integración que EOS: API HTTP de [Resend](https://resend.com), sin dependencias extra
+(`src/lib/email.ts`). Variables:
+
+| Variable | Descripción |
+| -------- | ----------- |
+| `RESEND_API_KEY` | Llave de envío (secreta). Sin ella la app funciona pero no envía avisos. |
+| `RESEND_FROM` | Remitente, p. ej. `GES Revisión de Artes <artes@tudominio.com>` (dominio verificado en Resend). Sin ella se usa `onboarding@resend.dev`, que solo entrega al dueño de la cuenta. |
+| `APP_URL` | Dirección pública para los enlaces del correo (p. ej. `https://ges-revision-artes.netlify.app`). |
 
 ## Estructura
 

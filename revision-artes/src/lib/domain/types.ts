@@ -1,6 +1,6 @@
 export type EstadoArte = "pendiente" | "aprobado" | "cambios";
 
-export type AccionRevision = "aprobado" | "cambios" | "comentario" | "nueva_version";
+export type AccionRevision = "aprobado" | "cambios" | "comentario" | "nueva_version" | "notificacion";
 
 export const ESTADOS: Record<EstadoArte, { label: string; color: "warning" | "success" | "danger" }> = {
   pendiente: { label: "Pendiente", color: "warning" },
@@ -13,4 +13,5 @@ export const ACCIONES: Record<AccionRevision, string> = {
   cambios: "solicitó cambios",
   comentario: "comentó",
   nueva_version: "subió una nueva versión",
+  notificacion: "notificó la nueva versión por correo",
 };

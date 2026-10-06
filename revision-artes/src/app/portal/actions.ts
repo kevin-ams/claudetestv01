@@ -30,7 +30,13 @@ export async function ingresarAction(_prev: FormState, formData: FormData): Prom
     name: parsed.data.name,
     email: parsed.data.email,
   });
-  redirect("/portal");
+  redirect(destinoSeguro(formData.get("next")));
+}
+
+/** Solo permite volver a páginas del propio portal (evita redirecciones abiertas). */
+function destinoSeguro(raw: FormDataEntryValue | null): string {
+  const next = typeof raw === "string" ? raw : "";
+  return /^\/portal(\/[\w-]+)*$/.test(next) ? next : "/portal";
 }
 
 export async function salirAction() {

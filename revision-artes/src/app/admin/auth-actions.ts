@@ -6,7 +6,7 @@ import { countAdmins, createAdmin, getAdminByEmail } from "@/lib/domain/admins";
 import { verifyPassword } from "@/lib/auth/password";
 import { endAdminSession, startAdminSession } from "@/lib/auth/session";
 
-export type FormState = { error: string | null; ok?: boolean };
+export type FormState = { error: string | null; ok?: boolean; message?: string };
 
 const setupSchema = z.object({
   name: z.string().trim().min(2, "Tu nombre es muy corto"),

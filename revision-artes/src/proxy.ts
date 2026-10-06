@@ -15,7 +15,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
   }
   if (pathname.startsWith("/portal") && !request.cookies.has(PORTAL_COOKIE)) {
-    return NextResponse.redirect(new URL("/portal/ingresar", request.url));
+    const url = new URL("/portal/ingresar", request.url);
+    if (pathname !== "/portal") url.searchParams.set("next", pathname);
+    return NextResponse.redirect(url);
   }
   return NextResponse.next();
 }

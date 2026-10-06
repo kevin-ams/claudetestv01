@@ -237,6 +237,35 @@ export async function revisarArte(
   `;
 }
 
+/** Persona de facultad que revisó el arte (destinataria de los avisos). */
+export type Revisor = {
+  nombre: string;
+  email: string;
+  /** Pidió cambios o comentó (no solo aprobó). */
+  comento: boolean;
+};
+
+export async function listRevisores(arteId: number): Promise<Revisor[]> {
+  const rows = await db().sql`
+    SELECT LOWER(autor_email) AS email,
+      (ARRAY_AGG(autor_nombre ORDER BY created_at DESC))[1] AS nombre,
+      BOOL_OR(accion IN ('cambios', 'comentario')) AS comento
+    FROM revisiones
+    WHERE arte_id = ${arteId} AND autor_tipo = 'facultad'
+    GROUP BY LOWER(autor_email)
+    ORDER BY nombre ASC
+  `;
+  return rows as Revisor[];
+}
+
+export async function registrarNotificacion(arte: Arte, emails: string[], autor: Autor) {
+  await db().sql`
+    INSERT INTO revisiones (arte_id, accion, comentario, version, autor_tipo, autor_nombre, autor_email)
+    VALUES (${arte.id}, 'notificacion', ${"Aviso enviado a: " + emails.join(", ")}, ${arte.version},
+      ${autor.tipo}, ${autor.nombre}, ${autor.email})
+  `;
+}
+
 export type ActividadReciente = Revision & {
   arte_titulo: string;
   facultad_id: number;

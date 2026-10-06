@@ -7,17 +7,22 @@ const COLOR: Record<Revision["accion"], string> = {
   cambios: "bg-danger",
   comentario: "bg-muted",
   nueva_version: "bg-accent",
+  notificacion: "bg-accent",
 };
 
 export function Historial({
   revisiones,
   anotaciones,
   showEmail,
+  ocultar = [],
 }: {
   revisiones: Revision[];
   anotaciones: Anotacion[];
   showEmail: boolean;
+  /** Acciones que no se muestran (p. ej. los avisos por correo en el portal). */
+  ocultar?: Revision["accion"][];
 }) {
+  revisiones = revisiones.filter((r) => !ocultar.includes(r.accion));
   if (revisiones.length === 0) {
     return <p className="text-sm text-muted">Todavía no hay revisiones.</p>;
   }

@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef } from "react";
 
-type State = { error: string | null; ok?: boolean };
+type State = { error: string | null; ok?: boolean; message?: string };
 
 /**
  * Como useActionState, pero sin el reseteo automático de React 19 al enviar:
