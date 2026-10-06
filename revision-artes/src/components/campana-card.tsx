@@ -34,6 +34,7 @@ export function CampanaCard({
               ? `${porRevisar} de ${campana.total} ${campana.total === 1 ? "arte" : "artes"} por revisar`
               : `Todo revisado (${campana.total} ${campana.total === 1 ? "arte" : "artes"})`}
           {campana.proxima_fecha && <span className="block text-xs">📅 Próxima publicación: {formatFecha(campana.proxima_fecha)}</span>}
+          {campana.creado_por_nombre && <span className="block text-xs">Creada por {campana.creado_por_nombre}</span>}
         </Card.Content>
         <Card.Footer className="flex flex-wrap gap-2" data-guia="contadores">
           <Chip size="sm" color="warning" variant="soft">{campana.pendientes} pendientes</Chip>

@@ -5,7 +5,7 @@ import { Button, Card, Chip, Input, TextField } from "@heroui/react";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
-import { listCampanasResumen } from "@/lib/domain/campanas";
+import { listCampanasResumenAdmin } from "@/lib/domain/campanas";
 import { CampanaCard } from "@/components/campana-card";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyButton } from "@/components/copy-button";
@@ -32,7 +32,7 @@ export default async function FacultadPage({ params }: PageProps<"/admin/faculta
   const facultad = Number.isInteger(facultadId) ? await getFacultad(facultadId) : null;
   if (!facultad) notFound();
 
-  const [carreras, campanas] = await Promise.all([listCarreras(facultad.id), listCampanasResumen(facultad.id)]);
+  const [carreras, campanas] = await Promise.all([listCarreras(facultad.id), listCampanasResumenAdmin(facultad.id)]);
   const enlace = `${await baseUrl()}/portal/ingresar?codigo=${facultad.codigo_acceso}`;
 
   return (

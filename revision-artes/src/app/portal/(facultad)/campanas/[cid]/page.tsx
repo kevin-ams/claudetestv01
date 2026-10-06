@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "@heroui/react";
 import { requirePortal } from "@/lib/auth/session";
-import { getCampana } from "@/lib/domain/campanas";
+import { getCampanaPortal } from "@/lib/domain/campanas";
 import { listCarreras } from "@/lib/domain/carreras";
 import { listArtes } from "@/lib/domain/artes";
 import { ArteCard } from "@/components/arte-card";
@@ -15,8 +15,8 @@ export default async function PortalCampanaPage({ params, searchParams }: PagePr
   const { cid } = await params;
   const { carrera, estado } = await searchParams;
 
-  // getCampana con facultadId: una campaña de otra facultad responde 404.
-  const campana = cid === "otros" ? null : await getCampana(Number(cid), facultad.id);
+  // Solo campañas de su facultad (otra responde 404) y sin datos internos.
+  const campana = cid === "otros" ? null : await getCampanaPortal(Number(cid), facultad.id);
   if (cid !== "otros" && !campana) notFound();
 
   const [carreras, todos] = await Promise.all([listCarreras(facultad.id), listArtes(facultad.id)]);

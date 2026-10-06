@@ -21,6 +21,8 @@ export type CampanaResumen = {
   cambios: number;
   aprobados: number;
   proxima_fecha: string | null;
+  /** Solo para el panel de administración: nunca se muestra en el portal. */
+  creado_por_nombre: string | null;
 };
 
 export async function listCampanas(facultadId: number): Promise<Campana[]> {
@@ -35,13 +37,19 @@ export async function listCampanas(facultadId: number): Promise<Campana[]> {
  * campaña, se agregan al final como "Otros artes" (id null).
  */
 export async function listCampanasResumen(facultadId: number): Promise<CampanaResumen[]> {
+  return (await listCampanasResumenAdmin(facultadId)).map((c) => ({ ...c, creado_por_nombre: null }));
+}
+
+/** Igual que `listCampanasResumen`, pero con quién creó cada campaña (solo admin). */
+export async function listCampanasResumenAdmin(facultadId: number): Promise<CampanaResumen[]> {
   const rows = (await db().sql`
     SELECT c.id, c.nombre, c.descripcion,
       COUNT(a.id)::int AS total,
       COUNT(a.id) FILTER (WHERE a.estado = 'pendiente')::int AS pendientes,
       COUNT(a.id) FILTER (WHERE a.estado = 'cambios')::int AS cambios,
       COUNT(a.id) FILTER (WHERE a.estado = 'aprobado')::int AS aprobados,
-      TO_CHAR(MIN(a.fecha_publicacion) FILTER (WHERE a.estado <> 'aprobado'), 'YYYY-MM-DD') AS proxima_fecha
+      TO_CHAR(MIN(a.fecha_publicacion) FILTER (WHERE a.estado <> 'aprobado'), 'YYYY-MM-DD') AS proxima_fecha,
+      c.creado_por_nombre
     FROM campanas c
     LEFT JOIN artes a ON a.campana_id = c.id
     WHERE c.facultad_id = ${facultadId}
@@ -52,7 +60,8 @@ export async function listCampanasResumen(facultadId: number): Promise<CampanaRe
       COUNT(*) FILTER (WHERE estado = 'pendiente')::int,
       COUNT(*) FILTER (WHERE estado = 'cambios')::int,
       COUNT(*) FILTER (WHERE estado = 'aprobado')::int,
-      TO_CHAR(MIN(fecha_publicacion) FILTER (WHERE estado <> 'aprobado'), 'YYYY-MM-DD')
+      TO_CHAR(MIN(fecha_publicacion) FILTER (WHERE estado <> 'aprobado'), 'YYYY-MM-DD'),
+      NULL
     FROM artes
     WHERE facultad_id = ${facultadId} AND campana_id IS NULL
     HAVING COUNT(*) > 0
@@ -66,7 +75,21 @@ export async function listCampanasResumen(facultadId: number): Promise<CampanaRe
   });
 }
 
-/** Devuelve la campaña solo si pertenece a la facultad indicada. */
+export type CampanaPortal = Pick<Campana, "id" | "facultad_id" | "nombre" | "descripcion">;
+
+/**
+ * Campaña para el portal de facultades: solo los datos que la facultad puede
+ * ver (sin quién la creó) y solo si pertenece a su facultad.
+ */
+export async function getCampanaPortal(id: number, facultadId: number): Promise<CampanaPortal | null> {
+  const rows = await db().sql`
+    SELECT id, facultad_id, nombre, descripcion FROM campanas
+    WHERE id = ${id} AND facultad_id = ${facultadId}
+  `;
+  return (rows[0] as CampanaPortal) ?? null;
+}
+
+/** Devuelve la campaña solo si pertenece a la facultad indicada (uso del admin). */
 export async function getCampana(id: number, facultadId?: number): Promise<Campana | null> {
   const rows = await db().sql`SELECT * FROM campanas WHERE id = ${id}`;
   const campana = (rows[0] as Campana) ?? null;
