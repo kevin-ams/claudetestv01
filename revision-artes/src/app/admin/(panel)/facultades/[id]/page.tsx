@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { Button, Card, Chip, Input, TextField } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
@@ -46,7 +48,7 @@ export default async function FacultadPage({ params, searchParams }: PageProps<"
         <Link href="/admin" className="text-sm text-muted hover:underline">← Facultades</Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{facultad.nombre}</h1>
-          {!facultad.activa && <span className="badge bg-background text-muted">Acceso inactivo</span>}
+          {!facultad.activa && <Chip variant="soft">Acceso inactivo</Chip>}
         </div>
       </div>
 
@@ -54,15 +56,15 @@ export default async function FacultadPage({ params, searchParams }: PageProps<"
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Artes ({artes.length})</h2>
-            <Link href={`/admin/facultades/${facultad.id}/nuevo-arte`} className="btn btn-primary">
+            <Link href={`/admin/facultades/${facultad.id}/nuevo-arte`} className={buttonVariants({ variant: "primary" })}>
               + Nuevo arte
             </Link>
           </div>
           <FiltrosArtes base={`/admin/facultades/${facultad.id}`} filtros={filtros} carreras={carreras} artes={artes} />
           {visibles.length === 0 ? (
-            <p className="card p-6 text-center text-sm text-muted">
+            <Card className="p-6 text-center text-sm text-muted">
               {artes.length === 0 ? "Esta facultad aún no tiene artes." : "No hay artes con estos filtros."}
-            </p>
+            </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {visibles.map((a) => (
@@ -73,70 +75,92 @@ export default async function FacultadPage({ params, searchParams }: PageProps<"
         </section>
 
         <aside className="flex flex-col gap-4">
-          <div className="card p-4">
-            <h2 className="font-semibold">Acceso al portal</h2>
-            <p className="mt-1 text-xs text-muted">
-              Comparte el enlace o el código con la facultad. Al entrar solo se pide nombre y correo.
-            </p>
-            <div className="mt-3 flex items-center justify-between gap-2 rounded-lg bg-background p-3">
-              <code className="font-mono text-lg font-bold tracking-wider">{facultad.codigo_acceso}</code>
-              <CopyButton text={facultad.codigo_acceso} />
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <CopyButton text={enlace} label="Copiar enlace directo" />
-              <form action={regenerarCodigoAction.bind(null, facultad.id)}>
+          <Card>
+            <Card.Header>
+              <Card.Title>Acceso al portal</Card.Title>
+              <Card.Description>
+                Comparte el enlace o el código con la facultad. Al entrar solo se pide nombre y correo.
+              </Card.Description>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-surface-secondary p-3">
+                <code className="font-mono text-lg font-bold tracking-wider">{facultad.codigo_acceso}</code>
+                <CopyButton text={facultad.codigo_acceso} />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <CopyButton text={enlace} label="Copiar enlace directo" />
+                <form action={regenerarCodigoAction.bind(null, facultad.id)}>
+                  <ConfirmButton
+                    size="sm"
+                    variant="tertiary"
+                    title="¿Regenerar el código?"
+                    message="Se generará un código nuevo y quienes estén dentro del portal con el código anterior perderán el acceso."
+                    confirmLabel="Regenerar"
+                  >
+                    Regenerar código
+                  </ConfirmButton>
+                </form>
+              </div>
+            </Card.Content>
+          </Card>
+
+          <Card>
+            <Card.Header>
+              <Card.Title>Carreras</Card.Title>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-3">
+              <CrearCarreraForm facultadId={facultad.id} />
+              {carreras.length === 0 ? (
+                <p className="text-sm text-muted">Sin carreras todavía.</p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {carreras.map((c) => (
+                    <li key={c.id} className="flex items-center gap-2">
+                      <form action={renameCarreraAction.bind(null, c.id)} className="flex flex-1 gap-2">
+                        <TextField name="nombre" defaultValue={c.nombre} isRequired aria-label="Nombre de la carrera" className="flex-1">
+                          <Input />
+                        </TextField>
+                        <Button type="submit" size="sm" variant="tertiary" isIconOnly aria-label={`Guardar nombre de ${c.nombre}`}>
+                          ✓
+                        </Button>
+                      </form>
+                      <form action={deleteCarreraAction.bind(null, c.id)}>
+                        <ConfirmButton
+                          size="sm"
+                          ariaLabel={`Eliminar ${c.nombre}`}
+                          title={`¿Eliminar “${c.nombre}”?`}
+                          message="Sus artes quedarán como “Toda la facultad”."
+                          confirmLabel="Eliminar"
+                        >
+                          ✕
+                        </ConfirmButton>
+                      </form>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card.Content>
+          </Card>
+
+          <Card>
+            <Card.Header>
+              <Card.Title>Ajustes</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <AjustesFacultadForm id={facultad.id} nombre={facultad.nombre} activa={facultad.activa} />
+            </Card.Content>
+            <Card.Footer className="border-t border-separator pt-4">
+              <form action={deleteFacultadAction.bind(null, facultad.id)}>
                 <ConfirmButton
-                  className="btn btn-secondary !px-3 !py-1.5 text-xs"
-                  message="Se generará un código nuevo y quienes estén dentro del portal con el código anterior perderán el acceso. ¿Continuar?"
+                  title={`¿Eliminar “${facultad.nombre}”?`}
+                  message="Se borrarán todas sus carreras, artes e historial. No se puede deshacer."
+                  confirmLabel="Eliminar facultad"
                 >
-                  Regenerar código
+                  Eliminar facultad
                 </ConfirmButton>
               </form>
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h2 className="font-semibold">Carreras</h2>
-            <div className="mt-3">
-              <CrearCarreraForm facultadId={facultad.id} />
-            </div>
-            {carreras.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">Sin carreras todavía.</p>
-            ) : (
-              <ul className="mt-3 flex flex-col divide-y divide-border">
-                {carreras.map((c) => (
-                  <li key={c.id} className="flex items-center gap-2 py-2">
-                    <form action={renameCarreraAction.bind(null, c.id)} className="flex flex-1 gap-2">
-                      <input name="nombre" defaultValue={c.nombre} required className="input !py-1" aria-label="Nombre de la carrera" />
-                      <button type="submit" className="btn btn-secondary !px-2 !py-1 text-xs" title="Guardar nombre">
-                        ✓
-                      </button>
-                    </form>
-                    <form action={deleteCarreraAction.bind(null, c.id)}>
-                      <ConfirmButton
-                        className="btn btn-danger !px-2 !py-1 text-xs"
-                        message={`¿Eliminar la carrera “${c.nombre}”? Sus artes quedarán como “Toda la facultad”.`}
-                      >
-                        ✕
-                      </ConfirmButton>
-                    </form>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div className="card p-4">
-            <h2 className="font-semibold">Ajustes</h2>
-            <div className="mt-3">
-              <AjustesFacultadForm id={facultad.id} nombre={facultad.nombre} activa={facultad.activa} />
-            </div>
-            <form action={deleteFacultadAction.bind(null, facultad.id)} className="mt-4 border-t border-border pt-4">
-              <ConfirmButton message={`¿Eliminar “${facultad.nombre}” con todas sus carreras, artes e historial? No se puede deshacer.`}>
-                Eliminar facultad
-              </ConfirmButton>
-            </form>
-          </div>
+            </Card.Footer>
+          </Card>
         </aside>
       </div>
     </div>

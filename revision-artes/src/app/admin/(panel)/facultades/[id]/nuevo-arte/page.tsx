@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Card } from "@heroui/react";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
@@ -22,9 +23,9 @@ export default async function NuevoArtePage({ params }: PageProps<"/admin/facult
         </Link>
         <h1 className="mt-1 text-2xl font-bold">Nuevo arte para aprobación</h1>
       </div>
-      <div className="card p-6">
-        <ArteForm action={createArteAction.bind(null, facultad.id)} carreras={carreras} submitLabel="Crear arte" />
-      </div>
+      <Card className="p-6">
+        <ArteForm action={createArteAction.bind(null, facultad.id)} carreras={carreras} conEnlace submitLabel="Crear arte" />
+      </Card>
     </div>
   );
 }

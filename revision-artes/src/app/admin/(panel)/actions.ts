@@ -15,11 +15,12 @@ import {
 import { createCarrera, deleteCarrera, getCarrera, renameCarrera } from "@/lib/domain/carreras";
 import {
   createArte,
+  crearNuevaVersion,
   deleteArte,
   getArte,
   revisarArte,
   updateArte,
-  type ArteInput,
+  type ArteDatos,
 } from "@/lib/domain/artes";
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
 import type { FormState } from "../auth-actions";
@@ -104,15 +105,16 @@ export async function deleteCarreraAction(carreraId: number) {
 
 // ---------- Artes ----------
 
-const arteSchema = z.object({
+const driveUrl = z
+  .string()
+  .trim()
+  .refine((v) => parseDriveUrl(v) !== null, "Pega un enlace válido de Google Drive (archivo o carpeta)");
+
+const datosSchema = z.object({
   titulo: z.string().trim().min(2, "El título es muy corto").max(200),
   campana: z.string().trim().max(200),
   formato: z.string().trim().max(100),
   descripcion: z.string().trim().max(5000),
-  driveUrl: z
-    .string()
-    .trim()
-    .refine((v) => parseDriveUrl(v) !== null, "Pega un enlace válido de Google Drive (archivo o carpeta)"),
   fechaPublicacion: z
     .string()
     .trim()
@@ -120,25 +122,25 @@ const arteSchema = z.object({
   carreraId: z.string(),
 });
 
-/** Valida el formulario y que la carrera elegida pertenezca a la facultad. */
-async function parseArte(
+/** Valida los datos del arte y que la carrera elegida pertenezca a la facultad. */
+async function parseDatos(
   facultadId: number,
   formData: FormData
-): Promise<{ data: ArteInput } | { error: string }> {
-  const parsed = arteSchema.safeParse({
+): Promise<{ data: ArteDatos } | { error: string }> {
+  const parsed = datosSchema.safeParse({
     titulo: formData.get("titulo") ?? "",
     campana: formData.get("campana") ?? "",
     formato: formData.get("formato") ?? "",
     descripcion: formData.get("descripcion") ?? "",
-    driveUrl: formData.get("driveUrl") ?? "",
     fechaPublicacion: formData.get("fechaPublicacion") ?? "",
     carreraId: formData.get("carreraId") ?? "",
   });
   if (!parsed.success) return { error: firstError(parsed.error) };
 
   let carreraId: number | null = null;
-  if (parsed.data.carreraId) {
-    const carrera = await getCarrera(Number(parsed.data.carreraId));
+  const rawCarrera = parsed.data.carreraId;
+  if (rawCarrera && rawCarrera !== "general") {
+    const carrera = await getCarrera(Number(rawCarrera));
     if (!carrera || carrera.facultad_id !== facultadId) {
       return { error: "La carrera no pertenece a esta facultad" };
     }
@@ -152,7 +154,6 @@ async function parseArte(
       campana: parsed.data.campana,
       formato: parsed.data.formato,
       descripcion: parsed.data.descripcion,
-      driveUrl: parsed.data.driveUrl,
       fechaPublicacion: parsed.data.fechaPublicacion || null,
     },
   };
@@ -165,9 +166,11 @@ export async function createArteAction(
 ): Promise<FormState> {
   await requireAdmin();
   if (!(await getFacultad(facultadId))) return { error: "La facultad no existe" };
-  const result = await parseArte(facultadId, formData);
+  const result = await parseDatos(facultadId, formData);
   if ("error" in result) return { error: result.error };
-  const id = await createArte(facultadId, result.data);
+  const url = driveUrl.safeParse(formData.get("driveUrl") ?? "");
+  if (!url.success) return { error: firstError(url.error) };
+  const id = await createArte(facultadId, result.data, url.data);
   revalidatePath(`/admin/facultades/${facultadId}`);
   redirect(`/admin/artes/${id}`);
 }
@@ -177,14 +180,44 @@ export async function updateArteAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
+  await requireAdmin();
+  const arte = await getArte(arteId);
+  if (!arte) return { error: "El arte no existe" };
+  const result = await parseDatos(arte.facultad_id, formData);
+  if ("error" in result) return { error: result.error };
+  await updateArte(arte.id, result.data);
+  revalidatePath(`/admin/artes/${arteId}`);
+  revalidatePath(`/admin/facultades/${arte.facultad_id}`);
+  return { error: null, ok: true };
+}
+
+const nuevaVersionSchema = z.object({
+  driveUrl,
+  nota: z.string().trim().min(3, "Describe qué cambiaste en esta versión").max(5000),
+  atendidas: z.array(z.coerce.number().int().positive()).max(200),
+});
+
+export async function nuevaVersionAction(
+  arteId: number,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
   const admin = await requireAdmin();
   const arte = await getArte(arteId);
   if (!arte) return { error: "El arte no existe" };
-  const result = await parseArte(arte.facultad_id, formData);
-  if ("error" in result) return { error: result.error };
-  await updateArte(arte, result.data, { tipo: "admin", nombre: admin.name, email: admin.email });
+  const parsed = nuevaVersionSchema.safeParse({
+    driveUrl: formData.get("driveUrl") ?? "",
+    nota: formData.get("nota") ?? "",
+    atendidas: formData.getAll("atendidas"),
+  });
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (parsed.data.driveUrl === arte.drive_url) {
+    return { error: "El enlace es el mismo de la versión actual. Pega el enlace del archivo corregido." };
+  }
+  await crearNuevaVersion(arte, parsed.data, { tipo: "admin", nombre: admin.name, email: admin.email });
   revalidatePath(`/admin/artes/${arteId}`);
   revalidatePath(`/admin/facultades/${arte.facultad_id}`);
+  revalidatePath(`/portal/artes/${arteId}`);
   return { error: null, ok: true };
 }
 
@@ -198,7 +231,7 @@ export async function comentarArteAction(
   if (!arte) return { error: "El arte no existe" };
   const comentario = String(formData.get("comentario") ?? "").trim().slice(0, 5000);
   if (!comentario) return { error: "Escribe un comentario" };
-  await revisarArte(arte, "comentario", comentario, {
+  await revisarArte(arte, "comentario", comentario, [], {
     tipo: "admin",
     nombre: admin.name,
     email: admin.email,

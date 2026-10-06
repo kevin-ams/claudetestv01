@@ -10,6 +10,8 @@
     "db:migrate": "node --env-file-if-exists=.env.local scripts/migrate.mjs"
   },
   "dependencies": {
+    "@heroui/react": "^3.2.6",
+    "@heroui/styles": "^3.2.6",
     "@netlify/database": "^2.0.0",
     "@netlify/plugin-nextjs": "^5.15.13",
     "bcryptjs": "^3.0.3",

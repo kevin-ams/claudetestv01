@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Checkbox, Input, Label, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
 import { createCarreraAction, updateFacultadAction } from "../../actions";
@@ -8,29 +9,41 @@ export function AjustesFacultadForm({ id, nombre, activa }: { id: number; nombre
   const { state, pending, formProps } = useFormAction(updateFacultadAction.bind(null, id));
   return (
     <form {...formProps} className="flex flex-col gap-3">
-      <div>
-        <label className="label" htmlFor="nombre">Nombre</label>
-        <input id="nombre" name="nombre" defaultValue={nombre} required className="input" />
-      </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" name="activa" defaultChecked={activa} />
-        Acceso al portal activo
-      </label>
+      <TextField name="nombre" defaultValue={nombre} isRequired>
+        <Label>Nombre</Label>
+        <Input />
+      </TextField>
+      <Checkbox name="activa" defaultSelected={activa}>
+        <Checkbox.Content>
+          <Checkbox.Control>
+            <Checkbox.Indicator />
+          </Checkbox.Control>
+          Acceso al portal activo
+        </Checkbox.Content>
+      </Checkbox>
       <FormMessage error={state.error} success={state.ok ? "Guardado" : null} />
       <div>
-        <button type="submit" disabled={pending} className="btn btn-secondary">Guardar</button>
+        <Button type="submit" variant="secondary" isPending={pending}>
+          Guardar
+        </Button>
       </div>
     </form>
   );
 }
 
 export function CrearCarreraForm({ facultadId }: { facultadId: number }) {
-  const { state, pending, formProps } = useFormAction(createCarreraAction.bind(null, facultadId), { resetOnSuccess: true });
+  const { state, pending, formProps } = useFormAction(createCarreraAction.bind(null, facultadId), {
+    resetOnSuccess: true,
+  });
   return (
-    <form {...formProps} className="flex flex-col gap-1">
+    <form {...formProps} className="flex flex-col gap-2">
       <div className="flex gap-2">
-        <input name="nombre" placeholder="Nueva carrera" required className="input" aria-label="Nombre de la carrera" />
-        <button type="submit" disabled={pending} className="btn btn-primary shrink-0">Agregar</button>
+        <TextField name="nombre" isRequired aria-label="Nombre de la carrera" className="flex-1">
+          <Input placeholder="Nueva carrera" />
+        </TextField>
+        <Button type="submit" isPending={pending}>
+          Agregar
+        </Button>
       </div>
       <FormMessage error={state.error} />
     </form>

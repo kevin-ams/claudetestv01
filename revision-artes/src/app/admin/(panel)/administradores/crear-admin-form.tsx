@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
 import { createAdminAction } from "../actions";
@@ -7,13 +8,26 @@ import { createAdminAction } from "../actions";
 export function CrearAdminForm() {
   const { state, pending, formProps } = useFormAction(createAdminAction, { resetOnSuccess: true });
   return (
-    <form {...formProps} className="grid gap-3 sm:grid-cols-3">
-      <input name="name" placeholder="Nombre" required className="input" aria-label="Nombre" />
-      <input name="email" type="email" placeholder="Correo" required className="input" aria-label="Correo" />
-      <input name="password" type="password" placeholder="Contraseña (mín. 8)" required className="input" aria-label="Contraseña" autoComplete="new-password" />
-      <div className="flex items-center gap-3 sm:col-span-3">
-        <button type="submit" disabled={pending} className="btn btn-primary">Agregar administrador</button>
-        <FormMessage error={state.error} success={state.ok ? "Administrador agregado" : null} />
+    <form {...formProps} className="flex flex-col gap-3">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <TextField name="name" isRequired>
+          <Label>Nombre</Label>
+          <Input />
+        </TextField>
+        <TextField name="email" type="email" isRequired>
+          <Label>Correo</Label>
+          <Input />
+        </TextField>
+        <TextField name="password" type="password" isRequired autoComplete="new-password">
+          <Label>Contraseña (mín. 8)</Label>
+          <Input />
+        </TextField>
+      </div>
+      <FormMessage error={state.error} success={state.ok ? "Administrador agregado" : null} />
+      <div>
+        <Button type="submit" isPending={pending}>
+          Agregar administrador
+        </Button>
       </div>
     </form>
   );

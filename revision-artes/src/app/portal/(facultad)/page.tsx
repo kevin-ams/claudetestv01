@@ -1,3 +1,4 @@
+import { Card } from "@heroui/react";
 import { requirePortal } from "@/lib/auth/session";
 import { listArtes } from "@/lib/domain/artes";
 import { listCarreras } from "@/lib/domain/carreras";
@@ -27,9 +28,9 @@ export default async function PortalHome({ searchParams }: PageProps<"/portal">)
       </div>
       <FiltrosArtes base="/portal" filtros={filtros} carreras={carreras} artes={artes} />
       {visibles.length === 0 ? (
-        <p className="card p-6 text-center text-sm text-muted">
+        <Card className="p-6 text-center text-sm text-muted">
           {artes.length === 0 ? "Aún no hay artes cargados para tu facultad." : "No hay artes con estos filtros."}
-        </p>
+        </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visibles.map((a) => (

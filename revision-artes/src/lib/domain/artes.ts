@@ -31,13 +31,35 @@ export type Revision = {
   created_at: string;
 };
 
-export type ArteInput = {
+export type Version = {
+  version: number;
+  drive_url: string;
+  nota: string;
+  created_at: string;
+};
+
+/** Punto marcado sobre la imagen. x / y en porcentaje (0–100). */
+export type Anotacion = {
+  id: number;
+  revision_id: number;
+  version: number;
+  numero: number;
+  x: number;
+  y: number;
+  comentario: string;
+  atendida: boolean;
+  autor_nombre: string;
+  created_at: string;
+};
+
+export type PuntoNuevo = { x: number; y: number; comentario: string };
+
+export type ArteDatos = {
   carreraId: number | null;
   titulo: string;
   campana: string;
   formato: string;
   descripcion: string;
-  driveUrl: string;
   fechaPublicacion: string | null;
 };
 
@@ -84,46 +106,82 @@ export async function getArte(id: number, facultadId?: number): Promise<Arte | n
   return arte;
 }
 
-export async function createArte(facultadId: number, input: ArteInput): Promise<number> {
+export async function createArte(
+  facultadId: number,
+  datos: ArteDatos,
+  driveUrl: string
+): Promise<number> {
   const rows = await db().sql`
-    INSERT INTO artes (facultad_id, carrera_id, titulo, campana, formato, descripcion, drive_url, fecha_publicacion)
-    VALUES (${facultadId}, ${input.carreraId}, ${input.titulo}, ${input.campana}, ${input.formato},
-      ${input.descripcion}, ${input.driveUrl}, ${input.fechaPublicacion})
-    RETURNING id
+    WITH a AS (
+      INSERT INTO artes (facultad_id, carrera_id, titulo, campana, formato, descripcion, drive_url, fecha_publicacion)
+      VALUES (${facultadId}, ${datos.carreraId}, ${datos.titulo}, ${datos.campana}, ${datos.formato},
+        ${datos.descripcion}, ${driveUrl}, ${datos.fechaPublicacion})
+      RETURNING id, drive_url
+    ), v AS (
+      INSERT INTO arte_versiones (arte_id, version, drive_url)
+      SELECT id, 1, drive_url FROM a
+    )
+    SELECT id FROM a
   `;
   return (rows[0] as { id: number }).id;
 }
 
-/**
- * Actualiza los datos de un arte. Si cambia el enlace de Drive se considera
- * una nueva versión: sube el número de versión y vuelve a "pendiente".
- */
-export async function updateArte(arte: Arte, input: ArteInput, autor: Autor) {
-  const nuevaVersion = input.driveUrl !== arte.drive_url;
-  const version = nuevaVersion ? arte.version + 1 : arte.version;
-  const estado: EstadoArte = nuevaVersion ? "pendiente" : arte.estado;
-
+/** Edita los datos descriptivos. El enlace solo cambia con una nueva versión. */
+export async function updateArte(arteId: number, datos: ArteDatos) {
   await db().sql`
     UPDATE artes SET
-      carrera_id = ${input.carreraId},
-      titulo = ${input.titulo},
-      campana = ${input.campana},
-      formato = ${input.formato},
-      descripcion = ${input.descripcion},
-      drive_url = ${input.driveUrl},
-      fecha_publicacion = ${input.fechaPublicacion},
-      version = ${version},
-      estado = ${estado},
+      carrera_id = ${datos.carreraId},
+      titulo = ${datos.titulo},
+      campana = ${datos.campana},
+      formato = ${datos.formato},
+      descripcion = ${datos.descripcion},
+      fecha_publicacion = ${datos.fechaPublicacion},
       updated_at = NOW()
-    WHERE id = ${arte.id}
+    WHERE id = ${arteId}
   `;
-  if (nuevaVersion) {
-    await addRevision(arte.id, version, "nueva_version", "", autor);
-  }
+}
+
+/**
+ * Sube una nueva versión con los cambios solicitados: guarda el nuevo enlace,
+ * marca como atendidos los puntos indicados de la versión anterior, deja el
+ * arte en "pendiente" y lo registra en el historial. Todo en una sola sentencia.
+ */
+export async function crearNuevaVersion(
+  arte: Arte,
+  input: { driveUrl: string; nota: string; atendidas: number[] },
+  autor: Autor
+) {
+  const version = arte.version + 1;
+  await db().sql`
+    WITH u AS (
+      UPDATE artes SET drive_url = ${input.driveUrl}, version = ${version},
+        estado = 'pendiente', updated_at = NOW()
+      WHERE id = ${arte.id} AND version = ${arte.version}
+      RETURNING id
+    ), v AS (
+      INSERT INTO arte_versiones (arte_id, version, drive_url, nota)
+      SELECT id, ${version}, ${input.driveUrl}, ${input.nota} FROM u
+    ), p AS (
+      UPDATE anotaciones SET atendida = TRUE
+      WHERE arte_id IN (SELECT id FROM u) AND version = ${arte.version}
+        AND id = ANY(${input.atendidas}::int[])
+    )
+    INSERT INTO revisiones (arte_id, accion, comentario, version, autor_tipo, autor_nombre, autor_email)
+    SELECT id, 'nueva_version', ${input.nota}, ${version}, ${autor.tipo}, ${autor.nombre}, ${autor.email}
+    FROM u
+  `;
 }
 
 export async function deleteArte(id: number) {
   await db().sql`DELETE FROM artes WHERE id = ${id}`;
+}
+
+export async function listVersiones(arteId: number): Promise<Version[]> {
+  const rows = await db().sql`
+    SELECT version, drive_url, nota, created_at FROM arte_versiones
+    WHERE arte_id = ${arteId} ORDER BY version DESC
+  `;
+  return rows as Version[];
 }
 
 export async function listRevisiones(arteId: number): Promise<Revision[]> {
@@ -133,35 +191,50 @@ export async function listRevisiones(arteId: number): Promise<Revision[]> {
   return rows as Revision[];
 }
 
-async function addRevision(
-  arteId: number,
-  version: number,
-  accion: AccionRevision,
-  comentario: string,
-  autor: Autor
-) {
-  await db().sql`
-    INSERT INTO revisiones (arte_id, accion, comentario, version, autor_tipo, autor_nombre, autor_email)
-    VALUES (${arteId}, ${accion}, ${comentario}, ${version}, ${autor.tipo}, ${autor.nombre}, ${autor.email})
+export async function listAnotaciones(arteId: number): Promise<Anotacion[]> {
+  const rows = await db().sql`
+    SELECT n.id, n.revision_id, n.version, n.numero, n.x, n.y, n.comentario,
+      n.atendida, n.created_at, r.autor_nombre
+    FROM anotaciones n
+    JOIN revisiones r ON r.id = n.revision_id
+    WHERE n.arte_id = ${arteId}
+    ORDER BY n.version DESC, n.numero ASC
   `;
+  return (rows as Anotacion[]).map((a) => ({ ...a, x: Number(a.x), y: Number(a.y) }));
 }
 
 /**
- * Registra una decisión o comentario sobre la versión actual del arte.
- * "aprobado" y "cambios" cambian el estado; "comentario" no.
+ * Registra una decisión o comentario sobre la versión actual del arte, con
+ * los puntos marcados en la imagen (numerados a continuación de los que ya
+ * existen en esa versión). "aprobado" y "cambios" cambian el estado.
  */
 export async function revisarArte(
   arte: Arte,
   accion: "aprobado" | "cambios" | "comentario",
   comentario: string,
+  puntos: PuntoNuevo[],
   autor: Autor
 ) {
-  if (accion !== "comentario") {
-    await db().sql`
-      UPDATE artes SET estado = ${accion}, updated_at = NOW() WHERE id = ${arte.id}
-    `;
-  }
-  await addRevision(arte.id, arte.version, accion, comentario, autor);
+  const estado = accion === "comentario" ? null : accion;
+  await db().sql`
+    WITH u AS (
+      UPDATE artes SET estado = COALESCE(${estado}, estado), updated_at = NOW()
+      WHERE id = ${arte.id}
+      RETURNING id
+    ), r AS (
+      INSERT INTO revisiones (arte_id, accion, comentario, version, autor_tipo, autor_nombre, autor_email)
+      SELECT id, ${accion}, ${comentario}, ${arte.version}, ${autor.tipo}, ${autor.nombre}, ${autor.email}
+      FROM u
+      RETURNING id
+    ), base AS (
+      SELECT COALESCE(MAX(numero), 0) AS n FROM anotaciones
+      WHERE arte_id = ${arte.id} AND version = ${arte.version}
+    )
+    INSERT INTO anotaciones (arte_id, revision_id, version, numero, x, y, comentario)
+    SELECT ${arte.id}, r.id, ${arte.version}, base.n + p.ord,
+      (p.val->>'x')::real, (p.val->>'y')::real, p.val->>'comentario'
+    FROM r, base, jsonb_array_elements(${JSON.stringify(puntos)}::jsonb) WITH ORDINALITY AS p(val, ord)
+  `;
 }
 
 export type ActividadReciente = Revision & {

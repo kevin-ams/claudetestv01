@@ -1,20 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@heroui/react";
 
 export function CopyButton({ text, label = "Copiar" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   return (
-    <button
-      type="button"
-      className="btn btn-secondary !px-3 !py-1.5 text-xs"
-      onClick={async () => {
+    <Button
+      size="sm"
+      variant="tertiary"
+      onPress={async () => {
         await navigator.clipboard.writeText(text);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
       }}
     >
       {copied ? "¡Copiado!" : label}
-    </button>
+    </Button>
   );
 }

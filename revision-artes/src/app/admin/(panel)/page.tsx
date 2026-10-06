@@ -1,11 +1,11 @@
-import { fechaHora } from "@/lib/format";
 import Link from "next/link";
+import { Card, Chip } from "@heroui/react";
 import { requireAdmin } from "@/lib/auth/session";
 import { listFacultadesResumen } from "@/lib/domain/facultades";
 import { listActividadReciente } from "@/lib/domain/artes";
 import { ACCIONES } from "@/lib/domain/types";
+import { fechaHora } from "@/lib/format";
 import { CrearFacultadForm } from "./crear-facultad-form";
-
 
 export default async function AdminHome() {
   await requireAdmin();
@@ -20,28 +20,36 @@ export default async function AdminHome() {
             Cada facultad entra al portal con su propio código y solo ve sus artes.
           </p>
         </div>
-        <div className="card p-4">
+        <Card className="p-4">
           <CrearFacultadForm />
-        </div>
+        </Card>
         {facultades.length === 0 ? (
-          <p className="card p-6 text-center text-sm text-muted">Aún no hay facultades. Agrega la primera arriba.</p>
+          <Card className="p-6 text-center text-sm text-muted">Aún no hay facultades. Agrega la primera arriba.</Card>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {facultades.map((f) => (
               <li key={f.id}>
-                <Link href={`/admin/facultades/${f.id}`} className="card block p-4 transition hover:border-primary">
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-semibold">{f.nombre}</h2>
-                    {!f.activa && <span className="badge bg-background text-muted">Inactiva</span>}
-                  </div>
-                  <p className="mt-1 text-xs text-muted">
-                    {f.carreras} {f.carreras === 1 ? "carrera" : "carreras"}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                    <span className="badge bg-amber-bg text-amber">{f.pendientes} pendientes</span>
-                    <span className="badge bg-red-bg text-red">{f.cambios} con cambios</span>
-                    <span className="badge bg-green-bg text-green">{f.aprobados} aprobados</span>
-                  </div>
+                <Link href={`/admin/facultades/${f.id}`} className="group block h-full rounded-3xl">
+                  <Card className="h-full transition-shadow group-hover:shadow-lg">
+                    <Card.Header>
+                      <div className="flex items-start justify-between gap-2">
+                        <Card.Title>{f.nombre}</Card.Title>
+                        {!f.activa && (
+                          <Chip size="sm" variant="soft">
+                            Inactiva
+                          </Chip>
+                        )}
+                      </div>
+                      <Card.Description>
+                        {f.carreras} {f.carreras === 1 ? "carrera" : "carreras"}
+                      </Card.Description>
+                    </Card.Header>
+                    <Card.Footer className="flex flex-wrap gap-2">
+                      <Chip size="sm" color="warning" variant="soft">{f.pendientes} pendientes</Chip>
+                      <Chip size="sm" color="danger" variant="soft">{f.cambios} con cambios</Chip>
+                      <Chip size="sm" color="success" variant="soft">{f.aprobados} aprobados</Chip>
+                    </Card.Footer>
+                  </Card>
                 </Link>
               </li>
             ))}
@@ -49,26 +57,30 @@ export default async function AdminHome() {
         )}
       </section>
 
-      <aside className="card h-fit p-4">
-        <h2 className="font-semibold">Actividad reciente de facultades</h2>
-        {actividad.length === 0 ? (
-          <p className="mt-2 text-sm text-muted">Sin actividad todavía.</p>
-        ) : (
-          <ul className="mt-3 flex flex-col gap-3">
-            {actividad.map((a) => (
-              <li key={a.id} className="text-sm">
-                <Link href={`/admin/artes/${a.arte_id}`} className="hover:underline">
-                  <span className="font-medium">{a.autor_nombre}</span> {ACCIONES[a.accion]}{" "}
-                  <span className="font-medium">“{a.arte_titulo}”</span>
-                </Link>
-                <p className="text-xs text-muted">
-                  {a.facultad_nombre} · {fechaHora.format(new Date(a.created_at))}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </aside>
+      <Card className="h-fit">
+        <Card.Header>
+          <Card.Title>Actividad reciente de facultades</Card.Title>
+        </Card.Header>
+        <Card.Content>
+          {actividad.length === 0 ? (
+            <p className="text-sm text-muted">Sin actividad todavía.</p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {actividad.map((a) => (
+                <li key={a.id} className="text-sm">
+                  <Link href={`/admin/artes/${a.arte_id}`} className="hover:underline">
+                    <span className="font-medium">{a.autor_nombre}</span> {ACCIONES[a.accion]}{" "}
+                    <span className="font-medium">“{a.arte_titulo}”</span>
+                  </Link>
+                  <p className="text-xs text-muted">
+                    {a.facultad_nombre} · {fechaHora.format(new Date(a.created_at))}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card.Content>
+      </Card>
     </div>
   );
 }

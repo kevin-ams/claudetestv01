@@ -2,10 +2,10 @@ export type EstadoArte = "pendiente" | "aprobado" | "cambios";
 
 export type AccionRevision = "aprobado" | "cambios" | "comentario" | "nueva_version";
 
-export const ESTADOS: Record<EstadoArte, { label: string; className: string }> = {
-  pendiente: { label: "Pendiente", className: "bg-amber-bg text-amber" },
-  aprobado: { label: "Aprobado", className: "bg-green-bg text-green" },
-  cambios: { label: "Cambios solicitados", className: "bg-red-bg text-red" },
+export const ESTADOS: Record<EstadoArte, { label: string; color: "warning" | "success" | "danger" }> = {
+  pendiente: { label: "Pendiente", color: "warning" },
+  aprobado: { label: "Aprobado", color: "success" },
+  cambios: { label: "Cambios solicitados", color: "danger" },
 };
 
 export const ACCIONES: Record<AccionRevision, string> = {

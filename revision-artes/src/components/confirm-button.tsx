@@ -1,24 +1,63 @@
 "use client";
 
-/** Botón de envío que pide confirmación antes de una acción destructiva. */
+import { useRef } from "react";
+import { AlertDialog, Button } from "@heroui/react";
+
+/**
+ * Botón dentro de un <form> que pide confirmación en un diálogo antes de
+ * enviarlo (para acciones destructivas o que cortan accesos).
+ */
 export function ConfirmButton({
+  title,
   message,
-  className = "btn btn-danger",
+  confirmLabel,
+  variant = "danger-soft",
+  size = "md",
   children,
+  ariaLabel,
 }: {
+  title: string;
   message: string;
-  className?: string;
+  confirmLabel: string;
+  variant?: "danger" | "danger-soft" | "tertiary" | "secondary";
+  size?: "sm" | "md";
   children: React.ReactNode;
+  ariaLabel?: string;
 }) {
+  const anchor = useRef<HTMLSpanElement>(null);
   return (
-    <button
-      type="submit"
-      className={className}
-      onClick={(e) => {
-        if (!confirm(message)) e.preventDefault();
-      }}
-    >
-      {children}
-    </button>
+    <>
+      <span ref={anchor} hidden />
+      <AlertDialog>
+        <Button variant={variant} size={size} aria-label={ariaLabel}>
+          {children}
+        </Button>
+        <AlertDialog.Backdrop>
+          <AlertDialog.Container>
+            <AlertDialog.Dialog className="sm:max-w-[420px]">
+              <AlertDialog.Header>
+                <AlertDialog.Icon status="danger" />
+                <AlertDialog.Heading>{title}</AlertDialog.Heading>
+              </AlertDialog.Header>
+              <AlertDialog.Body>
+                <p>{message}</p>
+              </AlertDialog.Body>
+              <AlertDialog.Footer>
+                <Button slot="close" variant="tertiary">
+                  Cancelar
+                </Button>
+                <Button
+                  slot="close"
+                  variant="danger"
+                  onPress={() => anchor.current?.closest("form")?.requestSubmit()}
+                >
+                  {confirmLabel}
+                </Button>
+              </AlertDialog.Footer>
+            </AlertDialog.Dialog>
+          </AlertDialog.Container>
+        </AlertDialog.Backdrop>
+      </AlertDialog>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Input, Label, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
 import type { FormState } from "./auth-actions";
@@ -19,17 +20,15 @@ export function AuthForm({
   return (
     <form {...formProps} className="mt-6 flex flex-col gap-4">
       {fields.map((f) => (
-        <div key={f.name}>
-          <label className="label" htmlFor={f.name}>
-            {f.label}
-          </label>
-          <input id={f.name} name={f.name} type={f.type} autoComplete={f.autoComplete} required className="input" />
-        </div>
+        <TextField key={f.name} name={f.name} type={f.type} isRequired autoComplete={f.autoComplete}>
+          <Label>{f.label}</Label>
+          <Input />
+        </TextField>
       ))}
       <FormMessage error={state.error} />
-      <button type="submit" disabled={pending} className="btn btn-primary mt-2">
-        {pending ? "Un momento..." : submitLabel}
-      </button>
+      <Button type="submit" isPending={pending} fullWidth className="mt-2">
+        {submitLabel}
+      </Button>
     </form>
   );
 }

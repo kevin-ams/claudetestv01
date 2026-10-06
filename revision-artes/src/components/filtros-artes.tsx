@@ -27,7 +27,9 @@ function Chip({ href, active, children }: { href: string; active: boolean; child
   return (
     <Link
       href={href}
-      className={`badge border ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:border-primary"}`}
+      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+        active ? "bg-accent text-accent-foreground" : "bg-surface text-foreground shadow-sm hover:bg-surface-hover"
+      }`}
     >
       {children}
     </Link>

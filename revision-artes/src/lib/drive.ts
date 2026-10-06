@@ -47,6 +47,11 @@ export function driveThumbnailUrl(ref: DriveRef): string | null {
     : null;
 }
 
+/** Imagen en alta resolución para dibujar puntos encima (solo archivos). */
+export function driveImageUrl(ref: DriveRef): string {
+  return `https://drive.google.com/thumbnail?id=${ref.id}&sz=w2000`;
+}
+
 export function driveOpenUrl(ref: DriveRef): string {
   return ref.type === "folder"
     ? `https://drive.google.com/drive/folders/${ref.id}`

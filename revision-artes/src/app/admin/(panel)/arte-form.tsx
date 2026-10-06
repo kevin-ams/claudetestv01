@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Description, Input, Label, ListBox, Select, TextArea, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
 import type { FormState } from "../auth-actions";
@@ -9,69 +10,85 @@ type Valores = {
   campana: string;
   formato: string;
   descripcion: string;
-  drive_url: string;
   fecha_publicacion: string | null;
   carrera_id: number | null;
 };
 
+/**
+ * Formulario de datos del arte. Al crear (`conEnlace`) también pide el enlace
+ * de Drive; después, el enlace solo cambia subiendo una nueva versión.
+ */
 export function ArteForm({
   action,
   carreras,
   valores,
+  conEnlace,
   submitLabel,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   carreras: { id: number; nombre: string }[];
   valores?: Valores;
+  conEnlace: boolean;
   submitLabel: string;
 }) {
   const { state, pending, formProps } = useFormAction(action);
   return (
     <form {...formProps} className="flex flex-col gap-4">
-      <div>
-        <label className="label" htmlFor="titulo">Título del arte *</label>
-        <input id="titulo" name="titulo" required defaultValue={valores?.titulo} className="input" placeholder="Ej. Post de lanzamiento – Admisiones 2027" />
-      </div>
+      <TextField name="titulo" isRequired defaultValue={valores?.titulo}>
+        <Label>Título del arte</Label>
+        <Input placeholder="Ej. Post de lanzamiento – Admisiones 2027" />
+      </TextField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="label" htmlFor="carreraId">Carrera</label>
-          <select id="carreraId" name="carreraId" defaultValue={valores?.carrera_id ?? ""} className="input">
-            <option value="">Toda la facultad</option>
-            {carreras.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="campana">Campaña</label>
-          <input id="campana" name="campana" defaultValue={valores?.campana} className="input" placeholder="Ej. Admisiones 2027" />
-        </div>
-        <div>
-          <label className="label" htmlFor="formato">Formato / canal</label>
-          <input id="formato" name="formato" defaultValue={valores?.formato} className="input" placeholder="Ej. Post Instagram 1080×1350" />
-        </div>
-        <div>
-          <label className="label" htmlFor="fechaPublicacion">Fecha de publicación</label>
-          <input id="fechaPublicacion" name="fechaPublicacion" type="date" defaultValue={valores?.fecha_publicacion ?? ""} className="input" />
-        </div>
+        <Select name="carreraId" defaultValue={valores?.carrera_id ? String(valores.carrera_id) : "general"}>
+          <Label>Carrera</Label>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              <ListBox.Item id="general" textValue="Toda la facultad">
+                Toda la facultad
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+              {carreras.map((c) => (
+                <ListBox.Item key={c.id} id={String(c.id)} textValue={c.nombre}>
+                  {c.nombre}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+            </ListBox>
+          </Select.Popover>
+        </Select>
+        <TextField name="campana" defaultValue={valores?.campana}>
+          <Label>Campaña</Label>
+          <Input placeholder="Ej. Admisiones 2027" />
+        </TextField>
+        <TextField name="formato" defaultValue={valores?.formato}>
+          <Label>Formato / canal</Label>
+          <Input placeholder="Ej. Post Instagram 1080×1350" />
+        </TextField>
+        <TextField name="fechaPublicacion" type="date" defaultValue={valores?.fecha_publicacion ?? ""}>
+          <Label>Fecha de publicación</Label>
+          <Input />
+        </TextField>
       </div>
-      <div>
-        <label className="label" htmlFor="driveUrl">Enlace de Google Drive *</label>
-        <input id="driveUrl" name="driveUrl" type="url" required defaultValue={valores?.drive_url} className="input" placeholder="https://drive.google.com/file/d/…/view" />
-        <p className="mt-1 text-xs text-muted">
-          Archivo o carpeta compartidos como “Cualquier persona con el enlace puede ver”.
-          {valores && " Si cambias el enlace se registra como nueva versión y vuelve a quedar pendiente."}
-        </p>
-      </div>
-      <div>
-        <label className="label" htmlFor="descripcion">Copy / indicaciones</label>
-        <textarea id="descripcion" name="descripcion" rows={4} defaultValue={valores?.descripcion} className="input" placeholder="Texto de la publicación, hashtags, notas para la facultad…" />
-      </div>
+      {conEnlace && (
+        <TextField name="driveUrl" type="url" isRequired>
+          <Label>Enlace de Google Drive</Label>
+          <Input placeholder="https://drive.google.com/file/d/…/view" />
+          <Description>Archivo o carpeta compartidos como “Cualquier persona con el enlace puede ver”.</Description>
+        </TextField>
+      )}
+      <TextField name="descripcion" defaultValue={valores?.descripcion}>
+        <Label>Copy / indicaciones</Label>
+        <TextArea rows={4} placeholder="Texto de la publicación, hashtags, notas para la facultad…" />
+      </TextField>
       <FormMessage error={state.error} success={state.ok ? "Cambios guardados" : null} />
       <div>
-        <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? "Guardando..." : submitLabel}
-        </button>
+        <Button type="submit" isPending={pending}>
+          {submitLabel}
+        </Button>
       </div>
     </form>
   );
