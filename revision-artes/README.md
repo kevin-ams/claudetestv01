@@ -68,10 +68,12 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
 
 Sitio: **ges-revision-artes** → https://ges-revision-artes.netlify.app (variables ya configuradas:
 `AUTH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `APP_URL`, `APP_TIMEZONE`).
-Se publica desde esta carpeta (`revision-artes`):
+Se publica desde esta carpeta (`revision-artes`). Antes de publicar desde tu máquina, aparta
+`.env.local` (no debe viajar en el despliegue; la app igual prioriza la base de Netlify):
 
 - Netlify Database aprovisiona Postgres y aplica `netlify/database/migrations` en cada deploy
-  (no se usa `DATABASE_URL` ni `db:migrate` allí).
+  (no se usa `DATABASE_URL` ni `db:migrate` allí). La app se conecta con el driver HTTP de Neon
+  usando `NETLIFY_DB_URL` (`src/lib/db.ts`), igual que EOS.
 - Configura la variable `AUTH_SECRET` (por ejemplo `openssl rand -base64 32`).
 - Opcional: `APP_TIMEZONE` (por defecto `America/Guatemala`) para las fechas del historial.
 

@@ -15,14 +15,15 @@ let cached: { sql: Sql } | null = null;
  */
 export function db(): { sql: Sql } {
   if (!cached) {
-    const local = process.env.DATABASE_URL;
+    // Netlify primero: un .env.local que viaje en el despliegue no debe ganarle.
     const netlify = process.env.NETLIFY_DB_URL;
-    if (local) {
-      const { sql } = getDatabase({ connectionString: local });
-      cached = { sql: (strings, ...values) => sql(strings, ...values) as unknown as Promise<Row[]> };
-    } else if (netlify) {
+    const local = process.env.DATABASE_URL;
+    if (netlify) {
       const sql = neon(netlify);
       cached = { sql: (strings, ...values) => sql(strings, ...values) as Promise<Row[]> };
+    } else if (local) {
+      const { sql } = getDatabase({ connectionString: local });
+      cached = { sql: (strings, ...values) => sql(strings, ...values) as unknown as Promise<Row[]> };
     } else {
       throw new Error("No hay base de datos configurada: define DATABASE_URL (local) o despliega en Netlify.");
     }
