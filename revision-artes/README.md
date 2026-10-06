@@ -77,7 +77,7 @@ El contenido está en `src/components/guia/pasos.ts`.
 
 ## Producción (Netlify)
 
-Sitio: **ges-revision-artes** → https://ges-revision-artes.netlify.app (variables ya configuradas:
+Sitio: **ges-revision-artes** → https://gesartes.amscreativeint.com (también https://ges-revision-artes.netlify.app; variables ya configuradas:
 `AUTH_SECRET`, `RESEND_API_KEY`, `RESEND_FROM`, `APP_URL`, `APP_TIMEZONE`).
 Se publica desde esta carpeta (`revision-artes`). Antes de publicar desde tu máquina, aparta
 `.env.local` (no debe viajar en el despliegue; la app igual prioriza la base de Netlify):
@@ -97,7 +97,7 @@ Misma integración que EOS: API HTTP de [Resend](https://resend.com), sin depend
 | -------- | ----------- |
 | `RESEND_API_KEY` | Llave de envío (secreta). Sin ella la app funciona pero no envía avisos. |
 | `RESEND_FROM` | Remitente, p. ej. `GES Revisión de Artes <artes@tudominio.com>` (dominio verificado en Resend). Sin ella se usa `onboarding@resend.dev`, que solo entrega al dueño de la cuenta. |
-| `APP_URL` | Dirección pública para los enlaces del correo (p. ej. `https://ges-revision-artes.netlify.app`). |
+| `APP_URL` | Dirección pública para los enlaces del correo (p. ej. `https://gesartes.amscreativeint.com`). |
 
 ## Estructura
 

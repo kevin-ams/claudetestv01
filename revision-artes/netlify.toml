@@ -1,4 +1,4 @@
-# Sitio: ges-revision-artes (https://ges-revision-artes.netlify.app)
+# Sitio: ges-revision-artes (https://gesartes.amscreativeint.com)
 # Netlify Database se aprovisiona sola y aplica netlify/database/migrations en cada deploy.
 [build]
   command = "npm run build"
