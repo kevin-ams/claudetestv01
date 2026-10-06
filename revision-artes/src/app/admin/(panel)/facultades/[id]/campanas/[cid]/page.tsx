@@ -44,6 +44,15 @@ export default async function AdminCampanaPage({
         </Link>
         <h1 className="mt-1 text-2xl font-bold">{campana?.nombre ?? "Otros artes"}</h1>
         {campana?.descripcion && <p className="text-sm text-muted">{campana.descripcion}</p>}
+        {campana && (
+          <p className="mt-1 text-xs text-muted">
+            ✉️ Cuando la facultad termine de revisar todos los artes se avisará por correo a{" "}
+            {campana.creado_por_email
+              ? `${campana.creado_por_nombre} (${campana.creado_por_email}), quien creó la campaña`
+              : "todos los administradores (la campaña no tiene creador registrado)"}
+            .
+          </p>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">

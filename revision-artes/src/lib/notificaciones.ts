@@ -1,6 +1,8 @@
 import "server-only";
 import type { Arte, Autor, Revisor } from "@/lib/domain/artes";
 import { getFacultad } from "@/lib/domain/facultades";
+import { estadoCampana, getCampana } from "@/lib/domain/campanas";
+import { listAdmins } from "@/lib/domain/admins";
 import { listVersiones, registrarNotificacion } from "@/lib/domain/artes";
 import { appUrl, emailLayout, escapeHtml, sendEmail, type EmailResult } from "@/lib/email";
 
@@ -46,4 +48,64 @@ export async function notificarNuevaVersion(
   if (errores.length === 0) return { ok: true, message: `Aviso enviado a ${enviados.join(", ")}.` };
   if (enviados.length === 0) return { ok: false, message: errores[0] };
   return { ok: false, message: `Enviado a ${enviados.join(", ")}, pero falló para otros: ${errores[0]}` };
+}
+
+/**
+ * Avisa por correo a quien creó la campaña (o a todos los administradores si
+ * no se sabe quién fue) que ya no quedan artes pendientes: todos fueron
+ * aprobados o tienen cambios solicitados. `revisor` es quien hizo la última revisión.
+ */
+export async function avisarCampanaRevisada(campanaId: number, revisor: { nombre: string; email: string }) {
+  const campana = await getCampana(campanaId);
+  if (!campana) return;
+  const estado = await estadoCampana(campana.id);
+  if (estado.total === 0 || estado.pendientes > 0) return;
+  const facultad = await getFacultad(campana.facultad_id);
+  if (!facultad) return;
+
+  const destinatarios = campana.creado_por_email
+    ? [{ nombre: campana.creado_por_nombre ?? "", email: campana.creado_por_email }]
+    : (await listAdmins()).map((a) => ({ nombre: a.name, email: a.email }));
+  if (destinatarios.length === 0) return;
+
+  const base = await appUrl();
+  const enlace = `${base}/admin/facultades/${facultad.id}/campanas/${campana.id}`;
+  const etiqueta: Record<string, string> = { aprobado: "Aprobado", cambios: "Cambios solicitados" };
+  const colorEstado: Record<string, string> = { aprobado: "#15803d", cambios: "#b91c1c" };
+  const filas = estado.artes
+    .map(
+      (a) => `<tr>
+<td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#111827">${escapeHtml(a.titulo)} <span style="color:#6b7280">· v${a.version}${a.carrera ? ` · ${escapeHtml(a.carrera)}` : ""}</span></td>
+<td align="right" style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:13px;font-weight:bold;color:${colorEstado[a.estado] ?? "#374151"};white-space:nowrap">${etiqueta[a.estado] ?? a.estado}</td>
+</tr>`
+    )
+    .join("");
+  const resumen =
+    estado.cambios === 0
+      ? `Los <strong>${estado.total}</strong> artes están <strong>aprobados</strong> y listos para publicarse.`
+      : `<strong>${estado.aprobados}</strong> ${estado.aprobados === 1 ? "aprobado" : "aprobados"} y <strong>${estado.cambios}</strong> con <strong>cambios solicitados</strong>.`;
+
+  const subject =
+    estado.cambios === 0
+      ? `✅ Campaña aprobada: ${campana.nombre} (${facultad.nombre})`
+      : `Campaña revisada: ${campana.nombre} (${facultad.nombre})`;
+
+  for (const d of destinatarios) {
+    const html = emailLayout({
+      title: estado.cambios === 0 ? "Campaña aprobada por completo" : "La facultad terminó de revisar la campaña",
+      intro: `Hola${d.nombre ? ` ${escapeHtml(d.nombre.split(" ")[0])}` : ""}, ${escapeHtml(facultad.nombre)} terminó de revisar todos los artes de la campaña <strong>“${escapeHtml(campana.nombre)}”</strong>. ${resumen}`,
+      body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px">${filas}</table>
+<p style="margin-top:12px;margin-bottom:0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:#6b7280">Última revisión: ${escapeHtml(revisor.nombre)} (${escapeHtml(revisor.email)}).</p>`,
+      cta: { label: "Ver la campaña", url: enlace },
+      logoUrl: `${base}/logo-ges.png`,
+      footer: campana.creado_por_email
+        ? "Recibes este aviso porque creaste esta campaña en GES · Revisión de Artes."
+        : "Recibes este aviso porque eres administrador de GES · Revisión de Artes (la campaña no tiene creador registrado).",
+    });
+    const text = `${facultad.nombre} terminó de revisar la campaña "${campana.nombre}": ${estado.aprobados} aprobados, ${estado.cambios} con cambios.\n\n${estado.artes
+      .map((a) => `- ${a.titulo} (v${a.version}): ${etiqueta[a.estado] ?? a.estado}`)
+      .join("\n")}\n\nVer la campaña: ${enlace}`;
+    const res = await sendEmail({ to: [d.email], subject, html, text, replyTo: revisor.email });
+    if (!res.ok) console.error("[aviso campaña revisada]", campana.id, d.email, res.message);
+  }
 }

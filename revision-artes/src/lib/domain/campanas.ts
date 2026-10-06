@@ -6,6 +6,8 @@ export type Campana = {
   facultad_id: number;
   nombre: string;
   descripcion: string;
+  creado_por_nombre: string | null;
+  creado_por_email: string | null;
   created_at: string;
 };
 
@@ -73,10 +75,15 @@ export async function getCampana(id: number, facultadId?: number): Promise<Campa
   return campana;
 }
 
-export async function createCampana(facultadId: number, nombre: string, descripcion: string): Promise<number> {
+export async function createCampana(
+  facultadId: number,
+  nombre: string,
+  descripcion: string,
+  creador: { nombre: string; email: string }
+): Promise<number> {
   const rows = await db().sql`
-    INSERT INTO campanas (facultad_id, nombre, descripcion)
-    VALUES (${facultadId}, ${nombre}, ${descripcion})
+    INSERT INTO campanas (facultad_id, nombre, descripcion, creado_por_nombre, creado_por_email)
+    VALUES (${facultadId}, ${nombre}, ${descripcion}, ${creador.nombre}, ${creador.email})
     RETURNING id
   `;
   return (rows[0] as { id: number }).id;
@@ -88,4 +95,31 @@ export async function updateCampana(id: number, nombre: string, descripcion: str
 
 export async function deleteCampana(id: number) {
   await db().sql`DELETE FROM campanas WHERE id = ${id}`;
+}
+
+export type EstadoCampana = {
+  total: number;
+  pendientes: number;
+  cambios: number;
+  aprobados: number;
+  artes: { id: number; titulo: string; estado: string; version: number; carrera: string | null }[];
+};
+
+/** Conteo y lista de artes de una campaña, para el aviso de "campaña revisada". */
+export async function estadoCampana(campanaId: number): Promise<EstadoCampana> {
+  const artes = (await db().sql`
+    SELECT a.id, a.titulo, a.estado, a.version, c.nombre AS carrera
+    FROM artes a
+    LEFT JOIN carreras c ON c.id = a.carrera_id
+    WHERE a.campana_id = ${campanaId}
+    ORDER BY a.estado DESC, a.titulo ASC
+  `) as EstadoCampana["artes"];
+  const contar = (e: string) => artes.filter((a) => a.estado === e).length;
+  return {
+    total: artes.length,
+    pendientes: contar("pendiente"),
+    cambios: contar("cambios"),
+    aprobados: contar("aprobado"),
+    artes,
+  };
 }

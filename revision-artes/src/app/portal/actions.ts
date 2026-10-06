@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { z } from "zod";
 import { endPortalSession, requirePortal, startPortalSession } from "@/lib/auth/session";
 import { getFacultadByCodigo } from "@/lib/domain/facultades";
 import { getArte, revisarArte } from "@/lib/domain/artes";
+import { avisarCampanaRevisada } from "@/lib/notificaciones";
 
 export type FormState = { error: string | null; ok?: boolean };
 
@@ -99,6 +101,18 @@ export async function revisarArteAction(
     nombre: session.name,
     email: session.email,
   });
+
+  // Si con esta decisión ya no quedan artes pendientes en la campaña, avisar a
+  // quien la creó. Solo cuando este arte estaba pendiente (así no se repite
+  // el aviso si cambian una decisión ya tomada). Se envía después de responder.
+  const campanaId = arte.campana_id;
+  if (campanaId && arte.estado === "pendiente" && parsed.data.accion !== "comentario") {
+    after(() =>
+      avisarCampanaRevisada(campanaId, { nombre: session.name, email: session.email }).catch((e) =>
+        console.error("[aviso campaña revisada]", e)
+      )
+    );
+  }
   revalidatePath(`/portal/artes/${arteId}`);
   revalidatePath("/portal");
   return { error: null, ok: true };

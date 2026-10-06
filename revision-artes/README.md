@@ -64,7 +64,11 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
    personas de la facultad que revisaron el arte (vienen marcadas quienes pidieron cambios o
    comentaron). El correo trae un botón que lleva directo al arte. También se puede reenviar desde
    la tarjeta **Notificar nueva versión**. Cada aviso queda en el historial del admin.
-7. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
+7. **Campaña revisada:** cuando la facultad revisa el último arte pendiente de una campaña
+   (todos quedan aprobados o con cambios solicitados), se envía un correo a **quien creó la
+   campaña** con el estado de cada arte. Si todos están aprobados, el asunto es
+   “✅ Campaña aprobada”. Las campañas sin creador registrado avisan a todos los administradores.
+8. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
    Desmarcar *Acceso al portal activo* bloquea a la facultad sin borrar nada.
 
 ## Guía del portal

@@ -125,11 +125,14 @@ export async function createCampanaAction(
   _prev: FormState,
   formData: FormData
 ): Promise<FormState> {
-  await requireAdmin();
+  const admin = await requireAdmin();
   if (!(await getFacultad(facultadId))) return { error: "La facultad no existe" };
   const parsed = leerCampana(formData);
   if (!parsed.success) return { error: firstError(parsed.error) };
-  const id = await createCampana(facultadId, parsed.data.nombre, parsed.data.descripcion);
+  const id = await createCampana(facultadId, parsed.data.nombre, parsed.data.descripcion, {
+    nombre: admin.name,
+    email: admin.email,
+  });
   revalidatePath(`/admin/facultades/${facultadId}`);
   redirect(`/admin/facultades/${facultadId}/campanas/${id}`);
 }
