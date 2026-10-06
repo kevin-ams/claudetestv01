@@ -90,6 +90,7 @@ export function VisorArte({
                 className={`relative inline-block select-none ${onAddPoint ? "cursor-crosshair" : ""}`}
                 onClick={agregar}
                 data-testid="lienzo-arte"
+                data-guia="lienzo"
               >
                 {/* Imagen servida por Google Drive: no pasa por el optimizador de Next. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}

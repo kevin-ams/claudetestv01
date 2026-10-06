@@ -5,11 +5,11 @@ import { formatFecha } from "@/lib/format";
 import { driveThumbnailUrl, parseDriveUrl } from "@/lib/drive";
 import { EstadoBadge } from "./estado-badge";
 
-export function ArteCard({ arte, href }: { arte: Arte; href: string }) {
+export function ArteCard({ arte, href, ...rest }: { arte: Arte; href: string; "data-guia"?: string }) {
   const ref = parseDriveUrl(arte.drive_url);
   const thumb = ref ? driveThumbnailUrl(ref) : null;
   return (
-    <Link href={href} className="group block rounded-3xl focus-visible:outline-2 focus-visible:outline-accent">
+    <Link href={href} {...rest} className="group block rounded-3xl focus-visible:outline-2 focus-visible:outline-accent">
       <Card className="h-full overflow-hidden p-0 transition-shadow group-hover:shadow-lg">
         <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-surface-secondary text-xs text-muted">
           {thumb ? (
@@ -27,7 +27,6 @@ export function ArteCard({ arte, href }: { arte: Arte; href: string }) {
           </div>
           <Card.Description className="text-xs">
             {arte.carrera_nombre ?? "Toda la facultad"}
-            {arte.campana && ` · ${arte.campana}`}
           </Card.Description>
         </Card.Header>
         <Card.Footer className="mt-auto flex items-center justify-between gap-2 px-4 pb-4">

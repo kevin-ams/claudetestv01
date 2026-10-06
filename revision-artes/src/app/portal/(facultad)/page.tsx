@@ -1,43 +1,35 @@
 import { Card } from "@heroui/react";
 import { requirePortal } from "@/lib/auth/session";
-import { listArtes } from "@/lib/domain/artes";
-import { listCarreras } from "@/lib/domain/carreras";
-import { ArteCard } from "@/components/arte-card";
-import { FiltrosArtes, filtrarArtes } from "@/components/filtros-artes";
+import { listCampanasResumen } from "@/lib/domain/campanas";
+import { CampanaCard } from "@/components/campana-card";
+import { Guia } from "@/components/guia/guia";
+import { pasosInicio } from "@/components/guia/pasos";
 
-export default async function PortalHome({ searchParams }: PageProps<"/portal">) {
-  const { facultad } = await requirePortal();
-  const { carrera, estado } = await searchParams;
-  const [carreras, artes] = await Promise.all([listCarreras(facultad.id), listArtes(facultad.id)]);
-  const filtros = {
-    carrera: typeof carrera === "string" ? carrera : undefined,
-    estado: typeof estado === "string" ? estado : undefined,
-  };
-  const visibles = filtrarArtes(artes, filtros);
-  const pendientes = artes.filter((a) => a.estado === "pendiente").length;
+export default async function PortalHome() {
+  const { session, facultad } = await requirePortal();
+  const campanas = await listCampanasResumen(facultad.id);
+  const pendientes = campanas.reduce((n, c) => n + c.pendientes, 0);
 
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h1 className="text-2xl font-bold">Artes para revisión</h1>
+        <h1 className="text-2xl font-bold">Campañas</h1>
         <p className="text-sm text-muted">
           {pendientes === 0
             ? "No tienes artes pendientes de revisión."
-            : `Tienes ${pendientes} ${pendientes === 1 ? "arte pendiente" : "artes pendientes"} de revisión.`}
+            : `Tienes ${pendientes} ${pendientes === 1 ? "arte pendiente" : "artes pendientes"} de revisión. Entra a una campaña para revisarlos.`}
         </p>
       </div>
-      <FiltrosArtes base="/portal" filtros={filtros} carreras={carreras} artes={artes} />
-      {visibles.length === 0 ? (
-        <Card className="p-6 text-center text-sm text-muted">
-          {artes.length === 0 ? "Aún no hay artes cargados para tu facultad." : "No hay artes con estos filtros."}
-        </Card>
+      {campanas.length === 0 ? (
+        <Card className="p-6 text-center text-sm text-muted">Aún no hay campañas cargadas para tu facultad.</Card>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visibles.map((a) => (
-            <ArteCard key={a.id} arte={a} href={`/portal/artes/${a.id}`} />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-guia="campanas">
+          {campanas.map((c) => (
+            <CampanaCard key={c.id ?? "otros"} campana={c} href={`/portal/campanas/${c.id ?? "otros"}`} />
           ))}
         </div>
       )}
+      <Guia id="inicio" email={session.email} pasos={pasosInicio(session.name, facultad.nombre)} />
     </div>
   );
 }

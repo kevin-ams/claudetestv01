@@ -47,10 +47,13 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
 ## Flujo
 
 1. **Admin → Facultades**: crea la facultad. Se genera un código como `K7M2P-QX9RT`.
-2. En la facultad agrega sus **carreras** y luego **+ Nuevo arte** (título, carrera o “toda la
-   facultad”, campaña, formato, fecha de publicación, enlace de Drive y copy).
+2. En la facultad agrega sus **carreras** y crea sus **campañas**. Dentro de cada campaña usa
+   **+ Nuevo arte** (título, carrera o “toda la facultad”, formato, fecha de publicación, enlace de
+   Drive y copy). Navegación: **Facultad → Campaña → Artes** (en el admin y en el portal). Los
+   artes sin campaña aparecen como “Otros artes”.
 3. Comparte con la facultad el **enlace directo** (ya trae el código) o el código.
-4. La facultad entra con nombre y correo y, por cada arte, puede **hacer clic sobre la imagen para
+4. La facultad entra con nombre y correo, ve sus **campañas** (las que tienen pendientes primero),
+   entra a una y, por cada arte, puede **hacer clic sobre la imagen para
    marcar puntos numerados** y escribir qué cambiar en cada uno. Luego **Aprueba**, **Solicita
    cambios** (con puntos o comentario) o **Solo comenta**.
 5. En el panel, el admin ve los cambios solicitados y usa **Subir nueva versión**: pega el enlace de
@@ -63,6 +66,14 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
    la tarjeta **Notificar nueva versión**. Cada aviso queda en el historial del admin.
 7. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
    Desmarcar *Acceso al portal activo* bloquea a la facultad sin borrar nada.
+
+## Guía del portal
+
+La primera vez que alguien entra al portal se abre una **guía interactiva** que resalta cada
+parte de la pantalla y explica para qué sirve (inicio/campañas, campaña y arte). Se puede
+**omitir**, marcar **“No mostrar guías automáticamente”**, y volver a verla o reactivarla desde
+el botón **? Ayuda** del encabezado. Las preferencias se guardan en el navegador, por correo.
+El contenido está en `src/components/guia/pasos.ts`.
 
 ## Producción (Netlify)
 

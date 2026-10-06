@@ -2,22 +2,21 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { Button, Card, Chip, Input, TextField } from "@heroui/react";
-import { buttonVariants } from "@heroui/styles";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
-import { listArtes } from "@/lib/domain/artes";
-import { ArteCard } from "@/components/arte-card";
+import { listCampanasResumen } from "@/lib/domain/campanas";
+import { CampanaCard } from "@/components/campana-card";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyButton } from "@/components/copy-button";
-import { FiltrosArtes, filtrarArtes } from "@/components/filtros-artes";
 import {
+  createCampanaAction,
   deleteCarreraAction,
   deleteFacultadAction,
   regenerarCodigoAction,
   renameCarreraAction,
 } from "../../actions";
-import { AjustesFacultadForm, CrearCarreraForm } from "./facultad-forms";
+import { AjustesFacultadForm, CampanaForm, CrearCarreraForm } from "./facultad-forms";
 
 async function baseUrl() {
   const h = await headers();
@@ -26,20 +25,14 @@ async function baseUrl() {
   return `${proto}://${host}`;
 }
 
-export default async function FacultadPage({ params, searchParams }: PageProps<"/admin/facultades/[id]">) {
+export default async function FacultadPage({ params }: PageProps<"/admin/facultades/[id]">) {
   await requireAdmin();
   const { id } = await params;
-  const { carrera, estado } = await searchParams;
   const facultadId = Number(id);
   const facultad = Number.isInteger(facultadId) ? await getFacultad(facultadId) : null;
   if (!facultad) notFound();
 
-  const [carreras, artes] = await Promise.all([listCarreras(facultad.id), listArtes(facultad.id)]);
-  const filtros = {
-    carrera: typeof carrera === "string" ? carrera : undefined,
-    estado: typeof estado === "string" ? estado : undefined,
-  };
-  const visibles = filtrarArtes(artes, filtros);
+  const [carreras, campanas] = await Promise.all([listCarreras(facultad.id), listCampanasResumen(facultad.id)]);
   const enlace = `${await baseUrl()}/portal/ingresar?codigo=${facultad.codigo_acceso}`;
 
   return (
@@ -54,24 +47,33 @@ export default async function FacultadPage({ params, searchParams }: PageProps<"
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Artes ({artes.length})</h2>
-            <Link href={`/admin/facultades/${facultad.id}/nuevo-arte`} className={buttonVariants({ variant: "primary" })}>
-              + Nuevo arte
-            </Link>
+          <div>
+            <h2 className="text-lg font-semibold">Campañas ({campanas.filter((c) => c.id !== null).length})</h2>
+            <p className="text-sm text-muted">Entra a una campaña para ver y agregar sus artes.</p>
           </div>
-          <FiltrosArtes base={`/admin/facultades/${facultad.id}`} filtros={filtros} carreras={carreras} artes={artes} />
-          {visibles.length === 0 ? (
+          {campanas.length === 0 ? (
             <Card className="p-6 text-center text-sm text-muted">
-              {artes.length === 0 ? "Esta facultad aún no tiene artes." : "No hay artes con estos filtros."}
+              Esta facultad aún no tiene campañas. Crea la primera para empezar a cargar artes.
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visibles.map((a) => (
-                <ArteCard key={a.id} arte={a} href={`/admin/artes/${a.id}`} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {campanas.map((c) => (
+                <CampanaCard
+                  key={c.id ?? "otros"}
+                  campana={c}
+                  href={`/admin/facultades/${facultad.id}/campanas/${c.id ?? "otros"}`}
+                />
               ))}
             </div>
           )}
+          <Card>
+            <Card.Header>
+              <Card.Title>Nueva campaña</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <CampanaForm action={createCampanaAction.bind(null, facultad.id)} submitLabel="Crear campaña" />
+            </Card.Content>
+          </Card>
         </section>
 
         <aside className="flex flex-col gap-4">

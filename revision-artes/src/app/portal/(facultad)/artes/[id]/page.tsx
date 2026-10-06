@@ -8,22 +8,22 @@ import { EstadoBadge } from "@/components/estado-badge";
 import { Historial } from "@/components/historial";
 import { VersionSelector } from "@/components/version-selector";
 import { VisorConPuntos } from "@/components/visor-con-puntos";
+import { Guia } from "@/components/guia/guia";
+import { pasosArte } from "@/components/guia/pasos";
 import { RevisionArte } from "./revision-arte";
 
 function Detalles({ arte }: { arte: Arte }) {
   return (
-    <Card>
+    <Card data-guia="detalles">
       <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-xs text-muted">Carrera</dt>
           <dd>{arte.carrera_nombre ?? "Toda la facultad"}</dd>
         </div>
-        {arte.campana && (
-          <div>
-            <dt className="text-xs text-muted">Campaña</dt>
-            <dd>{arte.campana}</dd>
-          </div>
-        )}
+        <div>
+          <dt className="text-xs text-muted">Campaña</dt>
+          <dd>{arte.campana_nombre ?? "Otros artes"}</dd>
+        </div>
         {arte.formato && (
           <div>
             <dt className="text-xs text-muted">Formato / canal</dt>
@@ -48,7 +48,7 @@ function Detalles({ arte }: { arte: Arte }) {
 }
 
 export default async function PortalArtePage({ params, searchParams }: PageProps<"/portal/artes/[id]">) {
-  const { facultad } = await requirePortal();
+  const { session, facultad } = await requirePortal();
   const { id } = await params;
   const { v } = await searchParams;
   const arteId = Number(id);
@@ -66,7 +66,7 @@ export default async function PortalArtePage({ params, searchParams }: PageProps
   const notaActual = versiones.find((x) => x.version === arte.version)?.nota;
 
   const historial = (
-    <Card>
+    <Card data-guia="historial">
       <Card.Header>
         <Card.Title>Historial</Card.Title>
       </Card.Header>
@@ -79,13 +79,21 @@ export default async function PortalArtePage({ params, searchParams }: PageProps
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <Link href="/portal" className="text-sm text-muted hover:underline">← Todos los artes</Link>
+        <p className="text-sm text-muted">
+          <Link href="/portal" className="hover:underline">Campañas</Link>
+          {" › "}
+          <Link href={`/portal/campanas/${arte.campana_id ?? "otros"}`} className="hover:underline">
+            {arte.campana_nombre ?? "Otros artes"}
+          </Link>
+        </p>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{arte.titulo}</h1>
           <EstadoBadge estado={arte.estado} size="md" />
           <span className="text-sm text-muted">Versión {arte.version}</span>
         </div>
-        <VersionSelector base={`/portal/artes/${arte.id}`} versiones={versiones} vista={versionVista} actual={arte.version} />
+        <div data-guia="versiones" className="self-start">
+          <VersionSelector base={`/portal/artes/${arte.id}`} versiones={versiones} vista={versionVista} actual={arte.version} />
+        </div>
       </div>
 
       {anterior ? (
@@ -125,6 +133,7 @@ export default async function PortalArtePage({ params, searchParams }: PageProps
               </Alert.Content>
             </Alert>
           )}
+          <Guia id="arte" email={session.email} pasos={pasosArte} />
           <RevisionArte
             key={arte.version}
             arteId={arte.id}

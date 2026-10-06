@@ -101,7 +101,7 @@ export function RevisionArte({
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
       <div className="flex flex-col gap-6">
-        <Card>
+        <Card data-guia="visor">
           <Card.Content className="flex flex-col gap-4">
             <VisorArte
               driveUrl={driveUrl}
@@ -171,12 +171,12 @@ export function RevisionArte({
                 name="puntos"
                 value={JSON.stringify(nuevos.map(({ x, y, comentario }) => ({ x, y, comentario })))}
               />
-              <TextField name="comentario">
+              <TextField name="comentario" data-guia="comentario">
                 <Label>Comentario general</Label>
                 <TextArea rows={3} placeholder="Comentarios o cambios generales (opcional si marcaste puntos)…" />
               </TextField>
               <FormMessage error={state.error} success={state.ok ? MENSAJES[ultima] : null} />
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" data-guia="acciones">
                 <Button
                   type="submit"
                   name="accion"

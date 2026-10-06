@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { MenuAyuda } from "@/components/guia/menu-ayuda";
 import { Button } from "@heroui/react";
 import { requirePortal } from "@/lib/auth/session";
 import { salirAction } from "../actions";
@@ -18,7 +19,8 @@ export default async function PortalLayout({ children }: LayoutProps<"/portal">)
             </div>
           </Link>
           <div className="flex items-center gap-3">
-            <div className="hidden text-right text-xs sm:block">
+            <MenuAyuda email={session.email} />
+            <div className="hidden text-right text-xs sm:block" data-guia="usuario">
               <p className="font-medium">{session.name}</p>
               <p className="text-muted">{session.email}</p>
             </div>

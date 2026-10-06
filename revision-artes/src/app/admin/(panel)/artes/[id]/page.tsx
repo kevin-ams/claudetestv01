@@ -6,6 +6,7 @@ import { getArte, listAnotaciones, listRevisiones, listRevisores, listVersiones 
 import { emailConfigured } from "@/lib/email";
 import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
+import { listCampanas } from "@/lib/domain/campanas";
 import { ConfirmButton } from "@/components/confirm-button";
 import { EstadoBadge } from "@/components/estado-badge";
 import { Historial } from "@/components/historial";
@@ -25,9 +26,10 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
   const arte = Number.isInteger(arteId) ? await getArte(arteId) : null;
   if (!arte) notFound();
 
-  const [facultad, carreras, revisiones, versiones, anotaciones, revisores] = await Promise.all([
+  const [facultad, carreras, campanas, revisiones, versiones, anotaciones, revisores] = await Promise.all([
     getFacultad(arte.facultad_id),
     listCarreras(arte.facultad_id),
+    listCampanas(arte.facultad_id),
     listRevisiones(arte.id),
     listVersiones(arte.id),
     listAnotaciones(arte.id),
@@ -50,9 +52,18 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <Link href={`/admin/facultades/${arte.facultad_id}`} className="text-sm text-muted hover:underline">
-          ← {facultad?.nombre}
-        </Link>
+        <p className="text-sm text-muted">
+          <Link href={`/admin/facultades/${arte.facultad_id}`} className="hover:underline">
+            {facultad?.nombre}
+          </Link>
+          {" › "}
+          <Link
+            href={`/admin/facultades/${arte.facultad_id}/campanas/${arte.campana_id ?? "otros"}`}
+            className="hover:underline"
+          >
+            {arte.campana_nombre ?? "Otros artes"}
+          </Link>
+        </p>
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{arte.titulo}</h1>
           <EstadoBadge estado={arte.estado} size="md" />
@@ -93,6 +104,7 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
               <ArteForm
                 action={updateArteAction.bind(null, arte.id)}
                 carreras={carreras}
+                campanas={campanas}
                 valores={arte}
                 conEnlace={false}
                 submitLabel="Guardar cambios"

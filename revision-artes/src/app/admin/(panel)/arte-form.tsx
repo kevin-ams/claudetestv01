@@ -7,7 +7,7 @@ import type { FormState } from "../auth-actions";
 
 type Valores = {
   titulo: string;
-  campana: string;
+  campana_id: number | null;
   formato: string;
   descripcion: string;
   fecha_publicacion: string | null;
@@ -21,12 +21,17 @@ type Valores = {
 export function ArteForm({
   action,
   carreras,
+  campanas,
+  campanaInicial,
   valores,
   conEnlace,
   submitLabel,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
   carreras: { id: number; nombre: string }[];
+  campanas: { id: number; nombre: string }[];
+  /** Campaña preseleccionada al crear desde la página de una campaña. */
+  campanaInicial?: number | null;
   valores?: Valores;
   conEnlace: boolean;
   submitLabel: string;
@@ -60,10 +65,30 @@ export function ArteForm({
             </ListBox>
           </Select.Popover>
         </Select>
-        <TextField name="campana" defaultValue={valores?.campana}>
+        <Select
+          name="campanaId"
+          defaultValue={String(valores?.campana_id ?? campanaInicial ?? "ninguna")}
+        >
           <Label>Campaña</Label>
-          <Input placeholder="Ej. Admisiones 2027" />
-        </TextField>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              {campanas.map((c) => (
+                <ListBox.Item key={c.id} id={String(c.id)} textValue={c.nombre}>
+                  {c.nombre}
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+              ))}
+              <ListBox.Item id="ninguna" textValue="Sin campaña (Otros artes)">
+                Sin campaña (Otros artes)
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            </ListBox>
+          </Select.Popover>
+        </Select>
         <TextField name="formato" defaultValue={valores?.formato}>
           <Label>Formato / canal</Label>
           <Input placeholder="Ej. Post Instagram 1080×1350" />

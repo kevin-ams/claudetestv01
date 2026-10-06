@@ -13,6 +13,7 @@ import {
   updateFacultad,
 } from "@/lib/domain/facultades";
 import { createCarrera, deleteCarrera, getCarrera, renameCarrera } from "@/lib/domain/carreras";
+import { createCampana, deleteCampana, getCampana, updateCampana } from "@/lib/domain/campanas";
 import {
   createArte,
   crearNuevaVersion,
@@ -105,6 +106,58 @@ export async function deleteCarreraAction(carreraId: number) {
   revalidatePath(`/admin/facultades/${carrera.facultad_id}`);
 }
 
+// ---------- Campañas ----------
+
+const campanaSchema = z.object({
+  nombre: z.string().trim().min(2, "El nombre de la campaña es muy corto").max(200),
+  descripcion: z.string().trim().max(2000),
+});
+
+function leerCampana(formData: FormData) {
+  return campanaSchema.safeParse({
+    nombre: formData.get("nombre") ?? "",
+    descripcion: formData.get("descripcion") ?? "",
+  });
+}
+
+export async function createCampanaAction(
+  facultadId: number,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  await requireAdmin();
+  if (!(await getFacultad(facultadId))) return { error: "La facultad no existe" };
+  const parsed = leerCampana(formData);
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  const id = await createCampana(facultadId, parsed.data.nombre, parsed.data.descripcion);
+  revalidatePath(`/admin/facultades/${facultadId}`);
+  redirect(`/admin/facultades/${facultadId}/campanas/${id}`);
+}
+
+export async function updateCampanaAction(
+  campanaId: number,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  await requireAdmin();
+  const campana = await getCampana(campanaId);
+  if (!campana) return { error: "La campaña no existe" };
+  const parsed = leerCampana(formData);
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  await updateCampana(campana.id, parsed.data.nombre, parsed.data.descripcion);
+  revalidatePath(`/admin/facultades/${campana.facultad_id}`, "layout");
+  return { error: null, ok: true, message: "Campaña guardada" };
+}
+
+export async function deleteCampanaAction(campanaId: number) {
+  await requireAdmin();
+  const campana = await getCampana(campanaId);
+  if (!campana) return;
+  await deleteCampana(campana.id);
+  revalidatePath(`/admin/facultades/${campana.facultad_id}`);
+  redirect(`/admin/facultades/${campana.facultad_id}`);
+}
+
 // ---------- Artes ----------
 
 const driveUrl = z
@@ -114,7 +167,7 @@ const driveUrl = z
 
 const datosSchema = z.object({
   titulo: z.string().trim().min(2, "El título es muy corto").max(200),
-  campana: z.string().trim().max(200),
+  campanaId: z.string(),
   formato: z.string().trim().max(100),
   descripcion: z.string().trim().max(5000),
   fechaPublicacion: z
@@ -131,7 +184,7 @@ async function parseDatos(
 ): Promise<{ data: ArteDatos } | { error: string }> {
   const parsed = datosSchema.safeParse({
     titulo: formData.get("titulo") ?? "",
-    campana: formData.get("campana") ?? "",
+    campanaId: formData.get("campanaId") ?? "",
     formato: formData.get("formato") ?? "",
     descripcion: formData.get("descripcion") ?? "",
     fechaPublicacion: formData.get("fechaPublicacion") ?? "",
@@ -149,11 +202,19 @@ async function parseDatos(
     carreraId = carrera.id;
   }
 
+  let campanaId: number | null = null;
+  const rawCampana = parsed.data.campanaId;
+  if (rawCampana && rawCampana !== "ninguna") {
+    const campana = await getCampana(Number(rawCampana), facultadId);
+    if (!campana) return { error: "La campaña no pertenece a esta facultad" };
+    campanaId = campana.id;
+  }
+
   return {
     data: {
       carreraId,
       titulo: parsed.data.titulo,
-      campana: parsed.data.campana,
+      campanaId,
       formato: parsed.data.formato,
       descripcion: parsed.data.descripcion,
       fechaPublicacion: parsed.data.fechaPublicacion || null,
@@ -173,7 +234,7 @@ export async function createArteAction(
   const url = driveUrl.safeParse(formData.get("driveUrl") ?? "");
   if (!url.success) return { error: firstError(url.error) };
   const id = await createArte(facultadId, result.data, url.data);
-  revalidatePath(`/admin/facultades/${facultadId}`);
+  revalidatePath(`/admin/facultades/${facultadId}`, "layout");
   redirect(`/admin/artes/${id}`);
 }
 
@@ -189,7 +250,7 @@ export async function updateArteAction(
   if ("error" in result) return { error: result.error };
   await updateArte(arte.id, result.data);
   revalidatePath(`/admin/artes/${arteId}`);
-  revalidatePath(`/admin/facultades/${arte.facultad_id}`);
+  revalidatePath(`/admin/facultades/${arte.facultad_id}`, "layout");
   return { error: null, ok: true };
 }
 
@@ -278,8 +339,8 @@ export async function deleteArteAction(arteId: number) {
   const arte = await getArte(arteId);
   if (!arte) return;
   await deleteArte(arteId);
-  revalidatePath(`/admin/facultades/${arte.facultad_id}`);
-  redirect(`/admin/facultades/${arte.facultad_id}`);
+  revalidatePath(`/admin/facultades/${arte.facultad_id}`, "layout");
+  redirect(`/admin/facultades/${arte.facultad_id}/campanas/${arte.campana_id ?? "otros"}`);
 }
 
 // ---------- Administradores ----------
