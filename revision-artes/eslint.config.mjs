@@ -12,8 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Independent app with its own config.
-    "revision-artes/**",
   ]),
 ]);
 

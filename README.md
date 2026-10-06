@@ -1,5 +1,8 @@
 # EOS · Nivel 10
 
+> Este repositorio también contiene **[Revisión de Artes](revision-artes/README.md)**, una app
+> independiente para la aprobación de artes de campañas por facultad (carpeta `revision-artes/`).
+
 App en línea para llevar Traction/EOS: **V/TO**, **Organigrama de Responsabilidad**,
 **Rocks**, **Scorecard**, **Issues (IDS)**, **To-Dos** y la **Reunión Level 10**
 con agenda, timer y calificación final.
