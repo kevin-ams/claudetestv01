@@ -26,6 +26,7 @@
 
 	<a class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-brand-blue focus:text-white" href="#main"><?php esc_html_e( 'Saltar al contenido', 'ams-studio' ); ?></a>
 
+	<?php if ( ! function_exists( 'elementor_theme_do_location' ) || ! elementor_theme_do_location( 'header' ) ) : ?>
 	<!-- Navigation Bar -->
 	<header id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300 py-4 px-4 sm:px-8">
 		<div class="max-w-7xl mx-auto glass-panel rounded-2xl px-6 py-3 flex items-center justify-between shadow-crystal border border-white/10">
@@ -41,33 +42,36 @@
 					?>
 				</div>
 				<div class="flex flex-col">
-					<span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-1">
+					<span class="text-xl font-extrabold tracking-tight text-white flex items-center gap-1 whitespace-nowrap">
 						Ams <span class="font-normal text-brand-periwinkle">Studio</span>
 					</span>
-					<span class="text-[9px] uppercase tracking-widest text-slate-400 font-semibold -mt-1">Action • Mindset • Strategy</span>
+					<span class="hidden min-[360px]:block whitespace-nowrap text-[9px] uppercase tracking-widest text-slate-400 font-semibold -mt-1">Action • Mindset • Strategy</span>
 				</div>
 			</a>
 
-			<nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300" aria-label="<?php esc_attr_e( 'Principal', 'ams-studio' ); ?>">
+			<nav class="hidden xl:flex items-center gap-8 text-sm font-medium text-slate-300" aria-label="<?php esc_attr_e( 'Principal', 'ams-studio' ); ?>">
 				<?php ams_studio_nav_links( 'hover:text-brand-periwinkle transition-colors' ); ?>
 			</nav>
 
-			<div class="hidden sm:flex items-center gap-4">
-				<a href="<?php echo esc_url( ams_studio_anchor( 'estimador' ) ); ?>" class="px-5 py-2.5 rounded-xl glass-button-primary text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-					<i class="fa-solid fa-bolt text-brand-periwinkle" aria-hidden="true"></i>
-					<span><?php esc_html_e( 'Iniciar Proyecto', 'ams-studio' ); ?></span>
-				</a>
-			</div>
+			<div class="flex items-center gap-2 sm:gap-4">
+				<div class="hidden sm:flex items-center">
+					<a href="<?php echo esc_url( ams_studio_anchor( 'estimador' ) ); ?>" class="px-5 py-2.5 rounded-xl glass-button-primary text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+						<i class="fa-solid fa-bolt text-brand-periwinkle" aria-hidden="true"></i>
+						<span><?php esc_html_e( 'Iniciar Proyecto', 'ams-studio' ); ?></span>
+					</a>
+				</div>
 
-			<button id="mobileMenuBtn" type="button" aria-label="<?php esc_attr_e( 'Abrir menú de navegación', 'ams-studio' ); ?>" aria-expanded="false" aria-controls="mobileMenu" class="md:hidden text-slate-300 hover:text-white text-2xl p-2 focus:outline-none">
-				<i class="fa-solid fa-bars" aria-hidden="true"></i>
-			</button>
+				<button id="mobileMenuBtn" type="button" aria-label="<?php esc_attr_e( 'Abrir menú de navegación', 'ams-studio' ); ?>" aria-expanded="false" aria-controls="mobileMenu" class="xl:hidden text-slate-300 hover:text-white text-2xl p-2 focus:outline-none">
+					<i class="fa-solid fa-bars" aria-hidden="true"></i>
+				</button>
+			</div>
 		</div>
 
-		<div id="mobileMenu" class="hidden md:hidden max-w-7xl mx-auto mt-3 glass-panel rounded-2xl p-6 border border-white/10 flex-col gap-4 text-center">
+		<div id="mobileMenu" class="hidden xl:hidden max-w-7xl mx-auto mt-3 glass-panel bg-brand-charcoal/90 rounded-2xl p-6 border border-white/10 flex-col gap-4 text-center">
 			<?php ams_studio_nav_links( 'mobile-link text-slate-200 hover:text-brand-blue py-2' ); ?>
 			<a href="<?php echo esc_url( ams_studio_anchor( 'estimador' ) ); ?>" class="mobile-link mt-2 w-full py-3 rounded-xl glass-button-primary text-white text-xs font-bold uppercase"><?php esc_html_e( 'Iniciar Proyecto', 'ams-studio' ); ?></a>
 		</div>
 	</header>
+	<?php endif; ?>
 
 	<main id="main">

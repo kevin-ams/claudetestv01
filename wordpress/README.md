@@ -1,53 +1,45 @@
 # Tema WordPress — AMS Studio
 
-Réplica del sitio oficial de AMS Studio (Crystal Glassmorphism, luz azul real, cotizador interactivo y pestañas del ecosistema) empaquetada como tema de WordPress.
+Réplica del sitio oficial de AMS Studio (Crystal Glassmorphism, luz azul real y pestañas del ecosistema) empaquetada como tema de WordPress.
 
-## Instalación
+## Instalar o actualizar
 
 1. Descarga `wordpress/ams-studio.zip`.
-2. En WordPress: **Apariencia → Temas → Añadir nuevo → Subir tema**, selecciona el zip y pulsa **Instalar** y luego **Activar**.
-3. **Ajustes → Lectura**: deja "Tus últimas entradas" o elige una página estática como portada. En ambos casos la portada muestra el one-page (`front-page.php`).
-4. **Apariencia → Personalizar**:
-   - **AMS Studio: Contacto**: teléfono, correos visibles, el correo que recibe los formularios y los enlaces a LinkedIn, Instagram y WhatsApp. Un ícono social sin URL no se muestra.
-   - **AMS Studio: Cotizador**: rangos base (mínimo, máximo y semanas) por disciplina, la moneda y si se muestra el monto al visitante.
-   - **Identidad del sitio → Logo**: opcional; si no subes uno se usa el isotipo SVG de AMS.
-5. (Opcional) **Apariencia → Menús**: si asignas un menú a "Menú principal" reemplaza la navegación por defecto. Para anclas usa enlaces personalizados como `/#ecosistema`.
+2. En WordPress ve a **Apariencia → Temas → Añadir nuevo → Subir tema**, selecciona el zip y pulsa **Instalar**. Si el tema ya existe, elige **Reemplazar el instalado por el subido**.
+3. **LiteSpeed Cache → Panel → Purgar todo** para que los visitantes vean la versión nueva.
 
-## Formularios
+## Configuración
 
-- El contacto y el cotizador se envían por AJAX (`admin-ajax.php`) con nonce, honeypot anti-spam y un límite de 5 envíos cada 10 minutos por IP.
+- **Ajustes → Generales → Título del sitio**: `AMS Studio`. Hoy el título, y por eso también lo que muestran Google y Yoast, es el dominio temporal.
+- **Apariencia → Personalizar → AMS Studio: Contacto**: teléfono, correos visibles, correo que recibe los formularios y enlaces a LinkedIn, Instagram y WhatsApp. Un ícono social sin URL no se muestra.
+- **Apariencia → Personalizar → AMS Studio: Formularios** (opcional): ID de un formulario de WPForms para "Envíanos un mensaje" y otro para "Solicitar Diagnóstico". Vacío = formulario integrado del tema.
+- **Identidad del sitio → Logo** (opcional): si no subes uno se usa el isotipo SVG.
+- **Apariencia → Menús** (opcional): un menú asignado a "Menú principal" reemplaza la navegación por defecto. Para las anclas usa enlaces como `/#ecosistema`.
+
+## Plugins
+
+| Plugin | Qué tener en cuenta |
+|---|---|
+| **LiteSpeed Cache** | Los formularios piden un nonce nuevo justo antes de enviar, así que siguen funcionando aunque la página venga de la caché. Si activas *Generar UCSS*, el tema ya marca como protegidas las clases que agrega por JavaScript (menú móvil, modal). Después de actualizar el tema, purga la caché. |
+| **WP Mail SMTP** | Configúralo con el correo de `amscreativeint.com`. El formulario integrado y WPForms envían a través de él. |
+| **WPForms** | Opcional. Crea el formulario y pon su ID en *Personalizar → AMS Studio: Formularios*; el tema le aplica el estilo glass. |
+| **Elementor** | La portada usa el diseño del tema; no hace falta editarla con Elementor. Para páginas nuevas usa la plantilla **Elementor ancho completo**, que conserva el menú y el pie del tema (el contenido arranca debajo del menú fijo). Con **Elementor Pro**, un encabezado o pie hecho en el Theme Builder reemplaza al del tema. |
+| **Yoast SEO** | El tema deja que Yoast maneje el título y las metas. Completa el título SEO y la meta descripción de la portada en **Yoast → Ajustes → Tipos de contenido → Página de inicio**. |
+| **Site Kit by Google** | Funciona sin cambios: el tema incluye `wp_head`, `wp_body_open` y `wp_footer`. |
+| **Contact Form 7** | Está activo en el sitio pero el tema no lo usa. Si no lo necesitas, desactívalo: carga sus scripts en todas las páginas. |
+
+## Formularios integrados
+
+- Se envían por AJAX con nonce, honeypot antispam y un límite de 5 envíos cada 10 minutos por IP.
 - Cada envío se guarda en **wp-admin → Solicitudes**, así que no se pierde aunque falle el correo.
-- El correo se envía con `wp_mail()`. En la mayoría de hostings conviene instalar un plugin SMTP (WP Mail SMTP, FluentSMTP…) para que llegue a la bandeja de entrada.
-- El estimado que aparece en el correo se recalcula en el servidor, así que no se puede manipular desde el navegador.
-
-## Cómo calcula el cotizador
-
-```
-inversión = suma de rangos de las disciplinas elegidas × factor de etapa × factor de alcance
-semanas   = (semanas de la disciplina más larga + 1 por cada disciplina extra) × factor de alcance + semanas extra por etapa
-```
-
-| Etapa                   | Factor | Semanas extra |
-|-------------------------|--------|---------------|
-| Idea por validar        | 1.00   | +1            |
-| Marca existente         | 0.90   | 0             |
-| Nueva unidad de negocio | 1.25   | +2            |
-
-| Alcance     | Factor inversión | Factor tiempo |
-|-------------|------------------|---------------|
-| Esencial    | 1.0              | 1.00          |
-| Profesional | 1.6              | 1.25          |
-| Premium     | 2.4              | 1.50          |
-
-**Los montos por defecto son de referencia**: ajústalos en el Personalizador antes de publicar. Los factores se cambian con el filtro `ams_studio_estimator_config` (por ejemplo, desde un plugin de snippets).
 
 ## Editar textos
 
-Los textos de cada sección están en `ams-studio/template-parts/section-*.php`. Puedes editarlos en **Herramientas → Editor de archivos del tema** o por FTP.
+Los textos de cada sección están en `ams-studio/template-parts/section-*.php`. Puedes editarlos en **Apariencia → Editor de archivos de tema** o por FTP.
 
 ## Desarrollo
 
-Los estilos son Tailwind CSS 3, con la misma configuración del diseño original, compilados en `assets/css/main.css`. En producción no se usa el CDN de Tailwind. Si cambias clases en las plantillas:
+Los estilos son Tailwind CSS 3 (misma configuración del diseño original), compilados en `assets/css/main.css`. Si cambias clases en las plantillas:
 
 ```sh
 cd wordpress/ams-studio

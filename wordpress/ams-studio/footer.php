@@ -13,14 +13,15 @@ $ams_socials = array(
 ?>
 	</main>
 
+	<?php if ( ! function_exists( 'elementor_theme_do_location' ) || ! elementor_theme_do_location( 'footer' ) ) : ?>
 	<footer class="py-12 relative z-10 border-t border-white/10 px-4 sm:px-6 lg:px-8 text-xs text-slate-400">
-		<div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+		<div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
 
-			<div class="flex items-center gap-3">
-				<?php ams_studio_logo_svg( 'w-7 h-7', false ); ?>
-				<span class="text-white font-bold text-sm">AMS Studio</span>
+			<div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+				<?php ams_studio_logo_svg( 'w-7 h-7 shrink-0', false ); ?>
+				<span class="text-white font-bold text-sm whitespace-nowrap">AMS Studio</span>
 				<span class="text-slate-500">|</span>
-				<span>Action. Mindset. Strategy.</span>
+				<span class="whitespace-nowrap">Action. Mindset. Strategy.</span>
 			</div>
 
 			<div class="flex items-center gap-4 text-base">
@@ -41,6 +42,7 @@ $ams_socials = array(
 
 		</div>
 	</footer>
+	<?php endif; ?>
 
 	<!-- Glass Toast / Modal Notification -->
 	<div id="toastModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-opacity duration-300" role="dialog" aria-modal="true" aria-labelledby="toastTitle" aria-hidden="true">

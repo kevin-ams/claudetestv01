@@ -1,6 +1,6 @@
 <?php
 /**
- * Contact + estimator form handling.
+ * Contact + diagnosis form handling.
  *
  * Every submission is saved as a private "Solicitud" in wp-admin (so leads are
  * never lost if email delivery fails) and emailed to the configured recipient.
@@ -37,6 +37,39 @@ function ams_studio_register_leads() {
 	);
 }
 add_action( 'init', 'ams_studio_register_leads' );
+
+/**
+ * Choices shown in the diagnosis form (section-estimator.php).
+ *
+ * @return array{stages:array<string,string>,disciplines:array<string,string>}
+ */
+function ams_studio_wizard_options() {
+	return array(
+		'stages'      => array(
+			'idea'      => __( 'Idea por Validar', 'ams-studio' ),
+			'existente' => __( 'Marca Existente', 'ams-studio' ),
+			'unidad'    => __( 'Nueva Unidad de Negocio', 'ams-studio' ),
+		),
+		'disciplines' => array(
+			'estrategia' => __( 'Estrategia', 'ams-studio' ),
+			'branding'   => __( 'Branding', 'ams-studio' ),
+			'web'        => __( 'Desarrollo Web', 'ams-studio' ),
+			'growth'     => __( 'Growth', 'ams-studio' ),
+		),
+	);
+}
+
+/**
+ * Hands out a fresh nonce. The page HTML is cached by LiteSpeed (and the host),
+ * so a nonce printed into the page would expire while the cached copy lives on;
+ * admin-ajax.php is never cached, so the form asks for one right before sending.
+ */
+function ams_studio_get_nonce() {
+	nocache_headers();
+	wp_send_json_success( array( 'nonce' => wp_create_nonce( 'ams_studio_form' ) ) );
+}
+add_action( 'wp_ajax_ams_studio_nonce', 'ams_studio_get_nonce' );
+add_action( 'wp_ajax_nopriv_ams_studio_nonce', 'ams_studio_get_nonce' );
 
 /**
  * Reads a sanitized text field from the POST body.
@@ -79,34 +112,15 @@ function ams_studio_handle_submit() {
 
 	$lines = array();
 	if ( 'wizard' === $type ) {
-		$config      = ams_studio_estimator_config();
+		$options     = ams_studio_wizard_options();
 		$stage       = ams_studio_post_text( 'etapa' );
-		$scope       = ams_studio_post_text( 'alcance' );
 		// phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$disciplines = isset( $_POST['servicio'] ) ? array_map( 'sanitize_key', (array) wp_unslash( $_POST['servicio'] ) ) : array();
-		$disciplines = array_values( array_intersect( $disciplines, array_keys( $config['disciplines'] ) ) );
-		$estimate    = ams_studio_compute_estimate( $stage, $disciplines, $scope );
+		$labels      = array_values( array_intersect_key( $options['disciplines'], array_flip( $disciplines ) ) );
 
-		$labels  = array_map(
-			function ( $k ) use ( $config ) {
-				return $config['disciplines'][ $k ]['label'];
-			},
-			$disciplines
-		);
 		$subject = sprintf( /* translators: %s: name. */ __( '[AMS Studio] Nuevo diagnóstico estratégico — %s', 'ams-studio' ), $name );
-		$lines[] = __( 'Etapa:', 'ams-studio' ) . ' ' . ( isset( $config['stages'][ $stage ] ) ? $config['stages'][ $stage ]['value'] : '—' );
-		$lines[] = __( 'Alcance:', 'ams-studio' ) . ' ' . ( isset( $config['scopes'][ $scope ] ) ? $config['scopes'][ $scope ]['label'] : '—' );
+		$lines[] = __( 'Etapa:', 'ams-studio' ) . ' ' . ( isset( $options['stages'][ $stage ] ) ? $options['stages'][ $stage ] : '—' );
 		$lines[] = __( 'Disciplinas:', 'ams-studio' ) . ' ' . ( $labels ? implode( ', ', $labels ) : '—' );
-		if ( $estimate ) {
-			$lines[] = sprintf(
-				/* translators: 1: currency, 2: min, 3: max, 4: weeks. */
-				__( 'Estimado mostrado: %1$s%2$s – %1$s%3$s · ~%4$d semanas', 'ams-studio' ),
-				$config['currency'],
-				number_format_i18n( $estimate['min'] ),
-				number_format_i18n( $estimate['max'] ),
-				$estimate['weeks']
-			);
-		}
 	} else {
 		$last    = ams_studio_post_text( 'apellido' );
 		$phone   = ams_studio_post_text( 'telefono' );

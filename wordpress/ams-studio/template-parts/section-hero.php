@@ -39,21 +39,21 @@
 		</div>
 
 		<!-- Glass Key Metric Counters Bar -->
-		<div class="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto text-left">
-			<div class="glass-card p-5 rounded-2xl border-white/10">
-				<div class="text-3xl font-extrabold text-white text-gradient">100%</div>
+		<div class="pt-12 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-4xl mx-auto text-left">
+			<div class="glass-card p-4 sm:p-5 rounded-2xl border-white/10 min-w-0">
+				<div class="text-lg min-[360px]:text-xl min-[400px]:text-2xl sm:text-3xl font-extrabold text-white text-gradient">100%</div>
 				<div class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">Orientación a Resultados</div>
 			</div>
-			<div class="glass-card p-5 rounded-2xl border-white/10">
-				<div class="text-3xl font-extrabold text-white text-gradient">12+</div>
+			<div class="glass-card p-4 sm:p-5 rounded-2xl border-white/10 min-w-0">
+				<div class="text-lg min-[360px]:text-xl min-[400px]:text-2xl sm:text-3xl font-extrabold text-white text-gradient">12+</div>
 				<div class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">Áreas de Especialidad</div>
 			</div>
-			<div class="glass-card p-5 rounded-2xl border-white/10">
-				<div class="text-3xl font-extrabold text-white text-gradient">4+</div>
+			<div class="glass-card p-4 sm:p-5 rounded-2xl border-white/10 min-w-0">
+				<div class="text-lg min-[360px]:text-xl min-[400px]:text-2xl sm:text-3xl font-extrabold text-white text-gradient">4+</div>
 				<div class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">Verticales Propias</div>
 			</div>
-			<div class="glass-card p-5 rounded-2xl border-white/10">
-				<div class="text-3xl font-extrabold text-white text-gradient">Guatemala</div>
+			<div class="glass-card p-4 sm:p-5 rounded-2xl border-white/10 min-w-0">
+				<div class="text-lg min-[360px]:text-xl min-[400px]:text-2xl sm:text-3xl font-extrabold text-white text-gradient">Guatemala</div>
 				<div class="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">Proyección Global</div>
 			</div>
 		</div>

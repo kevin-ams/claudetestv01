@@ -11,6 +11,7 @@ $ams_emails = array(
 	array( ams_studio_mod( 'ams_email_info' ), 'text-brand-periwinkle', 'text-slate-300' ),
 	array( ams_studio_mod( 'ams_email_support' ), 'text-slate-400', 'text-slate-300' ),
 );
+$ams_wpforms = ams_studio_wpforms( 'ams_wpforms_contact' );
 ?>
 <section id="contacto" class="py-24 relative z-10 px-4 sm:px-6 lg:px-8 bg-black/40 border-t border-white/10">
 	<div class="max-w-7xl mx-auto">
@@ -64,45 +65,49 @@ $ams_emails = array(
 			<div class="glass-panel p-6 sm:p-8 rounded-3xl border border-white/15 relative">
 				<h4 class="text-2xl font-bold text-white mb-6">Envíanos un mensaje</h4>
 
-				<form id="contactForm" class="ams-form space-y-4" data-form-type="contact" novalidate>
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-						<div>
-							<label for="cNombre" class="block text-xs font-semibold text-slate-300 mb-1">Nombre *</label>
-							<input type="text" id="cNombre" name="nombre" required autocomplete="given-name" placeholder="Nombre" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+				<?php if ( $ams_wpforms ) : ?>
+					<?php echo $ams_wpforms; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- WPForms output. ?>
+				<?php else : ?>
+					<form id="contactForm" class="ams-form space-y-4" data-form-type="contact" novalidate>
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="cNombre" class="block text-xs font-semibold text-slate-300 mb-1">Nombre *</label>
+								<input type="text" id="cNombre" name="nombre" required autocomplete="given-name" placeholder="Nombre" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+							</div>
+							<div>
+								<label for="cApellido" class="block text-xs font-semibold text-slate-300 mb-1">Apellido *</label>
+								<input type="text" id="cApellido" name="apellido" required autocomplete="family-name" placeholder="Apellido" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+							</div>
 						</div>
-						<div>
-							<label for="cApellido" class="block text-xs font-semibold text-slate-300 mb-1">Apellido *</label>
-							<input type="text" id="cApellido" name="apellido" required autocomplete="family-name" placeholder="Apellido" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+
+						<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<div>
+								<label for="cTelefono" class="block text-xs font-semibold text-slate-300 mb-1">Número Telefónico *</label>
+								<input type="tel" id="cTelefono" name="telefono" required autocomplete="tel" placeholder="+502 0000-0000" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+							</div>
+							<div>
+								<label for="cEmail" class="block text-xs font-semibold text-slate-300 mb-1">Email *</label>
+								<input type="email" id="cEmail" name="email" required autocomplete="email" placeholder="tu@empresa.com" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+							</div>
 						</div>
-					</div>
 
-					<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
 						<div>
-							<label for="cTelefono" class="block text-xs font-semibold text-slate-300 mb-1">Número Telefónico *</label>
-							<input type="tel" id="cTelefono" name="telefono" required autocomplete="tel" placeholder="+502 0000-0000" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+							<label for="cMensaje" class="block text-xs font-semibold text-slate-300 mb-1">Mensaje *</label>
+							<textarea id="cMensaje" name="mensaje" rows="4" required placeholder="Cuéntanos brevemente sobre tu proyecto o idea..." class="w-full glass-input px-4 py-3 rounded-xl text-sm resize-none"></textarea>
 						</div>
-						<div>
-							<label for="cEmail" class="block text-xs font-semibold text-slate-300 mb-1">Email *</label>
-							<input type="email" id="cEmail" name="email" required autocomplete="email" placeholder="tu@empresa.com" class="w-full glass-input px-4 py-3 rounded-xl text-sm">
+
+						<div class="ams-hp" aria-hidden="true">
+							<label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
 						</div>
-					</div>
 
-					<div>
-						<label for="cMensaje" class="block text-xs font-semibold text-slate-300 mb-1">Mensaje *</label>
-						<textarea id="cMensaje" name="mensaje" rows="4" required placeholder="Cuéntanos brevemente sobre tu proyecto o idea..." class="w-full glass-input px-4 py-3 rounded-xl text-sm resize-none"></textarea>
-					</div>
+						<p class="ams-form-error hidden text-xs text-red-300" role="alert"></p>
 
-					<div class="ams-hp" aria-hidden="true">
-						<label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label>
-					</div>
-
-					<p class="ams-form-error hidden text-xs text-red-300" role="alert"></p>
-
-					<button type="submit" class="w-full py-4 rounded-xl glass-button-primary text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2">
-						<span>Enviar Mensaje</span>
-						<i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-					</button>
-				</form>
+						<button type="submit" class="w-full py-4 rounded-xl glass-button-primary text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2">
+							<span>Enviar Mensaje</span>
+							<i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+						</button>
+					</form>
+				<?php endif; ?>
 			</div>
 
 		</div>

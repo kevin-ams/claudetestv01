@@ -1,6 +1,6 @@
 <?php
 /**
- * Customizer settings: contact data, social links and estimator pricing.
+ * Customizer settings: contact data, social links and optional WPForms forms.
  *
  * @package AMS_Studio
  */
@@ -84,74 +84,62 @@ function ams_studio_customize_register( $wp_customize ) {
 		);
 	}
 
-	// Estimator.
+	// Forms.
 	$wp_customize->add_section(
-		'ams_studio_estimator',
+		'ams_studio_forms',
 		array(
-			'title'       => __( 'AMS Studio: Cotizador', 'ams-studio' ),
-			'description' => __( 'Rangos base por disciplina (alcance Esencial). El cotizador los ajusta según etapa y alcance.', 'ams-studio' ),
+			'title'       => __( 'AMS Studio: Formularios', 'ams-studio' ),
+			'description' => __( 'Opcional: escribe el ID de un formulario de WPForms (WPForms → Todos los formularios) para usarlo en lugar del formulario integrado. Déjalo vacío para usar el formulario del tema.', 'ams-studio' ),
 			'priority'    => 31,
 		)
 	);
 
-	$wp_customize->add_setting(
-		'ams_est_show_prices',
-		array(
-			'default'           => true,
-			'sanitize_callback' => 'rest_sanitize_boolean',
-		)
+	$forms = array(
+		'ams_wpforms_contact' => __( 'ID de WPForms para "Envíanos un mensaje"', 'ams-studio' ),
+		'ams_wpforms_wizard'  => __( 'ID de WPForms para "Solicitar Diagnóstico"', 'ams-studio' ),
 	);
-	$wp_customize->add_control(
-		'ams_est_show_prices',
-		array(
-			'label'   => __( 'Mostrar rango de inversión al visitante', 'ams-studio' ),
-			'section' => 'ams_studio_estimator',
-			'type'    => 'checkbox',
-		)
-	);
-
-	$wp_customize->add_setting(
-		'ams_est_currency',
-		array(
-			'default'           => 'US$',
-			'sanitize_callback' => 'sanitize_text_field',
-		)
-	);
-	$wp_customize->add_control(
-		'ams_est_currency',
-		array(
-			'label'   => __( 'Símbolo de moneda', 'ams-studio' ),
-			'section' => 'ams_studio_estimator',
-			'type'    => 'text',
-		)
-	);
-
-	foreach ( ams_studio_estimator_disciplines() as $key => $d ) {
-		$parts = array(
-			'min'   => __( 'mínimo', 'ams-studio' ),
-			'max'   => __( 'máximo', 'ams-studio' ),
-			'weeks' => __( 'semanas', 'ams-studio' ),
+	foreach ( $forms as $key => $label ) {
+		$wp_customize->add_setting(
+			$key,
+			array(
+				'default'           => '',
+				'sanitize_callback' => 'ams_studio_sanitize_form_id',
+			)
 		);
-		foreach ( $parts as $part => $part_label ) {
-			$setting = "ams_est_{$key}_{$part}";
-			$wp_customize->add_setting(
-				$setting,
-				array(
-					'default'           => $d[ $part ],
-					'sanitize_callback' => 'absint',
-				)
-			);
-			$wp_customize->add_control(
-				$setting,
-				array(
-					/* translators: 1: discipline name, 2: field (minimum, maximum, weeks). */
-					'label'       => sprintf( __( '%1$s — %2$s', 'ams-studio' ), $d['label'], $part_label ),
-					'section'     => 'ams_studio_estimator',
-					'type'        => 'number',
-					'input_attrs' => array( 'min' => 0 ),
-				)
-			);
-		}
+		$wp_customize->add_control(
+			$key,
+			array(
+				'label'       => $label,
+				'section'     => 'ams_studio_forms',
+				'type'        => 'number',
+				'input_attrs' => array( 'min' => 1 ),
+			)
+		);
 	}
 }
 add_action( 'customize_register', 'ams_studio_customize_register' );
+
+/**
+ * Sanitizes an optional form ID ('' when empty).
+ *
+ * @param mixed $value Raw value.
+ * @return string
+ */
+function ams_studio_sanitize_form_id( $value ) {
+	$id = absint( $value );
+	return $id ? (string) $id : '';
+}
+
+/**
+ * Renders the WPForms form set for a slot, or '' to fall back to the built-in form.
+ *
+ * @param string $mod Theme mod holding the WPForms form ID.
+ * @return string
+ */
+function ams_studio_wpforms( $mod ) {
+	$id = absint( get_theme_mod( $mod, '' ) );
+	if ( ! $id || ! function_exists( 'wpforms' ) ) {
+		return '';
+	}
+	return '<div class="ams-wpforms">' . do_shortcode( '[wpforms id="' . $id . '" title="false" description="false"]' ) . '</div>';
+}

@@ -162,50 +162,16 @@ section[id] { scroll-margin-top: 6rem; }
 }
 
 @keyframes ams-panel-in {
-	from { opacity: 0; transform: translateY(12px); filter: blur(4px); }
-	to   { opacity: 1; transform: none; filter: none; }
+	from { opacity: 0; transform: translateY(12px); }
+	to   { opacity: 1; transform: none; }
 }
 
 /* ------------------------------------------------------------------
- * Estimator
+ * Forms
  * ------------------------------------------------------------------ */
 .ams-option:has(input:checked) {
 	border-color: rgba(37, 99, 255, 0.6);
 	background: linear-gradient(135deg, rgba(37, 99, 255, 0.18) 0%, rgba(255, 255, 255, 0.03) 100%);
-}
-
-.ams-segmented-thumb {
-	position: absolute;
-	top: 0.25rem;
-	bottom: 0.25rem;
-	left: 0.25rem;
-	width: calc((100% - 0.5rem - 0.5rem) / 3);
-	border-radius: 0.5rem;
-	background: linear-gradient(135deg, #2563FF 0%, #1d4ed8 100%);
-	box-shadow: 0 4px 20px rgba(37, 99, 255, 0.4);
-	transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ams-segmented[data-index="1"] .ams-segmented-thumb { transform: translateX(calc(100% + 0.25rem)); }
-.ams-segmented[data-index="2"] .ams-segmented-thumb { transform: translateX(calc(200% + 0.5rem)); }
-
-.ams-estimate-shine {
-	position: absolute;
-	inset: 0;
-	background: linear-gradient(110deg, transparent 30%, rgba(141, 165, 255, 0.12) 50%, transparent 70%);
-	transform: translateX(-100%);
-	pointer-events: none;
-}
-
-.ams-estimate.is-updating .ams-estimate-shine {
-	animation: shimmer 0.9s ease-out;
-}
-
-.ams-estimate-bar {
-	width: 0;
-	background: linear-gradient(90deg, #2563FF, #8DA5FF);
-	box-shadow: 0 0 12px rgba(37, 99, 255, 0.6);
-	transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Honeypot field, hidden from people. */
@@ -216,6 +182,79 @@ section[id] { scroll-margin-top: 6rem; }
 	height: 1px;
 	overflow: hidden;
 }
+
+/* ------------------------------------------------------------------
+ * WPForms inside the glass panels (when a WPForms ID is set in the Customizer)
+ * ------------------------------------------------------------------ */
+.ams-wpforms .wpforms-container { margin: 0 !important; }
+.ams-wpforms .wpforms-field { padding: 0 0 1rem !important; }
+.ams-wpforms .wpforms-field-row,
+.ams-wpforms .wpforms-field-medium,
+.ams-wpforms .wpforms-field-small { max-width: 100% !important; }
+.ams-wpforms .wpforms-field-label,
+.ams-wpforms .wpforms-field-sublabel,
+.ams-wpforms .wpforms-field-label-inline {
+	color: #cbd5e1 !important;
+	font-size: 0.75rem !important;
+	font-weight: 600 !important;
+}
+.ams-wpforms .wpforms-required-label { color: #8DA5FF !important; }
+.ams-wpforms input[type="text"],
+.ams-wpforms input[type="email"],
+.ams-wpforms input[type="tel"],
+.ams-wpforms input[type="url"],
+.ams-wpforms input[type="number"],
+.ams-wpforms select,
+.ams-wpforms textarea {
+	width: 100% !important;
+	max-width: 100% !important;
+	background: rgba(11, 15, 25, 0.6) !important;
+	border: 1px solid rgba(255, 255, 255, 0.12) !important;
+	border-radius: 0.75rem !important;
+	color: #fff !important;
+	padding: 0.75rem 1rem !important;
+	font-size: 0.875rem !important;
+	height: auto !important;
+	box-shadow: none !important;
+}
+.ams-wpforms input:focus,
+.ams-wpforms select:focus,
+.ams-wpforms textarea:focus {
+	border-color: #2563FF !important;
+	box-shadow: 0 0 15px rgba(37, 99, 255, 0.3) !important;
+	outline: none !important;
+}
+.ams-wpforms ::placeholder { color: #94a3b8 !important; }
+.ams-wpforms .wpforms-field-checkbox li label,
+.ams-wpforms .wpforms-field-radio li label { color: #e2e8f0 !important; font-size: 0.75rem !important; }
+.ams-wpforms button[type="submit"],
+.ams-wpforms .wpforms-submit {
+	width: 100% !important;
+	padding: 1rem !important;
+	border: 0 !important;
+	border-radius: 0.75rem !important;
+	background: linear-gradient(135deg, #2563FF 0%, #1d4ed8 100%) !important;
+	box-shadow: 0 4px 20px rgba(37, 99, 255, 0.4) !important;
+	color: #fff !important;
+	font-weight: 700 !important;
+	font-size: 0.875rem !important;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	height: auto !important;
+}
+.ams-wpforms .wpforms-confirmation-container-full {
+	background: rgba(37, 99, 255, 0.15) !important;
+	border: 1px solid rgba(37, 99, 255, 0.4) !important;
+	color: #e2e8f0 !important;
+	border-radius: 1rem;
+}
+.ams-wpforms label.wpforms-error,
+.ams-wpforms em.wpforms-error { color: #fca5a5 !important; }
+
+/* ------------------------------------------------------------------
+ * Elementor pages: keep content clear of the fixed navbar
+ * ------------------------------------------------------------------ */
+.page-template-elementor_header_footer #main { padding-top: 7rem; }
 
 /* ------------------------------------------------------------------
  * Inner pages (index.php)

@@ -14,7 +14,7 @@
 			<p class="text-slate-400 mt-4 text-base">Tres pilares interconectados que convierten la teoría en tracción comercial.</p>
 		</div>
 
-		<div class="grid md:grid-cols-3 gap-8">
+		<div class="grid lg:grid-cols-3 gap-6 lg:gap-8">
 
 			<!-- Pillar 1: ACTION -->
 			<div class="glass-card p-8 rounded-3xl relative flex flex-col justify-between border-t-2 border-t-brand-blue">

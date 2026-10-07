@@ -9,12 +9,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AMS_STUDIO_VERSION', '1.0.0' );
+define( 'AMS_STUDIO_VERSION', '1.1.0' );
 define( 'AMS_STUDIO_DIR', get_template_directory() );
 define( 'AMS_STUDIO_URI', get_template_directory_uri() );
 
 require AMS_STUDIO_DIR . '/inc/customizer.php';
-require AMS_STUDIO_DIR . '/inc/estimator.php';
 require AMS_STUDIO_DIR . '/inc/forms.php';
 
 /**
@@ -80,10 +79,8 @@ function ams_studio_assets() {
 		'ams-studio-main',
 		'AMS_STUDIO',
 		array(
-			'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
-			'nonce'     => wp_create_nonce( 'ams_studio_form' ),
-			'estimator' => ams_studio_estimator_config(),
-			'i18n'      => array(
+			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+			'i18n'    => array(
 				'sending' => __( 'Enviando…', 'ams-studio' ),
 				'error'   => __( 'No pudimos enviar tu mensaje. Inténtalo de nuevo o escríbenos directamente por correo.', 'ams-studio' ),
 			),
@@ -178,3 +175,29 @@ function ams_studio_logo_svg( $class = 'w-10 h-10', $accent = true ) {
 	</svg>
 	<?php
 }
+
+/**
+ * LiteSpeed Cache "Generate UCSS" only keeps CSS for classes present in the HTML.
+ * These are added later by assets/js/main.js, so keep them.
+ *
+ * @param array $list Selectors to keep.
+ * @return array
+ */
+function ams_studio_litespeed_ucss_whitelist( $list ) {
+	return array_merge(
+		(array) $list,
+		array( '.hidden', '.flex', '.py-2', '.py-4', '.scale-95', '.scale-100', '.opacity-0', '.pointer-events-none', '.fa-spin', '.fa-circle-notch', '.ams-tab', '.ams-tab-panel' )
+	);
+}
+add_filter( 'litespeed_ucss_whitelist', 'ams_studio_litespeed_ucss_whitelist' );
+
+/**
+ * Elementor Pro Theme Builder: a header or footer built there replaces the theme's.
+ *
+ * @param \ElementorPro\Modules\ThemeBuilder\Classes\Locations_Manager $manager Locations manager.
+ */
+function ams_studio_elementor_locations( $manager ) {
+	$manager->register_location( 'header' );
+	$manager->register_location( 'footer' );
+}
+add_action( 'elementor/theme/register_locations', 'ams_studio_elementor_locations' );

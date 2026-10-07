@@ -131,118 +131,6 @@
 	});
 
 	/* ---------------------------------------------------------------
-	 * Estimator
-	 * ------------------------------------------------------------- */
-	var est = AMS.estimator;
-	var wizard = document.getElementById('wizardForm');
-
-	// Mirrors ams_studio_compute_estimate() in inc/estimator.php.
-	var computeEstimate = function (stageKey, keys, scopeKey) {
-		var picked = keys.map(function (k) { return est.disciplines[k]; }).filter(Boolean);
-		var stage = est.stages[stageKey];
-		var scope = est.scopes[scopeKey];
-		if (!picked.length || !stage || !scope) return null;
-
-		var factor = stage.multiplier * scope.multiplier;
-		var sum = function (field) { return picked.reduce(function (a, d) { return a + d[field]; }, 0); };
-		var maxWeeks = Math.max.apply(null, picked.map(function (d) { return d.weeks; }));
-		return {
-			min: Math.round(sum('min') * factor / 50) * 50,
-			max: Math.round(sum('max') * factor / 50) * 50,
-			weeks: Math.ceil((maxWeeks + picked.length - 1) * scope.weeksMultiplier + stage.extraWeeks)
-		};
-	};
-
-	if (wizard && est) {
-		var rangeEl = wizard.querySelector('[data-estimate-range]');
-		var weeksEl = wizard.querySelector('[data-estimate-weeks]');
-		var barEl = wizard.querySelector('[data-estimate-bar]');
-		var pricesEl = wizard.querySelector('[data-estimate-prices]');
-		var box = wizard.querySelector('.ams-estimate');
-		var segmented = wizard.querySelector('.ams-segmented');
-		var fmt = new Intl.NumberFormat('es-GT', { maximumFractionDigits: 0 });
-		var shown = { min: 0, max: 0 };
-		var ceiling = 0;
-		var anim = null;
-
-		// Largest possible estimate, used to scale the progress bar.
-		var allKeys = Object.keys(est.disciplines);
-		Object.keys(est.stages).forEach(function (s) {
-			Object.keys(est.scopes).forEach(function (sc) {
-				var r = computeEstimate(s, allKeys, sc);
-				if (r && r.max > ceiling) ceiling = r.max;
-			});
-		});
-
-		if (!est.showPrices && pricesEl) {
-			pricesEl.innerHTML = '<div class="text-[10px] uppercase tracking-widest font-bold text-brand-periwinkle mb-1">Propuesta personalizada</div>' +
-				'<div class="text-sm text-slate-300">Recibirás una inversión detallada después de tu diagnóstico.</div>';
-		}
-
-		var paintRange = function (min, max) {
-			if (rangeEl) rangeEl.textContent = est.currency + fmt.format(min) + ' – ' + est.currency + fmt.format(max);
-		};
-
-		var animateRange = function (target) {
-			if (anim) cancelAnimationFrame(anim);
-			if (reduceMotion) {
-				shown = target;
-				paintRange(target.min, target.max);
-				return;
-			}
-			var start = { min: shown.min, max: shown.max };
-			var t0 = performance.now();
-			var step = function (now) {
-				var t = Math.min(1, (now - t0) / 600);
-				var e = 1 - Math.pow(1 - t, 3);
-				shown = {
-					min: Math.round(start.min + (target.min - start.min) * e),
-					max: Math.round(start.max + (target.max - start.max) * e)
-				};
-				paintRange(shown.min, shown.max);
-				if (t < 1) anim = requestAnimationFrame(step);
-			};
-			anim = requestAnimationFrame(step);
-		};
-
-		var readSelection = function () {
-			var stage = wizard.querySelector('input[name="etapa"]:checked');
-			var scope = wizard.querySelector('input[name="alcance"]:checked');
-			var keys = Array.prototype.map.call(wizard.querySelectorAll('input[name="servicio[]"]:checked'), function (i) { return i.value; });
-			return { stage: stage && stage.value, scope: scope && scope.value, keys: keys };
-		};
-
-		var update = function () {
-			var sel = readSelection();
-
-			if (segmented) {
-				var scopeInputs = Array.prototype.slice.call(segmented.querySelectorAll('input'));
-				segmented.dataset.index = String(Math.max(0, scopeInputs.findIndex(function (i) { return i.checked; })));
-			}
-
-			var r = computeEstimate(sel.stage, sel.keys, sel.scope);
-			if (!r) {
-				if (rangeEl) rangeEl.textContent = 'Selecciona al menos una disciplina';
-				shown = { min: 0, max: 0 };
-				if (weeksEl) weeksEl.textContent = '—';
-				if (barEl) barEl.style.width = '0';
-				return;
-			}
-			if (est.showPrices) animateRange(r);
-			if (weeksEl) weeksEl.textContent = '~' + r.weeks + ' semanas';
-			if (barEl && ceiling) barEl.style.width = Math.max(8, Math.round(r.max / ceiling * 100)) + '%';
-			if (box && !reduceMotion) {
-				box.classList.remove('is-updating');
-				void box.offsetWidth;
-				box.classList.add('is-updating');
-			}
-		};
-
-		wizard.addEventListener('change', update);
-		update();
-	}
-
-	/* ---------------------------------------------------------------
 	 * Toast modal
 	 * ------------------------------------------------------------- */
 	var toast = document.getElementById('toastModal');
@@ -302,14 +190,21 @@
 			var type = form.dataset.formType;
 			var data = new FormData(form);
 			data.append('action', 'ams_studio_submit');
-			data.append('nonce', AMS.nonce || '');
 			data.append('form_type', type);
 
 			var label = button.innerHTML;
 			button.disabled = true;
 			button.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i><span>' + ((AMS.i18n && AMS.i18n.sending) || 'Enviando…') + '</span>';
 
-			fetch(AMS.ajaxUrl, { method: 'POST', body: data, credentials: 'same-origin' })
+			// The page itself may come from LiteSpeed's cache, so get a fresh nonce first.
+			var nonceBody = new FormData();
+			nonceBody.append('action', 'ams_studio_nonce');
+			fetch(AMS.ajaxUrl, { method: 'POST', body: nonceBody, credentials: 'same-origin' })
+				.then(function (res) { return res.json(); })
+				.then(function (json) {
+					data.append('nonce', (json && json.data && json.data.nonce) || '');
+					return fetch(AMS.ajaxUrl, { method: 'POST', body: data, credentials: 'same-origin' });
+				})
 				.then(function (res) { return res.json().catch(function () { return { success: false }; }); })
 				.then(function (json) {
 					if (!json || !json.success) {
@@ -320,7 +215,6 @@
 						? '¡Excelente, ' + nombre + '! Hemos registrado tu requerimiento. Un consultor sénior de AMS Studio analizará la etapa de tu proyecto y agendará una sesión de diagnóstico.'
 						: 'Gracias por comunicarte con AMS Studio. Hemos recibido tus datos y nuestro equipo estratégico te contactará pronto.');
 					form.reset();
-					form.dispatchEvent(new Event('change'));
 				})
 				.catch(function (err) {
 					showError((err && err.message) || (AMS.i18n && AMS.i18n.error) || 'Error');
