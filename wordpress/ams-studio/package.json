@@ -1,0 +1,12 @@
+{
+  "name": "ams-studio-theme",
+  "private": true,
+  "description": "Build de estilos del tema AMS Studio para WordPress.",
+  "scripts": {
+    "build": "tailwindcss -i ./src/main.css -o ./assets/css/main.css --minify",
+    "watch": "tailwindcss -i ./src/main.css -o ./assets/css/main.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

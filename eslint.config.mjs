@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // WordPress theme (plain PHP/JS, built separately).
+    "wordpress/**",
   ]),
 ]);
 
