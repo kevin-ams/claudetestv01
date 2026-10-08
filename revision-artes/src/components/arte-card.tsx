@@ -1,3 +1,4 @@
+import { Calendar } from "@gravity-ui/icons";
 import Link from "next/link";
 import { Card } from "@heroui/react";
 import type { Arte } from "@/lib/domain/artes";
@@ -32,7 +33,7 @@ export function ArteCard({ arte, href, ...rest }: { arte: Arte; href: string; "d
         <Card.Footer className="mt-auto flex items-center justify-between gap-2 px-4 pb-4">
           <EstadoBadge estado={arte.estado} />
           {arte.fecha_publicacion && (
-            <span className="text-xs text-muted">📅 {formatFecha(arte.fecha_publicacion)}</span>
+            <span className="flex items-center gap-1 text-xs text-muted"><Calendar aria-hidden className="size-3.5" /> {formatFecha(arte.fecha_publicacion)}</span>
           )}
         </Card.Footer>
       </Card>

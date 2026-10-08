@@ -1,5 +1,6 @@
 "use client";
 
+import { Bell } from "@gravity-ui/icons";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Popover } from "@heroui/react";
@@ -58,7 +59,7 @@ export function Campanita({ inicial }: { inicial: { avisos: Aviso[]; noLeidos: n
         aria-label={datos.noLeidos > 0 ? `Avisos: ${datos.noLeidos} sin leer` : "Avisos"}
         className="relative"
       >
-        <span aria-hidden className="text-base">🔔</span>
+        <Bell aria-hidden className="size-4" />
         {datos.noLeidos > 0 && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[11px] font-bold text-danger-foreground">
             {datos.noLeidos > 9 ? "9+" : datos.noLeidos}

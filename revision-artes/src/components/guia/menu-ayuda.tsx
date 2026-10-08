@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleQuestion } from "@gravity-ui/icons";
 import { useState } from "react";
 import { Button, Popover, Switch } from "@heroui/react";
 import { abrirGuia, guiaActivada, reiniciarGuias, setGuiaActivada } from "./preferencias";
@@ -19,7 +20,8 @@ export function MenuAyuda({ email }: { email: string }) {
       }}
     >
       <Button size="sm" variant="tertiary" aria-label="Ayuda y guía" data-guia="ayuda">
-        ? Ayuda
+        <CircleQuestion aria-hidden className="size-4" />
+        Ayuda
       </Button>
       <Popover.Content className="w-80" placement="bottom end">
         <Popover.Dialog className="flex flex-col gap-4">

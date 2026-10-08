@@ -1,3 +1,4 @@
+import { Check, Xmark } from "@gravity-ui/icons";
 import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -123,7 +124,7 @@ export default async function FacultadPage({ params }: PageProps<"/admin/faculta
                           <Input />
                         </TextField>
                         <Button type="submit" size="sm" variant="tertiary" isIconOnly aria-label={`Guardar nombre de ${c.nombre}`}>
-                          ✓
+                          <Check aria-hidden className="size-4" />
                         </Button>
                       </form>
                       <form action={deleteCarreraAction.bind(null, c.id)}>
@@ -134,7 +135,7 @@ export default async function FacultadPage({ params }: PageProps<"/admin/faculta
                           message="Sus artes quedarán como “Toda la facultad”."
                           confirmLabel="Eliminar"
                         >
-                          ✕
+                          <Xmark aria-hidden className="size-4" />
                         </ConfirmButton>
                       </form>
                     </li>

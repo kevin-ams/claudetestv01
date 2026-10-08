@@ -1,3 +1,4 @@
+import { FileText } from "@gravity-ui/icons";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card } from "@heroui/react";
@@ -62,7 +63,8 @@ export default async function AdminCampanaPage({
             <div className="flex flex-wrap gap-2">
               {campana && (
                 <Link href={`${base}/reporte`} className={buttonVariants({ variant: "secondary" })}>
-                  📄 Reporte para Diseño
+                  <FileText aria-hidden className="size-4" />
+                  Reporte para Diseño
                 </Link>
               )}
               <Link

@@ -1,5 +1,6 @@
 "use client";
 
+import { Xmark } from "@gravity-ui/icons";
 import { useState } from "react";
 import { Button, Card, Label, TextArea, TextField } from "@heroui/react";
 import type { Anotacion } from "@/lib/domain/artes";
@@ -137,7 +138,7 @@ export function RevisionArte({
                       aria-label={`Quitar punto ${p.numero}`}
                       onPress={() => quitar(p.key)}
                     >
-                      ✕
+                      <Xmark aria-hidden className="size-4" />
                     </Button>
                   </div>
                 ))}
