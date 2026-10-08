@@ -2,6 +2,7 @@ import "server-only";
 import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
 import type { EstadoArte } from "./types";
+import { marcasCampana, type MarcaChecklist } from "./checklist";
 
 export type PuntoReporte = { id: number; numero: number; x: number; y: number; comentario: string; autor: string };
 export type ComentarioReporte = { id: number; autor: string; comentario: string; fecha: string };
@@ -20,13 +21,15 @@ export type ArteReporte = {
   puntos: PuntoReporte[];
   /** Comentarios generales de "solicitar cambios" sobre la versión actual. */
   comentarios: ComentarioReporte[];
+  /** Checklist de Diseño: item ('p:<id>' | 'c:<id>') → quién y cuándo lo marcó. */
+  marcas: Record<string, MarcaChecklist>;
 };
 
 export type Reporte = {
   campana: { id: number; nombre: string; descripcion: string };
   facultad: { id: number; nombre: string };
   artes: ArteReporte[];
-  totales: { artes: number; conCambios: number; puntos: number };
+  totales: { artes: number; conCambios: number; puntos: number; hechos: number; requeridos: number };
 };
 
 /**
@@ -71,6 +74,8 @@ export async function reporteCampana(campanaId: number, soloCambios: boolean): P
     ORDER BY r.created_at ASC
   `) as (ComentarioReporte & { arte_id: number })[];
 
+  const marcas = await marcasCampana(campanaId);
+
   const completos: ArteReporte[] = artes
     .filter((a) => !soloCambios || a.estado === "cambios")
     .map((a) => ({
@@ -81,6 +86,7 @@ export async function reporteCampana(campanaId: number, soloCambios: boolean): P
       comentarios: comentarios
         .filter((c) => c.arte_id === a.id)
         .map((c) => ({ id: c.id, autor: c.autor, comentario: c.comentario, fecha: c.fecha })),
+      marcas: marcas.get(a.id) ?? {},
     }));
 
   return {
@@ -91,6 +97,14 @@ export async function reporteCampana(campanaId: number, soloCambios: boolean): P
       artes: artes.length,
       conCambios: artes.filter((a) => a.estado === "cambios").length,
       puntos: completos.reduce((n, a) => n + a.puntos.length, 0),
+      requeridos: completos.reduce((n, a) => n + a.puntos.length + a.comentarios.length, 0),
+      hechos: completos.reduce(
+        (n, a) =>
+          n +
+          a.puntos.filter((p) => a.marcas[`p:${p.id}`]).length +
+          a.comentarios.filter((c) => a.marcas[`c:${c.id}`]).length,
+        0
+      ),
     },
   };
 }

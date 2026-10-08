@@ -26,6 +26,7 @@ import {
 } from "@/lib/domain/artes";
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
 import { notificarNuevaVersion } from "@/lib/notificaciones";
+import { marcarLeido, marcarTodosLeidos } from "@/lib/domain/avisos";
 import { appUrl, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 import { asegurarTokenReporte, reporteCampana, revocarTokenReporte } from "@/lib/domain/reporte";
 import type { FormState } from "../auth-actions";
@@ -474,4 +475,16 @@ export async function enviarReporteAction(
   });
   revalidatePath(`/admin/facultades/${campana.facultad_id}/campanas/${campana.id}/reporte`);
   return res.ok ? { error: null, ok: true, message: res.message } : { error: res.message };
+}
+
+// ---------- Avisos (campanita) ----------
+
+export async function marcarAvisoLeidoAction(avisoId: number) {
+  const admin = await requireAdmin();
+  await marcarLeido(admin.adminId, avisoId);
+}
+
+export async function marcarTodosAvisosAction() {
+  const admin = await requireAdmin();
+  await marcarTodosLeidos(admin.adminId);
 }

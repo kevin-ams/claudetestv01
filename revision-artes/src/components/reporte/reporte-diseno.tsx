@@ -3,12 +3,22 @@ import type { ArteReporte, Reporte } from "@/lib/domain/reporte";
 import { driveImageUrl, driveOpenUrl, parseDriveUrl } from "@/lib/drive";
 import { fechaHora, formatFecha } from "@/lib/format";
 import { Logo } from "@/components/logo";
+import { CasillaCambio } from "./casilla-cambio";
 
 /**
  * Reporte de cambios para Diseño (imprimible). Se usa en el admin y en el
  * enlace de solo lectura que se comparte con Diseño.
  */
-export function ReporteDiseno({ reporte, soloCambios }: { reporte: Reporte; soloCambios: boolean }) {
+export function ReporteDiseno({
+  reporte,
+  soloCambios,
+  token,
+}: {
+  reporte: Reporte;
+  soloCambios: boolean;
+  /** Enlace de Diseño: con token el checklist se puede marcar. */
+  token?: string;
+}) {
   const { campana, facultad, artes, totales } = reporte;
   return (
     <article className="reporte mx-auto flex w-full max-w-5xl flex-col gap-6 bg-white p-6 text-[var(--ges-charcoal)] shadow-sm sm:rounded-3xl sm:p-10 print:max-w-none print:p-0 print:shadow-none">
@@ -32,6 +42,9 @@ export function ReporteDiseno({ reporte, soloCambios }: { reporte: Reporte; solo
           <Resumen numero={totales.conCambios} texto={totales.conCambios === 1 ? "arte con cambios" : "artes con cambios"} fuerte />
           <Resumen numero={totales.puntos} texto={totales.puntos === 1 ? "punto por corregir" : "puntos por corregir"} />
           <Resumen numero={totales.artes} texto={totales.artes === 1 ? "arte en la campaña" : "artes en la campaña"} />
+          {totales.requeridos > 0 && (
+            <Resumen numero={totales.hechos} texto={`de ${totales.requeridos} cambios listos`} listo={totales.hechos === totales.requeridos} />
+          )}
         </div>
       </header>
 
@@ -42,12 +55,13 @@ export function ReporteDiseno({ reporte, soloCambios }: { reporte: Reporte; solo
             : "Esta campaña aún no tiene artes."}
         </p>
       ) : (
-        artes.map((a, i) => <ArteBloque key={a.id} arte={a} indice={i + 1} />)
+        artes.map((a, i) => <ArteBloque key={a.id} arte={a} indice={i + 1} token={token} />)
       )}
 
       <footer className="border-t border-[var(--ges-periwinkle)] pt-4 text-xs text-muted">
-        Los números de la imagen corresponden a la lista de cambios. Al terminar, sube el archivo corregido a
-        Drive y envía el enlace a Marketing Digital para publicar la nueva versión.
+        Los números de la imagen corresponden a la lista de cambios. Marca cada cambio al terminarlo en el enlace
+        del reporte; al completar un arte, sube el archivo corregido a Drive para que Marketing Digital publique
+        la nueva versión.
       </footer>
     </article>
   );
@@ -62,24 +76,40 @@ function Dato({ titulo, valor }: { titulo: string; valor: string }) {
   );
 }
 
-function Resumen({ numero, texto, fuerte }: { numero: number; texto: string; fuerte?: boolean }) {
+function Resumen({ numero, texto, fuerte, listo }: { numero: number; texto: string; fuerte?: boolean; listo?: boolean }) {
+  const color = listo ? "bg-[#dcfce7] text-[#15803d]" : fuerte ? "bg-[var(--ges-royal)] text-white" : "bg-[var(--ges-lavender)]";
   return (
-    <span
-      className={`rounded-full px-3 py-1 ${fuerte ? "bg-[var(--ges-royal)] text-white" : "bg-[var(--ges-lavender)]"} print:border print:border-[var(--ges-periwinkle)]`}
-    >
+    <span className={`rounded-full px-3 py-1 ${color} print:border print:border-[var(--ges-periwinkle)]`}>
+      {listo && "✓ "}
       <strong>{numero}</strong> {texto}
     </span>
   );
 }
 
-function ArteBloque({ arte, indice }: { arte: ArteReporte; indice: number }) {
+function Hecho({ marca }: { marca?: { por: string; en: string } }) {
+  if (!marca) return null;
+  return (
+    <span className="ml-1 inline-block rounded-full bg-[#dcfce7] px-2 text-[11px] font-semibold text-[#15803d] no-underline">
+      ✓ {marca.por ? marca.por : "Hecho"}
+    </span>
+  );
+}
+
+function ArteBloque({ arte, indice, token }: { arte: ArteReporte; indice: number; token?: string }) {
   const ref = parseDriveUrl(arte.drive_url);
   const estado = ESTADOS[arte.estado];
   const color = { warning: "#a15c07", success: "#15803d", danger: "#b91c1c" }[estado.color];
   const hayCambios = arte.puntos.length > 0 || arte.comentarios.length > 0;
+  const requeridos = arte.puntos.length + arte.comentarios.length;
+  const hechos =
+    arte.puntos.filter((p) => arte.marcas[`p:${p.id}`]).length +
+    arte.comentarios.filter((c) => arte.marcas[`c:${c.id}`]).length;
+  const completo = requeridos > 0 && hechos === requeridos;
 
   return (
-    <section className="break-inside-avoid rounded-2xl border border-[var(--ges-periwinkle)] p-5">
+    <section
+      className={`break-inside-avoid rounded-2xl border p-5 ${completo ? "border-[#86efac]" : "border-[var(--ges-periwinkle)]"}`}
+    >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-lg font-bold leading-snug">
@@ -132,28 +162,37 @@ function ArteBloque({ arte, indice }: { arte: ArteReporte; indice: number }) {
         <div className="flex flex-col gap-4">
           {hayCambios ? (
             <div>
-              <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-[var(--ges-royal)]">Cambios a realizar</h3>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--ges-royal)]">Cambios a realizar</h3>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${completo ? "bg-[#dcfce7] text-[#15803d]" : "bg-[var(--ges-lavender)]"}`}
+                >
+                  {completo ? "✓ Todos listos" : `${hechos} de ${requeridos} listos`}
+                </span>
+              </div>
               <ul className="flex flex-col gap-2">
                 {arte.puntos.map((p) => (
                   <li key={p.id} className="flex gap-3 text-sm">
-                    <span className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-[var(--ges-charcoal)]" aria-hidden />
+                    <CasillaCambio token={token} arteId={arte.id} item={`p:${p.id}`} marca={arte.marcas[`p:${p.id}`]} etiqueta={`Punto ${p.numero}: ${p.comentario}`} />
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ges-royal)] text-[11px] font-bold text-white">
                       {p.numero}
                     </span>
-                    <span>
+                    <span className={arte.marcas[`p:${p.id}`] ? "text-muted line-through" : ""}>
                       {p.comentario} <span className="text-xs text-muted">— {p.autor}</span>
+                      <Hecho marca={arte.marcas[`p:${p.id}`]} />
                     </span>
                   </li>
                 ))}
                 {arte.comentarios.map((c) => (
                   <li key={c.id} className="flex gap-3 text-sm">
-                    <span className="mt-0.5 h-4 w-4 shrink-0 rounded border-2 border-[var(--ges-charcoal)]" aria-hidden />
+                    <CasillaCambio token={token} arteId={arte.id} item={`c:${c.id}`} marca={arte.marcas[`c:${c.id}`]} etiqueta={`Comentario general: ${c.comentario}`} />
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--ges-periwinkle)] text-[11px] font-bold text-white">
                       G
                     </span>
-                    <span>
+                    <span className={arte.marcas[`c:${c.id}`] ? "text-muted line-through" : ""}>
                       <span className="whitespace-pre-wrap">{c.comentario}</span>{" "}
                       <span className="text-xs text-muted">— {c.autor} (comentario general)</span>
+                      <Hecho marca={arte.marcas[`c:${c.id}`]} />
                     </span>
                   </li>
                 ))}

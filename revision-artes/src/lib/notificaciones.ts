@@ -3,6 +3,7 @@ import type { Arte, Autor, Revisor } from "@/lib/domain/artes";
 import { getFacultad } from "@/lib/domain/facultades";
 import { estadoCampana, getCampana } from "@/lib/domain/campanas";
 import { listAdmins } from "@/lib/domain/admins";
+import { crearAviso } from "@/lib/domain/avisos";
 import { listVersiones, registrarNotificacion } from "@/lib/domain/artes";
 import { appUrl, emailLayout, escapeHtml, sendEmail, type EmailResult } from "@/lib/email";
 
@@ -62,6 +63,15 @@ export async function avisarCampanaRevisada(campanaId: number, revisor: { nombre
   if (estado.total === 0 || estado.pendientes > 0) return;
   const facultad = await getFacultad(campana.facultad_id);
   if (!facultad) return;
+
+  await crearAviso({
+    titulo:
+      estado.cambios === 0
+        ? `✅ Campaña aprobada: ${campana.nombre}`
+        : `${facultad.nombre} terminó de revisar “${campana.nombre}”`,
+    mensaje: `${estado.aprobados} ${estado.aprobados === 1 ? "aprobado" : "aprobados"} y ${estado.cambios} con cambios. Última revisión: ${revisor.nombre}.`,
+    url: `/admin/facultades/${facultad.id}/campanas/${campana.id}`,
+  });
 
   const destinatarios = campana.creado_por_email
     ? [{ nombre: campana.creado_por_nombre ?? "", email: campana.creado_por_email }]

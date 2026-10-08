@@ -81,6 +81,16 @@ y el enlace al archivo en Drive. Se puede ver solo lo que tiene cambios o todos 
 - **Enlace para Diseño** (`/reporte/<token>`): se abre sin cuenta y siempre muestra el estado
   actual. Se crea y se revoca desde el reporte (migración 006).
 - **Enviar por correo**: manda el enlace con un resumen a uno o varios correos de Diseño (Resend).
+- **Checklist de Diseño**: en el enlace, Diseño marca cada cambio al terminarlo (se guarda en el
+  servidor, con su nombre opcional). Cada arte muestra su avance. Cuando un arte queda completo, se
+  crea un aviso en el panel (y dice si con eso se completó toda la campaña). En el admin el
+  checklist se ve en solo lectura (migración 007).
+
+## Avisos (🔔)
+
+La campanita del encabezado del admin muestra los avisos sin leer de cada administrador:
+Diseño terminó los cambios de un arte, y la facultad terminó de revisar una campaña. Se actualiza
+cada minuto; cada aviso lleva a su arte o campaña y se puede marcar todo como leído.
 
 ## Guía del portal
 

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { campanaPorToken, reporteCampana } from "@/lib/domain/reporte";
 import { BotonImprimir } from "@/components/reporte/imprimir";
 import { ReporteDiseno } from "@/components/reporte/reporte-diseno";
+import { NombreDiseno } from "@/components/reporte/nombre-diseno";
 
 export const metadata: Metadata = {
   title: "Reporte de cambios para diseño · GES",
@@ -36,9 +37,16 @@ export default async function ReportePublicoPage({ params, searchParams }: PageP
             Todos los artes
           </a>
         </div>
-        <BotonImprimir />
+        <div className="flex flex-wrap items-center gap-3">
+          <NombreDiseno />
+          <BotonImprimir />
+        </div>
       </div>
-      <ReporteDiseno reporte={reporte} soloCambios={soloCambios} />
+      <p className="mx-auto w-full max-w-5xl px-4 text-sm text-muted sm:px-0 print:hidden">
+        ✔️ Marca cada cambio al terminarlo. Cuando completes todos los de un arte, Marketing Digital recibe un aviso
+        para publicar la nueva versión.
+      </p>
+      <ReporteDiseno reporte={reporte} soloCambios={soloCambios} token={token} />
     </main>
   );
 }
