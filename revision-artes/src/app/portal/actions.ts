@@ -23,7 +23,7 @@ export async function ingresarAction(_prev: FormState, formData: FormData): Prom
 
   const facultad = await getFacultadByCodigo(parsed.data.codigo);
   if (!facultad || !facultad.activa) {
-    return { error: "El código de acceso no es válido. Pídelo al equipo de comunicación." };
+    return { error: "El código de acceso no es válido. Pídelo al equipo de Marketing Digital." };
   }
 
   await startPortalSession({
@@ -91,7 +91,7 @@ export async function revisarArteAction(
   // Solo artes de la facultad con la que se ingresó.
   const arte = await getArte(arteId, facultad.id);
   if (!arte) return { error: "El arte no existe" };
-  // Si comunicación subió otra versión mientras se revisaba, no mezclar.
+  // Si Marketing Digital subió otra versión mientras se revisaba, no mezclar.
   if (arte.version !== version) {
     return { error: "Se subió una nueva versión de este arte mientras revisabas. Recarga la página." };
   }

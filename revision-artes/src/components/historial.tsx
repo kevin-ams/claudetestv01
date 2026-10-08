@@ -36,7 +36,7 @@ export function Historial({
             <div className="min-w-0 flex-1">
               <p className="text-sm">
                 <span className="font-semibold">{r.autor_nombre}</span>
-                {r.autor_tipo === "admin" && <span className="text-muted"> (Comunicación)</span>}{" "}
+                {r.autor_tipo === "admin" && <span className="text-muted"> (Marketing Digital)</span>}{" "}
                 {ACCIONES[r.accion]} <span className="text-muted">· v{r.version}</span>
               </p>
               <p className="text-xs text-muted">

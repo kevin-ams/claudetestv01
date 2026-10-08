@@ -26,6 +26,7 @@ import {
 } from "@/lib/domain/artes";
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
 import { notificarNuevaVersion } from "@/lib/notificaciones";
+import { appUrl, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 import type { FormState } from "../auth-actions";
 
 const nombre = z.string().trim().min(2, "El nombre es muy corto").max(200);
@@ -372,4 +373,24 @@ export async function deleteAdminAction(adminId: number) {
   if ((await countAdmins()) <= 1) return;
   await deleteAdmin(adminId);
   revalidatePath("/admin/administradores");
+}
+
+// ---------- Correo ----------
+
+/** Envía un correo de prueba al admin que lo pide, para comprobar la conexión con Resend. */
+export async function correoPruebaAction(): Promise<FormState> {
+  const admin = await requireAdmin();
+  const base = await appUrl();
+  const res = await sendEmail({
+    to: [admin.email],
+    subject: "Prueba de correo · GES Revisión de Artes",
+    html: emailLayout({
+      title: "¡El correo funciona!",
+      intro: `Hola ${escapeHtml(admin.name.split(" ")[0])}, este es un correo de prueba de GES · Revisión de Artes. Si lo recibiste, los avisos a las facultades y a Marketing Digital se están enviando correctamente.`,
+      cta: { label: "Abrir el panel", url: `${base}/admin` },
+      logoUrl: `${base}/logo-ges.png`,
+    }),
+    text: "Correo de prueba de GES · Revisión de Artes. Si lo recibiste, los avisos funcionan.",
+  });
+  return res.ok ? { error: null, ok: true, message: `Correo de prueba enviado a ${admin.email}. Revisa tu bandeja (y spam).` } : { error: res.message };
 }

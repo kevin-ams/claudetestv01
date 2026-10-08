@@ -25,7 +25,7 @@ export function pasosInicio(nombre: string, facultad: string): PasoGuia[] {
       objetivo: "contadores",
       titulo: "Estado de la campaña",
       texto:
-        "• Pendientes: esperan tu revisión.\n• Con cambios: pediste correcciones y Comunicación está trabajando en ellas.\n• Aprobados: listos para publicarse.",
+        "• Pendientes: esperan tu revisión.\n• Con cambios: pediste correcciones y Marketing Digital está trabajando en ellas.\n• Aprobados: listos para publicarse.",
     },
     {
       objetivo: "usuario",
@@ -89,13 +89,13 @@ export const pasosArte: PasoGuia[] = [
     objetivo: "acciones",
     titulo: "Tu decisión",
     texto:
-      "• ✓ Aprobar: el arte está listo para publicarse.\n• Solicitar cambios: envía tus puntos y comentario a Comunicación.\n• Solo comentar: deja una nota sin aprobar ni pedir cambios.\n\nSi marcaste puntos, primero envíalos con “Solicitar cambios”.",
+      "• ✓ Aprobar: el arte está listo para publicarse.\n• Solicitar cambios: envía tus puntos y comentario a Marketing Digital.\n• Solo comentar: deja una nota sin aprobar ni pedir cambios.\n\nSi marcaste puntos, primero envíalos con “Solicitar cambios”.",
   },
   {
     objetivo: "versiones",
     titulo: "Versiones",
     texto:
-      "Cuando Comunicación corrige el arte, aparece una nueva versión (v2, v3…) y te llega un correo. Aquí puedes ver versiones anteriores y sus puntos; los resueltos aparecen con ✓.",
+      "Cuando Marketing Digital corrige el arte, aparece una nueva versión (v2, v3…) y te llega un correo. Aquí puedes ver versiones anteriores y sus puntos; los resueltos aparecen con ✓.",
   },
   {
     objetivo: "historial",

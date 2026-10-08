@@ -4,20 +4,36 @@ import { listAdmins } from "@/lib/domain/admins";
 import { ConfirmButton } from "@/components/confirm-button";
 import { deleteAdminAction } from "../actions";
 import { CrearAdminForm } from "./crear-admin-form";
+import { CorreoPrueba } from "./correo-prueba";
+import { emailConfigured, emailFrom } from "@/lib/email";
 
 export default async function AdministradoresPage() {
   const session = await requireAdmin();
   const admins = await listAdmins();
+  const correo = emailConfigured();
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <div>
         <h1 className="text-2xl font-bold">Administradores</h1>
-        <p className="text-sm text-muted">Personas del equipo de comunicación con acceso a este panel.</p>
+        <p className="text-sm text-muted">Personas del equipo de Marketing Digital con acceso a este panel.</p>
       </div>
       <Card>
         <Card.Content>
           <CrearAdminForm />
+        </Card.Content>
+      </Card>
+      <Card>
+        <Card.Header>
+          <Card.Title>Correos (Resend)</Card.Title>
+          <Card.Description>
+            {correo
+              ? `Los avisos salen desde ${emailFrom()}.`
+              : "El envío de correos no está configurado (falta RESEND_API_KEY)."}
+          </Card.Description>
+        </Card.Header>
+        <Card.Content>
+          <CorreoPrueba disponible={correo} />
         </Card.Content>
       </Card>
       <Card className="p-0">

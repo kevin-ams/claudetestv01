@@ -14,7 +14,7 @@ type Borrador = { key: string; x: number; y: number; comentario: string };
 
 const MENSAJES = {
   aprobado: "¡Arte aprobado! Gracias.",
-  cambios: "Enviamos tu solicitud de cambios al equipo de comunicación.",
+  cambios: "Enviamos tu solicitud de cambios al equipo de Marketing Digital.",
   comentario: "Comentario enviado.",
 };
 

@@ -1,12 +1,32 @@
 @import "tailwindcss";
 @import "@heroui/styles";
 
-/* Tema de HeroUI v3 con el color institucional de GES. */
+/*
+ * Tema de HeroUI v3 con la paleta de GES:
+ * Royal Blue #2563FF (principal) · Pale Lavender #F4F6FF (secundario)
+ * Soft Periwinkle #8DA5FF (superposición) · Charcoal #0F172A (texto)
+ */
 :root,
 [data-theme="light"] {
-  --accent: #234c6a;
+  --ges-royal: #2563ff;
+  --ges-lavender: #f4f6ff;
+  --ges-periwinkle: #8da5ff;
+  --ges-charcoal: #0f172a;
+
+  --accent: var(--ges-royal);
   --accent-foreground: #ffffff;
-  --background: #f5f6f8;
+  --background: var(--ges-lavender);
+  --foreground: var(--ges-charcoal);
+  --focus: var(--ges-periwinkle);
+  /* Tonos de superficie y resaltados derivados del lavanda y el periwinkle. */
+  --surface-secondary: color-mix(in oklab, var(--ges-periwinkle) 12%, white);
+  --surface-tertiary: color-mix(in oklab, var(--ges-periwinkle) 22%, white);
+  --accent-soft: color-mix(in oklab, var(--ges-periwinkle) 28%, transparent);
+  --accent-soft-hover: color-mix(in oklab, var(--ges-periwinkle) 38%, transparent);
+  --accent-soft-foreground: color-mix(in oklab, var(--ges-royal) 75%, var(--ges-charcoal) 25%);
+  --border: color-mix(in oklab, var(--ges-periwinkle) 25%, white);
+  --separator: color-mix(in oklab, var(--ges-periwinkle) 20%, white);
+  --muted: color-mix(in oklab, var(--ges-charcoal) 60%, white);
 }
 
 @theme inline {

@@ -30,9 +30,9 @@ export async function notificarNuevaVersion(
   for (const d of destinatarios) {
     const html = emailLayout({
       title: "Hay una nueva versión lista para revisar",
-      intro: `Hola ${escapeHtml(d.nombre)}, el equipo de comunicación subió la <strong>versión ${arte.version}</strong> de <strong>“${escapeHtml(arte.titulo)}”</strong> (${arte.campana_nombre ? `campaña ${escapeHtml(arte.campana_nombre)} · ` : ""}${escapeHtml(facultad.nombre)}${arte.carrera_nombre ? ` · ${escapeHtml(arte.carrera_nombre)}` : ""}) con los cambios solicitados.`,
+      intro: `Hola ${escapeHtml(d.nombre)}, el equipo de Marketing Digital subió la <strong>versión ${arte.version}</strong> de <strong>“${escapeHtml(arte.titulo)}”</strong> (${arte.campana_nombre ? `campaña ${escapeHtml(arte.campana_nombre)} · ` : ""}${escapeHtml(facultad.nombre)}${arte.carrera_nombre ? ` · ${escapeHtml(arte.carrera_nombre)}` : ""}) con los cambios solicitados.`,
       body: nota
-        ? `<p style="margin-top:16px;margin-bottom:0;padding:12px 14px;background-color:#eef3f7;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#1f2937"><strong>Qué se cambió:</strong> ${escapeHtml(nota)}</p>`
+        ? `<p style="margin-top:16px;margin-bottom:0;padding:12px 14px;background-color:#eef1ff;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#1f2937"><strong>Qué se cambió:</strong> ${escapeHtml(nota)}</p>`
         : "",
       cta: { label: "Revisar ahora", url: enlace },
       logoUrl: `${base}/logo-ges.png`,

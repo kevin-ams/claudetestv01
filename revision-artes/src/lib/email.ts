@@ -82,7 +82,7 @@ export function emailLayout(opts: {
   footer?: string;
   logoUrl?: string;
 }) {
-  const color = "#234c6a";
+  const color = "#2563ff"; // Royal Blue (paleta GES)
   const logo = opts.logoUrl
     ? `<img src="${escapeHtml(opts.logoUrl)}" width="36" height="36" alt="GES" style="display:inline-block;vertical-align:middle;border-radius:18px;margin-right:10px">`
     : "";
@@ -93,12 +93,12 @@ export function emailLayout(opts: {
 <p style="margin-top:16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#6b7280">Si el botón no funciona, copia este enlace: <br><a href="${escapeHtml(opts.cta.url)}" style="color:${color};word-break:break-all">${escapeHtml(opts.cta.url)}</a></p>`
     : "";
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta http-equiv="X-UA-Compatible" content="IE=edge"><title>${escapeHtml(opts.title)}</title></head>
-<body style="margin:0;padding:0;background-color:#f3f4f6">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f3f4f6" style="background-color:#f3f4f6"><tr><td align="center" style="padding-top:32px;padding-bottom:32px;padding-left:12px;padding-right:12px">
+<body style="margin:0;padding:0;background-color:#f4f6ff">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f6ff" style="background-color:#f4f6ff"><tr><td align="center" style="padding-top:32px;padding-bottom:32px;padding-left:12px;padding-right:12px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background-color:#ffffff;border-radius:12px">
 <tr><td bgcolor="${color}" style="background-color:${color};border-top-left-radius:12px;border-top-right-radius:12px;padding-top:16px;padding-bottom:16px;padding-left:28px;padding-right:28px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#ffffff;font-weight:bold">${logo}GES · Revisión de Artes</td></tr>
 <tr><td style="padding-top:28px;padding-bottom:28px;padding-left:28px;padding-right:28px">
-<h1 style="margin-top:0;margin-bottom:12px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:28px;color:#111827">${escapeHtml(opts.title)}</h1>
+<h1 style="margin-top:0;margin-bottom:12px;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:28px;color:#0f172a">${escapeHtml(opts.title)}</h1>
 <p style="margin-top:0;margin-bottom:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;color:#374151">${opts.intro}</p>
 ${opts.body ?? ""}
 ${cta}
