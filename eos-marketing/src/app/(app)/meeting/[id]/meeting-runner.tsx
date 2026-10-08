@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownToLine, ArrowRight, Check, CircleCheck } from "@gravity-ui/icons";
 import { Segmented } from "@/components/ui/segmented";
 import { Button, Card, Input, TextArea } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
@@ -101,7 +102,7 @@ function EventsList({ events, onRaiseIssue }: { events: L10Event[]; onRaiseIssue
               </div>
               {onRaiseIssue && (
                 <Button size="sm" variant="outline" type="button" className="h-6 shrink-0 px-2 text-[11px] text-red" onPress={() => onRaiseIssue(e)}>
-                  → Issue
+                  <ArrowRight width={12} height={12} aria-hidden /> Issue
                 </Button>
               )}
             </li>
@@ -141,7 +142,7 @@ function HeadlinesPanel({
                 className="shrink-0 text-[11px] text-red h-6 px-2"
                 onPress={() => onRaiseIssue(h)}
               >
-                → Issue
+                <ArrowRight width={12} height={12} aria-hidden /> Issue
               </Button>
             </li>
           ))}
@@ -174,7 +175,7 @@ function HeadlinesPanel({
                 className="shrink-0 text-[11px] text-red h-6 px-2"
                 onPress={() => onRaiseIssue(h)}
               >
-                → Issue
+                <ArrowRight width={12} height={12} aria-hidden /> Issue
               </Button>
             </li>
           ))}
@@ -240,7 +241,7 @@ function ConclusionTodos({
           <Card.Title>To-Dos que estaban pendientes ({pending.length})</Card.Title>
           <Card.Description>Venían de antes de esta reunión y siguen abiertos.</Card.Description>
         </Card.Header>
-        <Card.Content>{list(pending, "No quedan To-Dos pendientes de antes. 🎉")}</Card.Content>
+        <Card.Content>{list(pending, "No quedan To-Dos pendientes de antes.")}</Card.Content>
       </Card>
       <Card>
         <Card.Header>
@@ -515,7 +516,7 @@ export function MeetingRunner({
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <a href={`/api/reuniones/${meeting.id}/resumen`} className={buttonVariants({ variant: "primary" })}>
-            ⬇ Generar resumen (PDF)
+            <ArrowDownToLine aria-hidden /> Generar resumen (PDF)
           </a>
           <Link href="/meeting" className={buttonVariants({ variant: "outline" })}>
             Volver al historial
@@ -555,7 +556,7 @@ export function MeetingRunner({
                 : "bg-card border border-border text-muted"
             }`}
           >
-            {i < idx ? "✓ " : ""}
+            {i < idx && <Check width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden />}
             {s.label} · {s.minutes}m
           </div>
         ))}
@@ -578,13 +579,13 @@ export function MeetingRunner({
             <Button variant="primary"
               onPress={() => advanceSegmentAction(meeting.id, upcoming.key)}
             >
-              Siguiente: {upcoming.label} →
+              Siguiente: {upcoming.label} <ArrowRight aria-hidden />
             </Button>
           ) : (
             <Button variant="primary"
               onPress={() => completeMeetingAction(meeting.id)}
             >
-              Finalizar reunión ✓
+              Finalizar reunión <Check aria-hidden />
             </Button>
           )}
         </div>
@@ -593,7 +594,7 @@ export function MeetingRunner({
       <QuickCreateBar onCreate={setDraft} />
       {toast && (
         <div className="mb-4 flex items-center justify-between gap-2 rounded-lg bg-green-bg px-3 py-2 text-sm text-green">
-          <span>✓ {toast}</span>
+          <span className="flex items-center gap-1.5"><CircleCheck aria-hidden /> {toast}</span>
           <Button size="sm" variant="ghost" onPress={() => setToast(null)}>
             Cerrar
           </Button>

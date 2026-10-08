@@ -108,6 +108,10 @@ hash (tabla `password_tokens`, fuera de los respaldos).
 
 ## Interfaz (HeroUI v3)
 
+- **Íconos**: toda la interfaz usa `@gravity-ui/icons` (los mismos del menú), que toman el color del tema; no se usan
+  emojis. `StatusIcon` (`src/components/status-icon.tsx`) muestra correcto/error/aviso junto a un texto. Las
+  herramientas de la caja guardan el nombre del ícono elegido (catálogo `TOOL_ICONS` en `tools-shared.ts`).
+
 Toda la interfaz usa [HeroUI v3](https://heroui.com) (`@heroui/react`, Tailwind 4 + React
 Aria): botones, campos, selects, casillas, chips, tarjetas, pestañas, ventanas (Modal/Drawer),
 tooltips y barras de progreso. Íconos: `@gravity-ui/icons`. Los estilos de HeroUI se cargan en

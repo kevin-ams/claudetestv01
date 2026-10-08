@@ -9,6 +9,7 @@ import { SettingsHeader } from "../settings-header";
 import { LinksEditor } from "./links-editor";
 import { BackfillPanel } from "./backfill-panel";
 import { formatWeekRange, lastNWeeks, lastClosedWeek } from "@/lib/utils/dates";
+import { StatusIcon } from "@/components/status-icon";
 
 const WHEN = new Intl.DateTimeFormat("es", {
   dateStyle: "medium",
@@ -49,11 +50,12 @@ export default async function ActiveCampaignPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1 text-sm">
             <p className={configured && !error ? "text-green" : "text-red"}>
+              <StatusIcon status={configured && !error} />
               {configured
                 ? error
-                  ? `✕ ${error}`
-                  : `✓ Conectado · ${pipelines.length} embudos disponibles`
-                : "✕ Sin configurar: faltan ACTIVECAMPAIGN_API_URL y ACTIVECAMPAIGN_API_KEY en Netlify."}
+                  ? error
+                  : `Conectado · ${pipelines.length} embudos disponibles`
+                : "Sin configurar: faltan ACTIVECAMPAIGN_API_URL y ACTIVECAMPAIGN_API_KEY en Netlify."}
             </p>
             <p>
               <b>Última actualización:</b>{" "}
@@ -72,7 +74,7 @@ export default async function ActiveCampaignPage() {
             </p>
           </div>
           {configured && !error && editable && (
-            <AcSyncButton label="↻ Sincronizar ahora (semana en curso)" variant="primary" disabled={links.length === 0} />
+            <AcSyncButton label="Sincronizar ahora (semana en curso)" variant="primary" disabled={links.length === 0} />
           )}
         </div>
       </Card>

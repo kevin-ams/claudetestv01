@@ -18,6 +18,64 @@ export type Tool = {
   user_ids: number[];
 };
 
+/** Íconos que se pueden elegir para una herramienta (nombre del ícono → etiqueta). */
+export const TOOL_ICONS = {
+  Link: "Enlace",
+  Globe: "Sitio web",
+  Palette: "Diseño",
+  Picture: "Imágenes",
+  Camera: "Fotos",
+  Video: "Video",
+  MusicNote: "Audio",
+  Folder: "Carpeta",
+  FileText: "Documento",
+  Book: "Manual",
+  BookOpen: "Guía",
+  Calendar: "Calendario",
+  Clock: "Horarios",
+  ChartLine: "Tendencias",
+  ChartColumn: "Reporte",
+  ChartPie: "Dashboard",
+  Database: "Base de datos",
+  Envelope: "Correo",
+  Comments: "Chat",
+  Megaphone: "Anuncios",
+  Bell: "Avisos",
+  Persons: "Equipo",
+  PersonWorker: "Recursos humanos",
+  GraduationCap: "Académico",
+  Briefcase: "Negocio",
+  CreditCard: "Pagos",
+  Ticket: "Eventos",
+  Tag: "Promociones",
+  Target: "Metas",
+  Rocket: "Lanzamientos",
+  Bulb: "Ideas",
+  Sparkles: "IA",
+  Star: "Favoritos",
+  Heart: "Bienestar",
+  MapPin: "Ubicaciones",
+  Flag: "Campañas",
+  Puzzle: "Integración",
+  Cube: "Producto",
+  Display: "Pantalla",
+  Code: "Código",
+  Cloud: "Nube",
+  Shield: "Seguridad",
+  Key: "Accesos",
+  Wrench: "Herramienta",
+  Gear: "Configuración",
+} as const;
+
+export type ToolIconName = keyof typeof TOOL_ICONS;
+
+export function isToolIcon(v: unknown): v is ToolIconName {
+  return typeof v === "string" && Object.prototype.hasOwnProperty.call(TOOL_ICONS, v);
+}
+
+/** Ícono por defecto según el tipo (también para herramientas guardadas con un emoji antiguo). */
+export const defaultToolIcon = (kind: ToolKind): ToolIconName => (kind === "embed" ? "Puzzle" : "Link");
+
 export const KIND_LABEL: Record<ToolKind, string> = {
   link: "Enlace (pestaña nueva)",
   embed: "Dentro de la app (iframe)",

@@ -1,5 +1,6 @@
 "use client";
 
+import { Play } from "@gravity-ui/icons";
 import { Button } from "@heroui/react";
 import { useTransition } from "react";
 import { startNewMeetingAction } from "./actions";
@@ -12,7 +13,8 @@ export function StartMeetingButton() {
       isDisabled={pending}
       onPress={() => startTransition(() => startNewMeetingAction())}
     >
-      {pending ? "Iniciando..." : "▶ Iniciar reunión"}
+      <Play aria-hidden />
+      {pending ? "Iniciando..." : "Iniciar reunión"}
     </Button>
   );
 }

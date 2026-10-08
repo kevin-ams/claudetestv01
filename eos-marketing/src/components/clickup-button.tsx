@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleCheck } from "@gravity-ui/icons";
 import { useState, useTransition } from "react";
 import { Button, Chip, Tooltip } from "@heroui/react";
 
@@ -23,7 +24,8 @@ export function ClickUpButton({
     return (
       <a href={url} target="_blank" rel="noreferrer">
         <Chip size="sm" variant="soft" color="success">
-          ✓ En ClickUp
+          <CircleCheck aria-hidden className="mr-1 inline-block align-[-2px]" />
+          En ClickUp
         </Chip>
       </a>
     );

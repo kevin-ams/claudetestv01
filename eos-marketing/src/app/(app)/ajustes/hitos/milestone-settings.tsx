@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDown, ArrowUp } from "@gravity-ui/icons";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Card, Chip, Input, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -281,7 +282,7 @@ export function MilestoneSettings({
                               isDisabled={i === 0}
                               onPress={() => run(() => moveMilestoneAction(original.id, -1))}
                             >
-                              ↑
+                              <ArrowUp aria-hidden />
                             </Button>
                             <Button size="sm" variant="ghost"
                               className="text-muted"
@@ -289,7 +290,7 @@ export function MilestoneSettings({
                               isDisabled={i === items.length - 1}
                               onPress={() => run(() => moveMilestoneAction(original.id, 1))}
                             >
-                              ↓
+                              <ArrowDown aria-hidden />
                             </Button>
                             <Button size="sm" variant="ghost"
                               className="text-xs text-primary"

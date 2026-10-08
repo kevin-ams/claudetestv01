@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight, Xmark } from "@gravity-ui/icons";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Card, Chip, Input, TextArea, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -155,7 +156,7 @@ export function RockCard({
                     className="text-xs text-red"
                     onPress={() => startTransition(() => deleteMilestoneAction(m.id))}
                   >
-                    ✕
+                    <Xmark aria-hidden />
                   </Button>
                 </li>
               ))}
@@ -213,7 +214,7 @@ export function RockCard({
             </ToggleButtonGroup>
             {onRaiseIssue && (
               <Button size="sm" variant="outline" type="button" className="ml-auto text-[11px] text-red h-6 px-2" onPress={onRaiseIssue}>
-                → Issue
+                <ArrowRight width={12} height={12} aria-hidden /> Issue
               </Button>
             )}
             <Button

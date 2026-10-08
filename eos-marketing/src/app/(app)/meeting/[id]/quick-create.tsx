@@ -1,5 +1,6 @@
 "use client";
 
+import { CircleExclamation, ListCheck } from "@gravity-ui/icons";
 import { Segmented } from "@/components/ui/segmented";
 import { Button, Input, Modal, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -25,13 +26,13 @@ export function QuickCreateBar({ onCreate }: { onCreate: (draft: QuickDraft) => 
     <div className="sticky top-2 z-20 mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card/95 p-2 shadow-sm backdrop-blur">
       <span className="px-2 text-xs font-semibold uppercase tracking-wide text-muted">Capturar</span>
       <Button variant="outline" size="sm" onPress={() => onCreate({ kind: "todo" })}>
-        ✅ + To-Do
+        <ListCheck aria-hidden /> To-Do
       </Button>
       <Button variant="outline" size="sm" onPress={() => onCreate({ kind: "issue" })}>
-        ⚠️ + Issue
+        <CircleExclamation aria-hidden /> Issue
       </Button>
       <span className="ml-auto hidden text-[11px] text-muted sm:inline">
-        También puedes usar los botones → Issue y + To-Do dentro de cada paso.
+        También puedes usar los botones “Issue” y “To-Do” dentro de cada paso.
       </span>
     </div>
   );

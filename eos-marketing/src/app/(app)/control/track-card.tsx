@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "@gravity-ui/icons";
 import { Button, ToggleButton, ToggleButtonGroup } from "@heroui/react";
 import type { PublicUser } from "@/lib/domain/types";
 import type { TrackRow } from "@/lib/domain/career-tracks";
@@ -161,7 +162,7 @@ export function TrackCard({
             isDisabled={summary.doneCount === 0}
             onPress={() => onStep(-1)}
           >
-            ◀
+            <ChevronLeft aria-hidden />
           </Button>
           <span className="text-[10px] text-muted">
             {current ? `Hito ${currentIdx + 1}: ${plan.milestones[currentIdx].label}` : "Completado"}
@@ -175,7 +176,7 @@ export function TrackCard({
             isDisabled={!current}
             onPress={() => onStep(1)}
           >
-            ▶
+            <ChevronRight aria-hidden />
           </Button>
         </div>
       </div>

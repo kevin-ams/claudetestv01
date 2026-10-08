@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "@gravity-ui/icons";
 import { Button, Input, Tabs } from "@heroui/react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -210,7 +211,7 @@ export function ScorecardTable({
                         className="text-[11px] text-red h-6 px-2"
                         onPress={() => onRaiseIssue(m, activeOwner.name)}
                       >
-                        → Issue
+                        <ArrowRight width={12} height={12} aria-hidden /> Issue
                       </Button>
                     )}
                   </td>

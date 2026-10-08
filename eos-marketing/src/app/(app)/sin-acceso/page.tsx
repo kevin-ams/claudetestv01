@@ -1,3 +1,4 @@
+import { Lock } from "@gravity-ui/icons";
 import Link from "next/link";
 import { buttonVariants } from "@heroui/styles";
 import { getAccess, firstAllowedPath } from "@/lib/auth/access";
@@ -11,8 +12,8 @@ export default async function NoAccessPage({ searchParams }: PageProps<"/sin-acc
 
   return (
     <div className="mx-auto mt-16 max-w-md text-center">
-      <p className="text-4xl" aria-hidden>
-        🔒
+      <p className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary" aria-hidden>
+        <Lock width={32} height={32} />
       </p>
       <h1 className="mt-3 text-2xl font-bold">Sin acceso</h1>
       <p className="mt-2 text-sm text-muted">

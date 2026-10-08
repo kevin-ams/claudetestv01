@@ -1,3 +1,4 @@
+import { ArrowRight, Megaphone } from "@gravity-ui/icons";
 import { Chip } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import Link from "next/link";
@@ -96,7 +97,7 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="mb-6">
-        <p className="text-sm font-medium text-muted">{greeting.salute} 👋</p>
+        <p className="text-sm font-medium text-muted">{greeting.salute}</p>
         <h1 className="text-2xl font-bold sm:text-3xl">{greeting.phrase}</h1>
         <p className="mt-1 text-sm text-muted">Así está tu semana.</p>
       </div>
@@ -107,13 +108,17 @@ export default async function DashboardPage() {
           className="card card--default gap-0 mb-6 flex flex-row items-center justify-between border-primary bg-primary/5 p-4"
         >
           <span className="font-medium">Hay una Reunión Level 10 en curso</span>
-          <span className={buttonVariants({ variant: "primary" })}>Continuar →</span>
+          <span className={buttonVariants({ variant: "primary" })}>
+            Continuar <ArrowRight aria-hidden />
+          </span>
         </Link>
       )}
 
       <section className="card card--default block gap-0 mb-6 p-5">
         <div className="mb-3 flex items-baseline justify-between gap-2">
-          <h2 className="font-semibold">📣 Noticias</h2>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Megaphone className="text-primary" aria-hidden /> Noticias
+          </h2>
           <span className="text-xs text-muted">Compartidas en la Reunión L10</span>
         </div>
         {news.length === 0 ? (

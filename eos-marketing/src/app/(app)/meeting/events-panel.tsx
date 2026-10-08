@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowShapeTurnUpRight } from "@gravity-ui/icons";
 import { Button, Card, Chip, Input, TextArea } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -213,7 +214,7 @@ function EventItem({ event, teams, editable }: { event: L10Event; teams: { id: n
             {!received && (
               <>
                 <Button size="sm" variant="outline" onPress={() => setMode(mode === "send" ? "view" : "send")}>
-                  ↗ Enviar a otro equipo
+                  <ArrowShapeTurnUpRight aria-hidden /> Enviar a otro equipo
                 </Button>
                 <Button size="sm" variant="ghost" onPress={() => setMode("edit")}>
                   Editar

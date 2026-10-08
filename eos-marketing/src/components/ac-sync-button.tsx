@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowsRotateRight } from "@gravity-ui/icons";
 import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -68,7 +69,7 @@ export function ScanProgressBar({ progress }: { progress: ScanProgress | null })
 
 /** "Actualizar leads desde ActiveCampaign": revisa el historial y guarda la semana en curso, con barra de avance. */
 export function AcSyncButton({
-  label = "↻ Actualizar leads desde ActiveCampaign",
+  label = "Actualizar leads desde ActiveCampaign",
   variant = "outline",
   disabled,
 }: {
@@ -93,6 +94,7 @@ export function AcSyncButton({
   return (
     <div className="flex flex-col items-start gap-2">
       <Button variant={variant} isDisabled={running || disabled} onPress={run} className="h-auto min-h-9 whitespace-normal py-1.5 text-left">
+        <ArrowsRotateRight aria-hidden />
         {running ? "Actualizando…" : label}
       </Button>
       {running && <ScanProgressBar progress={progress} />}

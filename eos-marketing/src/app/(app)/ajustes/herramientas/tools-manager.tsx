@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
-import { KIND_LABEL, type Tool, type ToolAccess, type ToolKind } from "@/lib/domain/tools-shared";
+import { ArrowDown, ArrowUp } from "@gravity-ui/icons";
+import { ToolIcon, ToolIconByName } from "@/components/tool-icon";
+import { KIND_LABEL, TOOL_ICONS, defaultToolIcon, isToolIcon, type Tool, type ToolAccess, type ToolIconName, type ToolKind } from "@/lib/domain/tools-shared";
 import { deleteToolAction, moveToolAction, saveToolAction, toggleToolAction, type ToolResult } from "./actions";
 
 type Option = { id: number; name: string; isAdmin?: boolean };
@@ -28,7 +30,7 @@ function ToolForm({
 }) {
   const router = useRouter();
   const [name, setName] = useState(tool?.name ?? "");
-  const [icon, setIcon] = useState(tool?.icon ?? "");
+  const [icon, setIcon] = useState<ToolIconName | null>(tool && isToolIcon(tool.icon) ? tool.icon : null);
   const [description, setDescription] = useState(tool?.description ?? "");
   const [kind, setKind] = useState<ToolKind>(tool?.kind ?? "link");
   const [url, setUrl] = useState(tool?.url ?? "");
@@ -44,7 +46,16 @@ function ToolForm({
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
-          const r = await saveToolAction(tool?.id ?? null, { name, icon, description, kind, url, access, roleIds, userIds });
+          const r = await saveToolAction(tool?.id ?? null, {
+            name,
+            icon: icon ?? defaultToolIcon(kind),
+            description,
+            kind,
+            url,
+            access,
+            roleIds,
+            userIds,
+          });
           setResult(r);
           if (r.ok) {
             router.refresh();
@@ -53,15 +64,13 @@ function ToolForm({
         });
       }}
     >
-      <div className="flex flex-wrap gap-2">
-        <Input
-          aria-label="Ícono"
-          placeholder="🔗"
-          value={icon}
-          onChange={(e) => setIcon(e.target.value)}
-          className="w-16 text-center"
-          title="Un emoji como ícono (opcional)"
-        />
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+          title="Ícono elegido"
+        >
+          <ToolIconByName name={icon ?? defaultToolIcon(kind)} />
+        </span>
         <Input
           aria-label="Nombre de la herramienta"
           placeholder="Nombre (p. ej. Canva, Tablero de pauta, Drive del equipo)"
@@ -70,6 +79,27 @@ function ToolForm({
           className="min-w-60 flex-1"
           required
         />
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted">Ícono {icon ? `· ${TOOL_ICONS[icon]}` : "· si no eliges, se usa el del tipo"}</span>
+        <div role="radiogroup" aria-label="Ícono" className="flex flex-wrap gap-1">
+          {(Object.keys(TOOL_ICONS) as ToolIconName[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={icon === k}
+              aria-label={TOOL_ICONS[k]}
+              title={TOOL_ICONS[k]}
+              onClick={() => setIcon(icon === k ? null : k)}
+              className={`flex size-9 items-center justify-center rounded-lg border transition ${
+                icon === k ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted hover:border-primary hover:text-primary"
+              }`}
+            >
+              <ToolIconByName name={k} size={18} />
+            </button>
+          ))}
+        </div>
       </div>
       <TextArea
         fullWidth
@@ -84,8 +114,22 @@ function ToolForm({
         <Segmented
           aria-label="Tipo de herramienta"
           options={[
-            { id: "link" as const, label: "🔗 Enlace directo" },
-            { id: "embed" as const, label: "🧩 Sitio dentro de la app" },
+            {
+              id: "link" as const,
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <ToolIconByName name="Link" size={14} /> Enlace directo
+                </span>
+              ),
+            },
+            {
+              id: "embed" as const,
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <ToolIconByName name="Puzzle" size={14} /> Sitio dentro de la app
+                </span>
+              ),
+            },
           ]}
           value={kind}
           onChange={setKind}
@@ -210,8 +254,8 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
                 <ToolForm tool={t} roles={roles} members={members} onDone={() => setEditing(null)} />
               ) : (
                 <div className="flex flex-wrap items-start gap-3">
-                  <span className="text-2xl" aria-hidden>
-                    {t.icon}
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <ToolIcon name={t.icon} kind={t.kind} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">
@@ -235,7 +279,7 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
                     <Button size="sm" variant="ghost" aria-label={`Subir ${t.name}`} isDisabled={pending || i === 0} onPress={() => run(() => moveToolAction(t.id, -1))}>
-                      ↑
+                      <ArrowUp aria-hidden />
                     </Button>
                     <Button
                       size="sm"
@@ -244,7 +288,7 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
                       isDisabled={pending || i === tools.length - 1}
                       onPress={() => run(() => moveToolAction(t.id, 1))}
                     >
-                      ↓
+                      <ArrowDown aria-hidden />
                     </Button>
                     <Button size="sm" variant="ghost" isDisabled={pending} onPress={() => run(() => toggleToolAction(t.id, !t.active))}>
                       {t.active ? "Ocultar" : "Mostrar"}

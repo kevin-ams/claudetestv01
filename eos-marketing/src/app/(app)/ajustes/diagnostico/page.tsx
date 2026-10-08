@@ -8,6 +8,7 @@ import { emailConfigured, emailFrom } from "@/lib/email";
 import { EmailPanel } from "./email-panel";
 import { AcHistoryPanel } from "./ac-history-panel";
 import { isActiveCampaignConfigured, listPipelines } from "@/lib/integrations/activecampaign";
+import { StatusIcon } from "@/components/status-icon";
 
 export const dynamic = "force-dynamic";
 
@@ -44,13 +45,14 @@ export default async function DiagnosticoPage() {
         role="status"
         className={`rounded-lg px-3 py-2 text-sm font-semibold ${failed ? "bg-red-bg text-red" : "bg-green-bg text-green"}`}
       >
-        {failed ? `✕ ${failed} prueba(s) con error` : "✓ Todo funciona correctamente"}
+        <StatusIcon status={!failed} />
+        {failed ? `${failed} prueba(s) con error` : "Todo funciona correctamente"}
       </p>
       <ul className="card card--default block p-0 gap-0 divide-y divide-border">
         {checks.map((c) => (
           <li key={c.name} className="flex items-start gap-3 p-4">
             <span className={`mt-0.5 font-bold ${c.ok ? "text-green" : "text-red"}`} aria-hidden>
-              {c.ok ? "✓" : "✕"}
+              <StatusIcon status={c.ok} size={16} />
             </span>
             <div className="min-w-0">
               <p className="font-semibold">{c.name}</p>

@@ -6,6 +6,7 @@ import { Button, Card, ColorSwatchPicker, Input, Label, parseColor } from "@hero
 import { ThemeModePicker } from "@/components/theme/theme-mode-picker";
 import { brandVariables, isHexColor, THEME_PRESETS } from "@/lib/theme";
 import { saveThemeColorAction, type ThemeResult } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 /** Aplica un color en vivo (vista previa) sin guardarlo. */
 function previewColor(color: string | null) {
@@ -136,7 +137,7 @@ export function AppearanceSettings({ color, canEdit }: { color: string; canEdit:
           )}
           {result && (
             <p role="status" className={`text-sm ${result.ok ? "text-green" : "text-red"}`}>
-              {result.ok ? "✓ " : "✕ "}
+              <StatusIcon status={result.ok} />
               {result.message}
             </p>
           )}

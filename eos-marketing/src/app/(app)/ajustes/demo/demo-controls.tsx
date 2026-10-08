@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/progress-bar";
 import { demoStepAction, enterDemoAction, stopDemoAction, type DemoResult } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 type Status =
   | { kind: "idle" }
@@ -120,7 +121,7 @@ export function DemoControls({
             role="status"
             className={`rounded-lg px-3 py-2 text-sm ${status.result.ok ? "bg-green-bg text-green" : "bg-red-bg text-red"}`}
           >
-            {status.result.ok ? "✓ " : "✕ "}
+            <StatusIcon status={status.result.ok} />
             {status.result.message}
             {!status.result.ok && (
               <span className="mt-1 block text-xs">

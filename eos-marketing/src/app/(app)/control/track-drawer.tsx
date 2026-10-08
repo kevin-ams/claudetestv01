@@ -1,5 +1,6 @@
 "use client";
 
+import { DiamondFill } from "@gravity-ui/icons";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Chip, CloseButton, Drawer, Input, TextArea } from "@heroui/react";
 import { useState, useTransition } from "react";
@@ -200,7 +201,7 @@ export function TrackDrawer({
 
           <section className="flex flex-col gap-3">
             <p className="text-xs font-semibold uppercase text-muted">
-              Hitos ({summary.doneCount}/{plan.milestones.length}) · ◆ = ruta crítica
+              Hitos ({summary.doneCount}/{plan.milestones.length}) · <DiamondFill width={10} height={10} className="inline-block align-[-1px]" aria-hidden /> = ruta crítica
             </p>
             {CONTROL_STAGES.filter((stage) => plan.milestones.some((m) => m.stage === stage.key)).map((stage) => (
               <div key={stage.key} className="overflow-hidden rounded-lg border border-border bg-card">
@@ -229,7 +230,7 @@ export function TrackDrawer({
                               {n}. {m.label}
                               {mp.critical && (
                                 <span className="ml-1 text-xs" title="Ruta crítica: sin holgura" style={{ color: stage.color }}>
-                                  ◆
+                                  <DiamondFill width={10} height={10} aria-hidden />
                                 </span>
                               )}
                               {isCurrent && <Chip size="sm" color="accent" variant="soft" className="ml-2">Actual</Chip>}
@@ -241,7 +242,7 @@ export function TrackDrawer({
                             </p>
                             <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
                               <span>
-                                Plan: {shortDate(mp.plannedStart)} → {shortDate(mp.plannedEnd)} ({m.days} d
+                                Plan: {shortDate(mp.plannedStart)} – {shortDate(mp.plannedEnd)} ({m.days} d
                                 {mp.float > 0 ? `, holgura ${mp.float} d` : ""})
                               </span>
                               {mp.doneOn ? (

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth/access";
 import { logActivity } from "@/lib/domain/activity";
 import { createTool, deleteTool, moveTool, setToolActive, updateTool, type ToolInput } from "@/lib/domain/tools";
-import { validToolUrl } from "@/lib/domain/tools-shared";
+import { defaultToolIcon, isToolIcon, validToolUrl } from "@/lib/domain/tools-shared";
 
 export type ToolResult = { ok: boolean; message: string };
 
@@ -32,7 +32,7 @@ function clean(input: ToolInput): ToolInput | string {
     description: String(input.description ?? "").trim().slice(0, 300),
     kind,
     url,
-    icon: Array.from(String(input.icon ?? "").trim()).slice(0, 4).join("") || (kind === "embed" ? "🧩" : "🔗"),
+    icon: isToolIcon(input.icon) ? input.icon : defaultToolIcon(kind),
     access,
     roleIds,
     userIds,

@@ -1,3 +1,4 @@
+import { ArrowDownToLine, ArrowRight } from "@gravity-ui/icons";
 import { buttonVariants } from "@heroui/styles";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
@@ -38,7 +39,7 @@ export default async function MeetingListPage() {
         </div>
         {active ? (
           <Link href={`/meeting/${active.id}`} className={buttonVariants({ variant: "primary" })}>
-            Continuar reunión en curso →
+            Continuar reunión en curso <ArrowRight aria-hidden />
           </Link>
         ) : (
           <StartMeetingButton />
@@ -68,7 +69,7 @@ export default async function MeetingListPage() {
               <div className="flex gap-2">
                 {m.status === "completed" && (
                   <a href={`/api/reuniones/${m.id}/resumen`} className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                    ⬇ Resumen PDF
+                    <ArrowDownToLine aria-hidden /> Resumen PDF
                   </a>
                 )}
                 <Link href={`/meeting/${m.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>

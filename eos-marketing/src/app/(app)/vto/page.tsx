@@ -1,3 +1,4 @@
+import { ArrowRight } from "@gravity-ui/icons";
 import { Card, Input, TextArea } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import Link from "next/link";
@@ -273,7 +274,7 @@ export default async function VTOPage() {
               módulo, conectados a este mismo equipo.
             </p>
             <Link href="/rocks" className={`${buttonVariants({ variant: "outline" })} mt-3`}>
-              Ir a Rocks →
+              Ir a Rocks <ArrowRight aria-hidden />
             </Link>
           </Card>
         </section>

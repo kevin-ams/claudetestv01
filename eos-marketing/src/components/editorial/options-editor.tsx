@@ -1,5 +1,6 @@
 "use client";
 
+import { Xmark } from "@gravity-ui/icons";
 import { Button, Card, Chip, Input } from "@heroui/react";
 import { useState, useTransition } from "react";
 import {
@@ -65,7 +66,7 @@ function OptionList({ kind, items }: { kind: OptionKind; items: EditorialOptions
               className="ml-1 text-muted hover:text-red"
               onClick={() => start(() => deleteOptionAction(kind, o.id))}
             >
-              ✕
+              <Xmark aria-hidden />
             </button>
           </Chip>
         ))}

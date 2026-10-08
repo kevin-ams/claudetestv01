@@ -1,5 +1,6 @@
 "use client";
 
+import { TriangleDownFill, TriangleUpFill } from "@gravity-ui/icons";
 import { Button, Card, Input } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -259,7 +260,7 @@ function Stat({
       <p className="text-xs text-muted">
         {delta !== null && delta !== 0 && (
           <span className={better ? "text-green" : "text-red"}>
-            {delta > 0 ? "▲" : "▼"} {Math.abs(delta)}
+            {delta > 0 ? <TriangleUpFill width={10} height={10} className="inline-block align-[0px]" aria-hidden /> : <TriangleDownFill width={10} height={10} className="inline-block align-[0px]" aria-hidden />} {Math.abs(delta)}
             {unit}{" "}
           </span>
         )}

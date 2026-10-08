@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, Copy } from "@gravity-ui/icons";
 import { Button, Card } from "@heroui/react";
 import { useState, useTransition } from "react";
 import { AppSelect } from "@/components/ui/select";
@@ -49,7 +50,7 @@ export function AcHistoryPanel({ pipelines }: { pipelines: { id: string; title: 
               setCopied(true);
             }}
           >
-            {copied ? "✓ Copiado" : "Copiar resultado"}
+            {copied ? <><Check aria-hidden /> Copiado</> : <><Copy aria-hidden /> Copiar resultado</>}
           </Button>
         )}
       </div>

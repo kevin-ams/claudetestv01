@@ -13,95 +13,112 @@ import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/ann
 import { getTeam } from "@/lib/domain/teams";
 import { getDemoTeamFor } from "@/lib/domain/demo";
 import { THEME_PRESETS } from "@/lib/theme";
+import {
+  ArrowUpFromSquare,
+  Comment,
+  Cubes3,
+  FaceSmile,
+  FileText,
+  Flask,
+  Folders,
+  MapPin,
+  Megaphone,
+  Palette,
+  Persons,
+  PlugConnection,
+  ShieldKeyhole,
+  Stethoscope,
+  Wrench,
+} from "@gravity-ui/icons";
 
 const SECTIONS = [
   {
     href: "/perfil",
-    icon: "🙂",
+    Icon: FaceSmile,
     title: "Mi perfil",
     description: "Tu nombre, pronombre (él, ella, elle), foto, color personal y contraseña.",
   },
   {
     href: "/ajustes/equipo",
-    icon: "👥",
+    Icon: Persons,
     title: "Equipo",
     description: "Personas con acceso, correos, contraseñas y nombre del equipo.",
   },
   {
     href: "/ajustes/roles",
-    icon: "🔐",
+    Icon: ShieldKeyhole,
     title: "Roles y accesos",
     description: "Administrador, Usuario y roles propios: qué módulos puede ver o editar cada uno.",
   },
   {
     href: "/ajustes/equipos",
-    icon: "🧩",
+    Icon: Cubes3,
     title: "Equipos",
     description: "Crea otros equipos, cambia entre ellos y comparte indicadores entre equipos.",
   },
   {
     href: "/ajustes/apariencia",
-    icon: "🎨",
+    Icon: Palette,
     title: "Apariencia",
     description: "Modo claro u oscuro y color del template de la plataforma.",
   },
   {
     href: "/ajustes/herramientas",
-    icon: "🧰",
+    Icon: Wrench,
     title: "Caja de herramientas",
     description: "Accesos directos a otros sitios o mini módulos con un sitio insertado, y quién puede verlos.",
   },
   {
     href: "/ajustes/listas",
-    icon: "🗂️",
+    Icon: Folders,
     title: "Listas de contenido",
     description: "Facultades e institutos, pilares, estados, frentes, tipos y paquetes de cobertura.",
   },
   {
     href: "/ajustes/activecampaign",
-    icon: "🔗",
+    Icon: PlugConnection,
     title: "Leads desde ActiveCampaign",
     description: "Vincula cada carrera a un embudo y etapa de tratos para actualizar sus leads cada semana.",
   },
   {
     href: "/ajustes/frases",
-    icon: "💬",
+    Icon: Comment,
     title: "Frases motivacionales",
     description: "Las frases que aparecen en el Dashboard, una distinta cada día. Agregar, desactivar o quitar.",
   },
   {
     href: "/ajustes/hitos",
-    icon: "🗺️",
+    Icon: MapPin,
     title: "Hitos de Control de carrera",
     description: "Editar, renombrar, eliminar, agregar y reordenar hitos; duración y dependencias.",
   },
   {
     href: "/ajustes/anuncios",
-    icon: "📢",
+    Icon: Megaphone,
     title: "Anuncios",
     description: "Hasta 5 imágenes que aparecen como popup cada cierto tiempo. Activar o desactivar.",
   },
   {
     href: "/ajustes/demo",
-    icon: "🧪",
+    Icon: Flask,
     title: "Información demo",
     description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
   },
   {
     href: "/ajustes/log",
-    icon: "📜",
+    Icon: FileText,
     title: "Log",
     description: "Bitácora de acciones importantes: quién cambió metas, indicadores, hitos y más.",
   },
   {
     href: "/ajustes/diagnostico",
-    icon: "🩺",
+    Icon: Stethoscope,
     title: "Diagnóstico",
     description: "Revisa la base de datos y las imágenes, y descarga o restaura respaldos de la información.",
   },
   {
     href: "/ajustes/exportar",
-    icon: "📤",
+    Icon: ArrowUpFromSquare,
     title: "Exportar datos",
     description: "Descargar Scorecard e Indicadores de carrera en Excel (.xlsm o .xlsx).",
   },
@@ -146,7 +163,7 @@ export default async function AjustesIndexPage() {
       : "Desactivados",
     "/ajustes/exportar": "Scorecard · Indicadores · Metas",
     "/ajustes/diagnostico":
-      backupDays === null ? "⚠ Sin respaldos" : `Último respaldo: hace ${backupDays} día(s)${backupDays >= 7 ? " ⚠" : ""}`,
+      backupDays === null ? "Sin respaldos" : `Último respaldo: hace ${backupDays} día(s)`,
     "/ajustes/demo": team?.is_demo ? "Estás viendo la demo" : demo ? "Demo creada" : "Desactivada",
   };
 
@@ -167,8 +184,8 @@ export default async function AjustesIndexPage() {
           <Link key={s.href} href={s.href} className="group rounded-2xl focus-visible:outline-2 focus-visible:outline-primary">
             <Card className="h-full transition group-hover:shadow-md group-hover:ring-1 group-hover:ring-primary/40">
               <Card.Header className="flex-row items-start gap-3">
-                <span className="text-3xl" aria-hidden>
-                  {s.icon}
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden>
+                  <s.Icon width={20} height={20} />
                 </span>
                 <span className="flex flex-col gap-1">
                   <Card.Title>{s.title}</Card.Title>

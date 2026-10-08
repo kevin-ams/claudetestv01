@@ -1,3 +1,4 @@
+import { ArrowLeft, ArrowRight } from "@gravity-ui/icons";
 import { buttonVariants } from "@heroui/styles";
 import Link from "next/link";
 import { getSession } from "@/lib/auth/session";
@@ -68,13 +69,13 @@ export default async function RocksPage({
         </div>
         <div className="flex items-center gap-3">
           <Link href={quarterHref(prev.quarter, prev.year)} className={buttonVariants({ variant: "outline" })}>
-            ← Q{prev.quarter} {prev.year}
+            <ArrowLeft aria-hidden /> Q{prev.quarter} {prev.year}
           </Link>
           <span className="font-semibold">
             Q{quarter} {year}
           </span>
           <Link href={quarterHref(next.quarter, next.year)} className={buttonVariants({ variant: "outline" })}>
-            Q{next.quarter} {next.year} →
+            Q{next.quarter} {next.year} <ArrowRight aria-hidden />
           </Link>
         </div>
       </div>

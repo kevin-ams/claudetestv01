@@ -3,6 +3,7 @@
 import { Card } from "@heroui/react";
 import { SendEmailInline } from "@/components/send-email-button";
 import { sendTestEmailAction } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 export function EmailPanel({ configured, from, canTest }: { configured: boolean; from: string; canTest: boolean }) {
   const testing = from.includes("resend.dev");
@@ -16,7 +17,8 @@ export function EmailPanel({ configured, from, canTest }: { configured: boolean;
       </Card.Header>
       <Card.Content className="flex flex-col gap-3 text-sm">
         <p className={configured ? "text-green" : "text-red"}>
-          {configured ? "✓ Conectado" : "✕ Sin configurar: falta la variable RESEND_API_KEY en Netlify."} · Remitente:{" "}
+          <StatusIcon status={configured} />
+        {configured ? "Conectado" : "Sin configurar: falta la variable RESEND_API_KEY en Netlify."} · Remitente:{" "}
           <b className="text-foreground">{from}</b>
         </p>
         {configured && testing && (

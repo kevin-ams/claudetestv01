@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpRightFromSquare, Calendar, Xmark } from "@gravity-ui/icons";
 import { Button, buttonVariants, Card, Input, TextArea } from "@heroui/react";
 import { useMemo, useState, useTransition } from "react";
 import { AppSelect } from "@/components/ui/select";
@@ -27,6 +28,7 @@ import {
   sendWeekPlanAction,
 } from "./actions";
 import { SendEmailInline } from "@/components/send-email-button";
+import { StatusIcon } from "@/components/status-icon";
 
 type Member = { id: number; name: string };
 
@@ -221,7 +223,7 @@ function MonthSummary({ pieces, members, options }: { pieces: EditorialPiece[]; 
         </div>
         {s.hygienePct !== null && (
           <p className={`mt-3 text-xs ${s.hygienePct >= HYGIENE_FLOOR ? "text-green" : "text-red"}`}>
-            Hygiene {s.hygienePct}% · piso SEO ≥ {HYGIENE_FLOOR}% {s.hygienePct >= HYGIENE_FLOOR ? "✓" : "— por debajo"}
+            Hygiene {s.hygienePct}% · piso SEO ≥ {HYGIENE_FLOOR}% {s.hygienePct >= HYGIENE_FLOOR ? <StatusIcon status="ok" size={12} /> : "— por debajo"}
           </p>
         )}
       </Card>
@@ -318,7 +320,7 @@ function KeyDates({ dates, editable, options }: { dates: EditorialDate[]; editab
               </div>
               {editable && (
                 <button type="button" aria-label={`Quitar ${d.title}`} className="text-xs text-muted hover:text-red" onClick={() => start(() => deleteKeyDateAction(d.id))}>
-                  ✕
+                  <Xmark aria-hidden />
                 </button>
               )}
             </li>
@@ -381,15 +383,15 @@ function WeekSection({
               Buffer {bufferUsed}/{BUFFER_SLOTS}
             </span>
             {dates.map((d) => (
-              <span key={d.id} className="text-primary">
-                📅 {formatShortDate(d.date)}: {d.title}
+              <span key={d.id} className="inline-flex items-center gap-1 text-primary">
+                <Calendar width={12} height={12} aria-hidden /> {formatShortDate(d.date)}: {d.title}
               </span>
             ))}
           </div>
         </div>
         <div className="flex flex-wrap items-start justify-end gap-2">
           <SendEmailInline
-            label="✉ Enviar planificación"
+            label="Enviar planificación"
             variant="secondary"
             size="sm"
             requireRecipients
@@ -491,10 +493,10 @@ function PieceTable({
                         href={p.link}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="ml-1.5 text-xs font-normal text-primary underline"
+                        className="ml-1.5 inline-flex items-center gap-1 text-xs font-normal text-primary underline"
                         aria-label={`Ver publicación: ${p.title}`}
                       >
-                        Ver publicación ↗
+                        Ver publicación <ArrowUpRightFromSquare width={12} height={12} aria-hidden />
                       </a>
                     )}
                   </p>
@@ -532,7 +534,7 @@ function PieceTable({
                         if (confirm(`¿Eliminar "${p.title}"?`)) start(() => deletePieceAction(p.id));
                       }}
                     >
-                      ✕
+                      <Xmark aria-hidden />
                     </Button>
                   </td>
                 )}

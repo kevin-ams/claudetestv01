@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight, Xmark } from "@gravity-ui/icons";
 import { groupByOwner, OwnerFilterBar, type OwnerView } from "@/components/owner-filter";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Chip, Input, TextArea } from "@heroui/react";
@@ -143,7 +144,7 @@ function TodoItem({
               className="text-[11px] text-red h-6 px-2"
               onPress={() => onRaiseIssue(todo)}
             >
-              → Issue
+              <ArrowRight width={12} height={12} aria-hidden /> Issue
             </Button>
           )}
           <Button size="sm" variant="ghost" className="text-primary" onPress={() => setEditing(true)}>
@@ -157,7 +158,7 @@ function TodoItem({
         aria-label={`Eliminar ${todo.title}`}
         onPress={() => startTransition(() => deleteTodoAction(todo.id))}
       >
-        ✕
+        <Xmark aria-hidden />
       </Button>
     </li>
   );

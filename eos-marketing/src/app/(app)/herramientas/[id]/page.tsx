@@ -4,6 +4,8 @@ import { buttonVariants } from "@heroui/styles";
 import { requireModulePage } from "@/lib/auth/access";
 import { listVisibleTools } from "@/lib/domain/tools";
 import { embedUrl } from "@/lib/domain/tools-shared";
+import { ArrowUpRightFromSquare } from "@gravity-ui/icons";
+import { ToolIcon } from "@/components/tool-icon";
 
 /** Mini módulo: el sitio de la herramienta insertado en la app. */
 export default async function ToolPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,12 +31,15 @@ export default async function ToolPage({ params }: { params: Promise<{ id: strin
             </Link>{" "}
             / {tool.name}
           </p>
-          <h1 className="truncate text-xl font-bold">
-            <span aria-hidden>{tool.icon}</span> {tool.name}
+          <h1 className="flex items-center gap-2 truncate text-xl font-bold">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <ToolIcon name={tool.icon} kind={tool.kind} size={18} />
+            </span>
+            {tool.name}
           </h1>
         </div>
         <a href={tool.url} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Abrir en pestaña nueva ↗
+          Abrir en pestaña nueva <ArrowUpRightFromSquare aria-hidden />
         </a>
       </div>
       <iframe

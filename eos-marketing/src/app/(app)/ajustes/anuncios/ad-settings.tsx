@@ -15,6 +15,7 @@ import {
   uploadAdImageAction,
   type AdResult,
 } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 const MAX_SIDE = 1920;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -200,7 +201,7 @@ function SlotCard({
           role="status"
           className={`rounded-md px-2 py-1 text-sm ${result.ok ? "bg-green-bg text-green" : "bg-red-bg text-red"}`}
         >
-          {result.ok ? "✓ " : "✕ "}
+          <StatusIcon status={result.ok} />
           {result.message}
         </p>
       )}
@@ -293,7 +294,7 @@ export function AdSettings({
       </div>
       <p className="text-xs text-muted">
         PNG, JPG, WEBP o GIF. Las fotos grandes se reducen automáticamente a 1920 px al subirlas. Los anuncios aparecen a todo el equipo en cualquier
-        pantalla, uno a la vez y en orden (espacio 1, 2, 3…). Cada persona los cierra con ✕ o Esc.
+        pantalla, uno a la vez y en orden (espacio 1, 2, 3…). Cada persona los cierra con la X o con Esc.
       </p>
 
       {preview && <AnnouncementModal ad={preview} onClose={() => setPreview(null)} />}

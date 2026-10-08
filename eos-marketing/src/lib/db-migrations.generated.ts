@@ -79,5 +79,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "020_tools",
     "sql": "-- Caja de herramientas: accesos directos (enlace a otro sitio) o mini módulos con un sitio\n-- insertado (iframe), visibles en \"Otras herramientas\" según el acceso de cada una.\nCREATE TABLE tools (\n  id SERIAL PRIMARY KEY,\n  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  name TEXT NOT NULL,\n  description TEXT NOT NULL DEFAULT '',\n  kind TEXT NOT NULL DEFAULT 'link' CHECK (kind IN ('link', 'embed')),   -- link = pestaña nueva; embed = dentro de la app\n  url TEXT NOT NULL,\n  icon TEXT NOT NULL DEFAULT '🔗',\n  access TEXT NOT NULL DEFAULT 'all' CHECK (access IN ('all', 'restricted')), -- restricted = solo roles/personas elegidas\n  active BOOLEAN NOT NULL DEFAULT TRUE,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_tools_team ON tools(team_id, sort_order);\n\nCREATE TABLE tool_roles (\n  tool_id INTEGER NOT NULL REFERENCES tools(id) ON DELETE CASCADE,\n  role_id INTEGER NOT NULL REFERENCES team_roles(id) ON DELETE CASCADE,\n  PRIMARY KEY (tool_id, role_id)\n);\n\nCREATE TABLE tool_users (\n  tool_id INTEGER NOT NULL REFERENCES tools(id) ON DELETE CASCADE,\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  PRIMARY KEY (tool_id, user_id)\n);\n"
+  },
+  {
+    "name": "021_tool_icons",
+    "sql": "-- Los íconos de las herramientas pasan de emoji a un ícono del tema (por nombre).\nUPDATE tools SET icon = CASE WHEN kind = 'embed' THEN 'Puzzle' ELSE 'Link' END WHERE icon !~ '^[A-Za-z]+$';\nALTER TABLE tools ALTER COLUMN icon SET DEFAULT 'Link';\n"
   }
 ];

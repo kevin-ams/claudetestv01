@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, ArrowRight } from "@gravity-ui/icons";
 import { Segmented } from "@/components/ui/segmented";
 import { Button, Card, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -165,11 +166,11 @@ export function GoalsGrid({
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 rounded-lg border border-border p-1">
             <Link href={`/metas?anio=${year - 1}`} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Año anterior">
-              ←
+              <ArrowLeft aria-hidden />
             </Link>
             <span className="px-2 text-sm font-semibold">{year}</span>
             <Link href={`/metas?anio=${year + 1}`} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Año siguiente">
-              →
+              <ArrowRight aria-hidden />
             </Link>
           </div>
           <Segmented

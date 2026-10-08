@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, ChevronUp, Xmark } from "@gravity-ui/icons";
 import { groupByOwner, OwnerFilterBar, type OwnerView } from "@/components/owner-filter";
 import { Button, Input } from "@heroui/react";
 import { useState, useTransition } from "react";
@@ -95,7 +96,7 @@ export function IssueList({
         </h2>
         {shown.length === 0 ? (
           <p className="text-sm text-muted">
-            {openIssues.length === 0 ? "No hay issues abiertos. 🎉" : "No hay issues abiertos con este filtro."}
+            {openIssues.length === 0 ? "No hay issues abiertos." : "No hay issues abiertos con este filtro."}
           </p>
         ) : (
           groups.map((g) =>
@@ -116,14 +117,14 @@ export function IssueList({
                     className="text-xs text-muted"
                     onPress={() => moveIssueAction(issue.id, "up")}
                   >
-                    ▲
+                    <ChevronUp aria-hidden />
                   </Button>
                   <Button size="sm" variant="ghost"
                     isDisabled={idx === openIssues.length - 1}
                     className="text-xs text-muted"
                     onPress={() => moveIssueAction(issue.id, "down")}
                   >
-                    ▼
+                    <ChevronDown aria-hidden />
                   </Button>
                 </div>}
                 <div className="min-w-[180px] flex-1">
@@ -171,7 +172,7 @@ export function IssueList({
                   className="text-xs text-red"
                   onPress={() => deleteIssueAction(issue.id)}
                 >
-                  ✕
+                  <Xmark aria-hidden />
                 </Button>
               </li>
               );

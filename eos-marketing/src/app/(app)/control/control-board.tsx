@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, DiamondFill } from "@gravity-ui/icons";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Card, CloseButton, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -250,13 +251,13 @@ export function ControlBoard({
               <span className="-rotate-45 text-[11px] font-bold text-white">{n}</span>
             </span>
           ) : (
-            <span className="text-green">✓</span>
+            <Check className="text-green" aria-hidden />
           )}
           <span className="flex-1 text-sm font-semibold leading-tight">
             {title}
             {critical && (
               <span className="ml-1 text-[10px] font-bold" style={{ color }} title="Ruta crítica">
-                ◆ RC
+                <DiamondFill width={10} height={10} className="mr-0.5 inline-block align-[-1px]" aria-hidden /> RC
               </span>
             )}
           </span>
@@ -371,8 +372,8 @@ export function ControlBoard({
       )}
 
       <p className="text-xs text-muted">
-        Arrastra las tarjetas entre columnas o usa las flechas ◀ ▶. Ruta crítica (PMI/CPM): cada hito tiene una duración estimada y depende de los anteriores; los
-        marcados con ◆ no tienen holgura, así que un atraso en ellos mueve la fecha de lanzamiento. El
+        Arrastra las tarjetas entre columnas o usa las flechas de cada tarjeta. Ruta crítica (PMI/CPM): cada hito tiene una duración estimada y depende de los anteriores; los
+        marcados con el rombo no tienen holgura, así que un atraso en ellos mueve la fecha de lanzamiento. El
         plan completo dura {plan.totalDays} días desde la fecha de inicio (duraciones y dependencias en Ajustes). Al mover una tarjeta, los
         hitos anteriores quedan completados con la fecha de hoy.
       </p>

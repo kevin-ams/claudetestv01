@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowRight } from "@gravity-ui/icons";
 import { Button, Card, Modal } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -8,6 +9,7 @@ import { AppCheckbox } from "@/components/ui/checkbox";
 import type { BackfillRow } from "@/lib/domain/ac-sync";
 import { runLeadsScan, ScanProgressBar, type ScanProgress } from "@/components/ac-sync-button";
 import { backfillApplyAction, backfillPreviewAction, type LinkResult } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 /**
  * Solo administradores: calcula con el historial de ActiveCampaign los leads calificados de una
@@ -115,7 +117,7 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
               <div className="flex flex-col gap-3">
                 <h3 className="text-lg font-semibold">Leads de la semana {weekLabel}</h3>
                 <div className="rounded-lg border border-yellow/30 bg-yellow-bg p-3 text-sm">
-                  <p className="font-semibold">⚠ Esto sobrescribe datos de una semana anterior</p>
+                  <p className="font-semibold"><StatusIcon status="warning" />Esto sobrescribe datos de una semana anterior</p>
                   <ul className="mt-1 list-disc pl-5">
                     <li>
                       El dato nuevo son los tratos que <b>entraron al embudo</b> de la carrera esa semana, según su historial
@@ -187,7 +189,7 @@ export function BackfillPanel({ weeks }: { weeks: { value: string; label: string
                 </div>
                 <p className="text-sm">
                   <b>{chosen.length}</b> carrera(s) marcada(s) · {overwrites} con dato que se sobrescribe · total{" "}
-                  <span className="tabular-nums">{sumCurrent}</span> → <b className="tabular-nums">{sumIncoming}</b> leads
+                  <span className="tabular-nums">{sumCurrent}</span> <ArrowRight width={12} height={12} className="inline-block align-[-1px]" aria-hidden /> <b className="tabular-nums">{sumIncoming}</b> leads
                 </p>
                 {result && !result.ok && <p className="text-sm text-red">{result.message}</p>}
                 <div className="flex flex-wrap gap-2">

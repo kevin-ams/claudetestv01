@@ -1,5 +1,6 @@
 "use client";
 
+import { Xmark } from "@gravity-ui/icons";
 import { Button, Card, Input, TextArea } from "@heroui/react";
 import { useMemo, useState, useTransition } from "react";
 import { AppSelect } from "@/components/ui/select";
@@ -266,7 +267,7 @@ function CoverageTable({
                         if (confirm(`¿Eliminar "${c.title}"?`)) start(() => deleteCoverageAction(c.id));
                       }}
                     >
-                      ✕
+                      <Xmark aria-hidden />
                     </Button>
                   </td>
                 )}

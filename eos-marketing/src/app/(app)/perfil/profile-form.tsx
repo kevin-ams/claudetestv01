@@ -15,6 +15,7 @@ import {
   uploadAvatarAction,
   type ProfileResult,
 } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 const SIDE = 512;
 
@@ -45,7 +46,7 @@ function Result({ result }: { result: ProfileResult | null }) {
   if (!result) return null;
   return (
     <p role="status" className={`text-sm ${result.ok ? "text-green" : "text-red"}`}>
-      {result.ok ? "✓ " : "✕ "}
+      <StatusIcon status={result.ok} />
       {result.message}
     </p>
   );

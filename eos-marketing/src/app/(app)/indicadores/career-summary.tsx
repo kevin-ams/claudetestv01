@@ -1,3 +1,4 @@
+import { ArrowRight } from "@gravity-ui/icons";
 import { Button, Card, Chip } from "@heroui/react";
 import Link from "next/link";
 import type { PublicUser } from "@/lib/domain/types";
@@ -171,8 +172,8 @@ export function CareerSummary({
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-lg font-bold">Indicadores de carrera · {weekLabel}</h3>
-        <Link href={`/indicadores?semana=${week}`} className="text-sm font-medium text-primary underline">
-          Ver detalle →
+        <Link href={`/indicadores?semana=${week}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary underline">
+          Ver detalle <ArrowRight aria-hidden />
         </Link>
       </div>
       <SummaryTiles rows={rows} />
@@ -199,7 +200,7 @@ export function CareerSummary({
                   </span>
                   {onRaiseIssue && (
                     <Button size="sm" variant="outline" type="button" className="text-[11px] text-red h-6 px-2" onPress={() => onRaiseIssue(r)}>
-                      → Issue
+                      <ArrowRight width={12} height={12} aria-hidden /> Issue
                     </Button>
                   )}
                 </span>

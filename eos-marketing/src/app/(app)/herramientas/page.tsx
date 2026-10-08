@@ -2,6 +2,8 @@ import Link from "next/link";
 import { buttonVariants } from "@heroui/styles";
 import { requireModulePage } from "@/lib/auth/access";
 import { listVisibleTools } from "@/lib/domain/tools";
+import { ArrowUpRightFromSquare } from "@gravity-ui/icons";
+import { ToolIcon } from "@/components/tool-icon";
 
 export default async function ToolsIndexPage() {
   const access = await requireModulePage("herramientas");
@@ -37,13 +39,21 @@ export default async function ToolsIndexPage() {
           {tools.map((t) => {
             const body = (
               <>
-                <span className="text-3xl" aria-hidden>
-                  {t.icon}
+                <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition group-hover:bg-primary group-hover:text-primary-foreground">
+                  <ToolIcon name={t.icon} kind={t.kind} size={22} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold group-hover:text-primary">{t.name}</p>
                   {t.description && <p className="text-sm text-muted">{t.description}</p>}
-                  <p className="mt-1 text-xs text-muted">{t.kind === "link" ? "Abre en una pestaña nueva ↗" : "Se abre dentro de la app"}</p>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-muted">
+                    {t.kind === "link" ? (
+                      <>
+                        Abre en una pestaña nueva <ArrowUpRightFromSquare width={12} height={12} aria-hidden />
+                      </>
+                    ) : (
+                      "Se abre dentro de la app"
+                    )}
+                  </p>
                 </div>
               </>
             );

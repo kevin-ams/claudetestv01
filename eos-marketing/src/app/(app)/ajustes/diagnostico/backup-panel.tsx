@@ -1,10 +1,12 @@
 "use client";
 
+import { ArrowDownToLine, ArrowRotateLeft } from "@gravity-ui/icons";
 import { useState, useTransition } from "react";
 import { Button, Card, Chip, Input } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { ProgressBar } from "@/components/progress-bar";
 import { restoreBackupAction, type RestoreResult } from "./actions";
+import { StatusIcon } from "@/components/status-icon";
 
 export type BackupEvent = { kind: "download" | "restore"; user_name: string; detail: string; created_at: string; when: string };
 
@@ -45,14 +47,14 @@ export function BackupPanel({
         {stale && (
           <p role="alert" className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
             {last
-              ? `⚠ Han pasado ${days} días desde el último respaldo. Se recomienda descargar uno cada semana.`
-              : "⚠ Todavía no se ha descargado ningún respaldo. Descarga uno y guárdalo en un lugar seguro."}
+              ? `Han pasado ${days} días desde el último respaldo. Se recomienda descargar uno cada semana.`
+              : "Todavía no se ha descargado ningún respaldo. Descarga uno y guárdalo en un lugar seguro."}
           </p>
         )}
 
         {canEdit ? (
           <a href="/api/respaldo" className={`${buttonVariants({ variant: "primary" })} self-start`}>
-            ⬇ Descargar respaldo ahora
+            <ArrowDownToLine aria-hidden /> Descargar respaldo ahora
           </a>
         ) : (
           <p className="text-sm text-muted">Solo un administrador puede descargar o restaurar respaldos.</p>
@@ -111,7 +113,7 @@ export function BackupPanel({
             {pending && <ProgressBar label="Restaurando… no cierres esta página." />}
             {result && (
               <p role="status" className={`rounded-md px-2 py-1 text-sm ${result.ok ? "bg-green-bg text-green" : "bg-red-bg text-red"}`}>
-                {result.ok ? "✓ " : "✕ "}
+                <StatusIcon status={result.ok} />
                 {result.message}
               </p>
             )}
@@ -125,7 +127,8 @@ export function BackupPanel({
               {events.map((e, i) => (
                 <li key={i} className="flex flex-wrap justify-between gap-2 py-1.5">
                   <span>
-                    {e.kind === "download" ? "⬇ Descargado" : "↺ Restaurado"} por {e.user_name}
+                    {e.kind === "download" ? <ArrowDownToLine width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden /> : <ArrowRotateLeft width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden />}
+                {e.kind === "download" ? "Descargado" : "Restaurado"} por {e.user_name}
                     <span className="text-muted"> · {e.detail}</span>
                   </span>
                   <span className="text-muted">{e.when}</span>

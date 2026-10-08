@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, ArrowRight, ArrowUpFromLine } from "@gravity-ui/icons";
 import { Button, Chip, Input, buttonVariants } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import Link from "next/link";
@@ -50,11 +51,11 @@ export function Toolbar({
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
           <Link href={weekHref(shiftWeek(week, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana anterior">
-            ←
+            <ArrowLeft aria-hidden />
           </Link>
           <span className="px-2 text-sm font-semibold">{weekLabel}</span>
           <Link href={weekHref(shiftWeek(week, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana siguiente">
-            →
+            <ArrowRight aria-hidden />
           </Link>
         </div>
         {week !== defaultWeek && (
@@ -75,7 +76,7 @@ export function Toolbar({
             </Link>
           )}
           <Button variant="outline" onPress={() => setPanel(panel === "import" ? null : "import")}>
-            ⇪ Importar consumo (CSV)
+            <ArrowUpFromLine aria-hidden /> Importar consumo (CSV)
           </Button>
           <Button variant="primary" onPress={() => setPanel(panel === "add" ? null : "add")}>
             + Carrera

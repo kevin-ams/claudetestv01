@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ProgressBar } from "@/components/progress-bar";
 import { stopDemoAction } from "./ajustes/demo/actions";
+import { StatusIcon } from "@/components/status-icon";
 
 /** Aviso fijo mientras se ve la demo, con botón para salir. */
 export function DemoBanner() {
@@ -42,7 +43,7 @@ export function DemoBanner() {
           <ProgressBar label="Borrando la información demo…" />
         </div>
       )}
-      {error && <p className="mt-2 font-semibold text-red">✕ {error}</p>}
+      {error && <p className="mt-2 font-semibold text-red"><StatusIcon status="error" />{error}</p>}
     </div>
   );
 }

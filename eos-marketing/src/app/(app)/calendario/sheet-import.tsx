@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowUpFromLine, Xmark } from "@gravity-ui/icons";
 import { Button, Card, Chip, Input } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -75,7 +76,7 @@ export function SheetImport({ currentWeek }: { currentWeek: string }) {
           setOpen(true);
         }}
       >
-        ⇪ Importar desde Google Sheets
+        <ArrowUpFromLine aria-hidden /> Importar desde Google Sheets
       </Button>
     );
   }
@@ -93,7 +94,7 @@ export function SheetImport({ currentWeek }: { currentWeek: string }) {
           </p>
         </div>
         <Button size="sm" variant="ghost" onPress={() => setOpen(false)} aria-label="Cerrar importación">
-          ✕
+          <Xmark aria-hidden />
         </Button>
       </div>
       <div className="flex flex-wrap gap-2">

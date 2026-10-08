@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowDownToLine } from "@gravity-ui/icons";
 import { buttonVariants } from "@heroui/styles";
 import { Button, Card, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -49,7 +50,7 @@ export function ExportPanel({ kind, defaultFrom, defaultTo }: { kind: Kind; defa
         className={`${buttonVariants({ variant: "primary" })} ${valid ? "" : "pointer-events-none opacity-50"}`}
         download
       >
-        ⬇ Descargar {LABEL[kind]}
+        <ArrowDownToLine aria-hidden /> Descargar {LABEL[kind]}
       </a>
     </div>
   );
@@ -61,7 +62,7 @@ export function ExportButton({ kind, defaultFrom, defaultTo }: { kind: Kind; def
   return (
     <div className="flex flex-col items-end gap-2">
       <Button variant="outline" onPress={() => setOpen((v) => !v)} aria-expanded={open}>
-        ⬇ Exportar Excel
+        <ArrowDownToLine aria-hidden /> Exportar Excel
       </Button>
       {open && (
         <Card className="block gap-0 p-3">

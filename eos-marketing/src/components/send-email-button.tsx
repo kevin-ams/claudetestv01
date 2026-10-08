@@ -1,12 +1,13 @@
 "use client";
 
+import { Envelope } from "@gravity-ui/icons";
 import { Button, Input } from "@heroui/react";
 import { useState, useTransition } from "react";
 
 /** "Enviar por correo": abre un campo para destinatarios (opcional) y muestra el resultado. */
 export function SendEmailButton({
   send,
-  label = "✉ Enviar por correo",
+  label = "Enviar por correo",
   hint,
   placeholder = "Otros correos (opcional), separados por coma",
   defaultRecipients = "",
@@ -31,6 +32,7 @@ export function SendEmailButton({
   if (!open) {
     return (
       <Button variant={variant} size={size} onPress={() => { setOpen(true); setResult(null); }}>
+        <Envelope aria-hidden />
         {label}
       </Button>
     );
