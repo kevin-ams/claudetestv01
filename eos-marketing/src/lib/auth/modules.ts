@@ -15,6 +15,7 @@ export const MODULES = [
   { key: "coberturas", label: "Control de coberturas", href: "/coberturas" },
   { key: "analisis_contenido", label: "Análisis de contenido", href: "/analisis-contenido" },
   { key: "analisis", label: "Análisis", href: "/analisis" },
+  { key: "herramientas", label: "Otras herramientas", href: "/herramientas" },
   { key: "ajustes", label: "Ajustes (apariencia, hitos, anuncios, demo, exportar)", href: "/ajustes" },
 ] as const;
 

@@ -15,6 +15,7 @@ import {
   Persons,
   Route,
   Target,
+  Wrench,
 } from "@gravity-ui/icons";
 
 export type NavBadge = "todos" | "issues";
@@ -66,6 +67,10 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: "/analisis", label: "Análisis", Icon: ChartLine },
       { href: "/analisis-contenido", label: "Análisis de contenido", Icon: ChartPie },
     ],
+  },
+  {
+    label: "Herramientas",
+    items: [{ href: "/herramientas", label: "Otras herramientas", Icon: Wrench }],
   },
 ];
 

@@ -46,6 +46,12 @@ const SECTIONS = [
     description: "Modo claro u oscuro y color del template de la plataforma.",
   },
   {
+    href: "/ajustes/herramientas",
+    icon: "🧰",
+    title: "Caja de herramientas",
+    description: "Accesos directos a otros sitios o mini módulos con un sitio insertado, y quién puede verlos.",
+  },
+  {
     href: "/ajustes/listas",
     icon: "🗂️",
     title: "Listas de contenido",

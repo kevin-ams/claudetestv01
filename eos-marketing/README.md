@@ -141,6 +141,12 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Caja de herramientas**: en Ajustes › Caja de herramientas (solo administradores) se crean accesos directos
+  (enlace a otro sitio, abre pestaña nueva) o mini módulos con el sitio insertado (iframe, solo https; YouTube y
+  Google Docs/Sheets/Slides/Drive se convierten a su versión para insertar). Cada una es para todo el equipo o solo
+  para roles/personas elegidas (los administradores ven todas); se pueden ordenar y ocultar. Se ven en **Otras
+  herramientas** (`/herramientas`), módulo que también se controla desde Roles y accesos. Tablas `tools`,
+  `tool_roles`, `tool_users`.
 - **Calendario editorial › Importar desde Google Sheets**: se pega el enlace del Plan de contenido publicado en la
   Web, se elige una sección "SEMANA …" y se ven los cambios antes de guardar (piezas nuevas, actualizadas por mismo
   tema, sin cambios y las que solo están en la app, que se pueden quitar). Lo vacío en la hoja no borra lo capturado
