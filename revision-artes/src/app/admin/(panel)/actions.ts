@@ -27,6 +27,7 @@ import {
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
 import { notificarNuevaVersion } from "@/lib/notificaciones";
 import { appUrl, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import { asegurarTokenReporte, reporteCampana, revocarTokenReporte } from "@/lib/domain/reporte";
 import type { FormState } from "../auth-actions";
 
 const nombre = z.string().trim().min(2, "El nombre es muy corto").max(200);
@@ -393,4 +394,84 @@ export async function correoPruebaAction(): Promise<FormState> {
     text: "Correo de prueba de GES · Revisión de Artes. Si lo recibiste, los avisos funcionan.",
   });
   return res.ok ? { error: null, ok: true, message: `Correo de prueba enviado a ${admin.email}. Revisa tu bandeja (y spam).` } : { error: res.message };
+}
+
+// ---------- Reporte para Diseño ----------
+
+export async function crearEnlaceReporteAction(campanaId: number) {
+  await requireAdmin();
+  const campana = await getCampana(campanaId);
+  if (!campana) return;
+  await asegurarTokenReporte(campana.id);
+  revalidatePath(`/admin/facultades/${campana.facultad_id}/campanas/${campana.id}/reporte`);
+}
+
+export async function revocarEnlaceReporteAction(campanaId: number) {
+  await requireAdmin();
+  const campana = await getCampana(campanaId);
+  if (!campana) return;
+  await revocarTokenReporte(campana.id);
+  revalidatePath(`/admin/facultades/${campana.facultad_id}/campanas/${campana.id}/reporte`);
+}
+
+const EMAIL_RE = /^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/;
+
+/** Envía a Diseño el enlace del reporte con un resumen de los cambios. */
+export async function enviarReporteAction(
+  campanaId: number,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const admin = await requireAdmin();
+  const campana = await getCampana(campanaId);
+  if (!campana) return { error: "La campaña no existe" };
+  const correos = [
+    ...new Set(
+      String(formData.get("correos") ?? "")
+        .split(/[\s,;]+/)
+        .map((c) => c.trim().toLowerCase())
+        .filter(Boolean)
+    ),
+  ];
+  if (correos.length === 0) return { error: "Escribe al menos un correo de Diseño" };
+  const invalido = correos.find((c) => !EMAIL_RE.test(c));
+  if (invalido) return { error: `Correo inválido: ${invalido}` };
+  if (correos.length > 20) return { error: "Máximo 20 destinatarios" };
+  const nota = String(formData.get("nota") ?? "").trim().slice(0, 2000);
+
+  const reporte = await reporteCampana(campana.id, true);
+  if (!reporte) return { error: "La campaña no existe" };
+  const token = await asegurarTokenReporte(campana.id);
+  const base = await appUrl();
+  const enlace = `${base}/reporte/${token}`;
+
+  const lista = reporte.artes
+    .map(
+      (a) =>
+        `<li style="margin-bottom:6px"><strong>${escapeHtml(a.titulo)}</strong> (v${a.version}${a.carrera ? ` · ${escapeHtml(a.carrera)}` : ""}): ${a.puntos.length + a.comentarios.length} ${a.puntos.length + a.comentarios.length === 1 ? "cambio" : "cambios"}</li>`
+    )
+    .join("");
+  const html = emailLayout({
+    title: `Cambios para diseño: ${campana.nombre}`,
+    intro: `${escapeHtml(admin.name)} te comparte el reporte de cambios de la campaña <strong>“${escapeHtml(campana.nombre)}”</strong> (${escapeHtml(reporte.facultad.nombre)}): <strong>${reporte.totales.conCambios}</strong> ${reporte.totales.conCambios === 1 ? "arte con cambios" : "artes con cambios"} y <strong>${reporte.totales.puntos}</strong> ${reporte.totales.puntos === 1 ? "punto marcado" : "puntos marcados"} sobre las imágenes.`,
+    body:
+      (nota
+        ? `<p style="margin-top:16px;margin-bottom:0;padding:12px 14px;background-color:#eef1ff;border-radius:8px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#0f172a">${escapeHtml(nota)}</p>`
+        : "") +
+      (lista
+        ? `<ul style="margin-top:16px;padding-left:20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#374151">${lista}</ul>`
+        : ""),
+    cta: { label: "Ver el reporte con las imágenes", url: enlace },
+    logoUrl: `${base}/logo-ges.png`,
+    footer: `El reporte se actualiza solo: siempre muestra los cambios pendientes de la versión actual. Responde a este correo para escribirle a ${escapeHtml(admin.name)}.`,
+  });
+  const res = await sendEmail({
+    to: correos,
+    subject: `Cambios para diseño: ${campana.nombre} (${reporte.facultad.nombre})`,
+    html,
+    text: `Reporte de cambios de "${campana.nombre}": ${enlace}`,
+    replyTo: admin.email,
+  });
+  revalidatePath(`/admin/facultades/${campana.facultad_id}/campanas/${campana.id}/reporte`);
+  return res.ok ? { error: null, ok: true, message: res.message } : { error: res.message };
 }

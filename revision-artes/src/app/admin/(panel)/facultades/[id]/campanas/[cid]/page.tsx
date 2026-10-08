@@ -59,12 +59,19 @@ export default async function AdminCampanaPage({
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Artes ({artes.length})</h2>
-            <Link
-              href={`/admin/facultades/${facultad.id}/nuevo-arte${campana ? `?campana=${campana.id}` : ""}`}
-              className={buttonVariants({ variant: "primary" })}
-            >
-              + Nuevo arte
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {campana && (
+                <Link href={`${base}/reporte`} className={buttonVariants({ variant: "secondary" })}>
+                  📄 Reporte para Diseño
+                </Link>
+              )}
+              <Link
+                href={`/admin/facultades/${facultad.id}/nuevo-arte${campana ? `?campana=${campana.id}` : ""}`}
+                className={buttonVariants({ variant: "primary" })}
+              >
+                + Nuevo arte
+              </Link>
+            </div>
           </div>
           <FiltrosArtes base={base} filtros={filtros} carreras={carreras} artes={artes} />
           {visibles.length === 0 ? (

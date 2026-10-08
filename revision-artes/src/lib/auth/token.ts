@@ -24,8 +24,12 @@ export type PortalSession = {
 };
 
 function secretKey() {
-  const secret = process.env.AUTH_SECRET || "dev-insecure-secret-change-me";
-  return new TextEncoder().encode(secret);
+  const secret = process.env.AUTH_SECRET;
+  if (!secret && process.env.NODE_ENV === "production") {
+    // Nunca firmar sesiones con un secreto conocido en producción.
+    throw new Error("Falta AUTH_SECRET: configúralo en las variables de entorno del sitio.");
+  }
+  return new TextEncoder().encode(secret || "dev-insecure-secret-change-me");
 }
 
 export async function signToken(

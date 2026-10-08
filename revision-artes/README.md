@@ -71,6 +71,17 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
 8. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
    Desmarcar *Acceso al portal activo* bloquea a la facultad sin borrar nada.
 
+## Reporte para Diseño
+
+En cada campaña, **📄 Reporte para Diseño** genera un reporte imprimible (Imprimir / Guardar PDF)
+con cada arte que tiene cambios solicitados: la imagen de la versión actual con los puntos
+numerados, la lista de cambios con casillas para ir marcando, los comentarios generales, el copy
+y el enlace al archivo en Drive. Se puede ver solo lo que tiene cambios o todos los artes.
+
+- **Enlace para Diseño** (`/reporte/<token>`): se abre sin cuenta y siempre muestra el estado
+  actual. Se crea y se revoca desde el reporte (migración 006).
+- **Enviar por correo**: manda el enlace con un resumen a uno o varios correos de Diseño (Resend).
+
 ## Guía del portal
 
 La primera vez que alguien entra al portal se abre una **guía interactiva** que resalta cada

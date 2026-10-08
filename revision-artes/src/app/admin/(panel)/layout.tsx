@@ -8,7 +8,7 @@ export default async function PanelLayout({ children }: LayoutProps<"/admin">) {
   const admin = await requireAdmin();
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-separator bg-surface">
+      <header className="border-b border-separator bg-surface print:hidden">
         <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-2">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
             <Link href="/admin" className="flex items-center gap-2 font-bold">
