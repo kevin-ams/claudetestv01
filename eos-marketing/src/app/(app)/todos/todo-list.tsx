@@ -136,7 +136,8 @@ function TodoItem({
           <ClickUpButton
             sentUrl={todo.clickup_url}
             configured={clickupConfigured}
-            onSend={() => sendTodoToClickUpAction(todo.id)}
+            ownerEmail={members.find((m) => m.id === todo.owner_id)?.email ?? null}
+            onSend={(target) => sendTodoToClickUpAction(todo.id, target)}
           />
           {onRaiseIssue && (
             <Button size="sm" variant="outline"

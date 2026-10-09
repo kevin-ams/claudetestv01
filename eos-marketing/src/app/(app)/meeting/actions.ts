@@ -27,8 +27,9 @@ import { buildMeetingSummaryPdf } from "@/lib/pdf/meeting-summary";
 import { DEFAULT_THEME_COLOR } from "@/lib/theme";
 import { appUrl, emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
 import type { IssueTerm } from "@/lib/domain/types";
-import { attachPendingEvents, createEvent, deleteEvent, sendEvent, updateEvent } from "@/lib/domain/l10-events";
+import { attachPendingEvents, createEvent, deleteEvent, reuseEvent, sendEvent, updateEvent } from "@/lib/domain/l10-events";
 import { listShareableTeams } from "@/lib/domain/scorecard";
+import { weekStartISO } from "@/lib/utils/dates";
 
 export async function startNewMeetingAction() {
   const session = await requireModule("meeting");
@@ -221,10 +222,10 @@ export async function sendMeetingSummaryAction(
 
 // --- Eventos para la L10 -------------------------------------------------------
 
-export type EventInput = { title: string; detail: string; eventDate: string | null };
+export type EventInput = { title: string; detail: string; eventDate: string | null; weekFrom?: string | null };
 export type EventResult = { ok: boolean; message: string };
 
-function cleanEvent(input: EventInput): EventInput | null {
+function cleanEvent(input: EventInput): (EventInput & { weekFrom: string | null }) | null {
   const title = String(input.title ?? "").trim().slice(0, 200);
   if (!title) return null;
   const date = String(input.eventDate ?? "").trim();
@@ -232,7 +233,16 @@ function cleanEvent(input: EventInput): EventInput | null {
     title,
     detail: String(input.detail ?? "").trim().slice(0, 2000),
     eventDate: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
+    weekFrom: weekOf(input.weekFrom),
   };
+}
+
+/** Semana de la L10 (lunes) a partir de cualquier fecha; null = la próxima L10. Semanas pasadas cuentan como la próxima. */
+function weekOf(v: unknown): string | null {
+  const d = String(v ?? "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  const monday = weekStartISO(new Date(`${d}T12:00:00`));
+  return monday > weekStartISO() ? monday : null;
 }
 
 function refreshEvents() {
@@ -267,16 +277,29 @@ export async function deleteEventAction(id: number): Promise<EventResult> {
   return { ok: true, message: "Evento quitado." };
 }
 
-/** Envía un evento propio a la próxima L10 de otros equipos. */
-export async function sendEventAction(id: number, teamIds: number[]): Promise<EventResult> {
+/** Envía un evento propio (pendiente o ya leído) a la L10 de otros equipos: la próxima o la de una semana. */
+export async function sendEventAction(id: number, teamIds: number[], weekFrom: string | null = null): Promise<EventResult> {
   const session = await requireModule("meeting");
   const allowed = await listShareableTeams(session.teamId);
   const targets = allowed.filter((t) => teamIds.includes(t.id));
   if (targets.length === 0) return { ok: false, message: "Elige al menos un equipo." };
-  const sent = await sendEvent({ teamId: session.teamId, id, toTeamIds: targets.map((t) => t.id), userId: session.userId });
+  const week = weekOf(weekFrom);
+  const sent = await sendEvent({ teamId: session.teamId, id, toTeamIds: targets.map((t) => t.id), weekFrom: week, userId: session.userId });
   await logActivity(session, "meeting", "Envió evento a otro equipo", `Evento #${id} → ${targets.map((t) => t.name).join(", ")}`);
   refreshEvents();
   return sent > 0
-    ? { ok: true, message: `Enviado a la próxima L10 de ${targets.map((t) => t.name).join(", ")}.` }
-    : { ok: false, message: "Ya se había enviado a esos equipos (o el evento ya se leyó)." };
+    ? { ok: true, message: `Enviado a la ${week ? `L10 de la semana del ${week}` : "próxima L10"} de ${targets.map((t) => t.name).join(", ")}.` }
+    : { ok: false, message: "Esos equipos ya lo tienen pendiente para su L10." };
+}
+
+/** Vuelve a usar un evento ya leído (o recibido) en la L10 de este equipo: la próxima o la de una semana. */
+export async function reuseEventAction(id: number, weekFrom: string | null = null): Promise<EventResult> {
+  const session = await requireModule("meeting");
+  const week = weekOf(weekFrom);
+  if (!(await reuseEvent({ teamId: session.teamId, id, weekFrom: week, userId: session.userId }))) {
+    return { ok: false, message: "No se encontró el evento." };
+  }
+  await logActivity(session, "meeting", "Reutilizó evento para la L10", `Evento #${id}${week ? ` · semana ${week}` : ""}`);
+  refreshEvents();
+  return { ok: true, message: week ? `Listo: se leerá en la L10 de la semana del ${week}.` : "Listo: se leerá en la próxima L10." };
 }

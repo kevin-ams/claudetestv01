@@ -16,18 +16,23 @@ type Sendable = {
 };
 
 /** Envía un To-Do o Issue a ClickUp y guarda la referencia de la tarea creada. */
-export async function sendToClickUp(kind: "todo" | "issue", item: Sendable): Promise<SendResult> {
+export async function sendToClickUp(
+  kind: "todo" | "issue",
+  item: Sendable,
+  target: { listId: string; assigneeId: number | null }
+): Promise<SendResult> {
   if (item.clickup_url) {
     return { ok: true, message: "Ya estaba enviado a ClickUp.", url: item.clickup_url };
   }
   try {
     const owner = item.owner_id ? await getUserById(item.owner_id) : null;
+    const footer = `_Enviado desde EOS Nivel 10 (${kind === "todo" ? "To-Do" : "Issue"}${owner ? ` de ${owner.name}` : ""})._`;
     const task = await createClickUpTask({
+      listId: target.listId,
       name: item.title,
-      description: item.description,
+      description: [item.description, footer].filter(Boolean).join("\n\n"),
       dueDate: item.due_date,
-      assigneeEmail: owner && !owner.email.endsWith("@marketing.local") ? owner.email : null,
-      source: kind,
+      assigneeId: target.assigneeId,
     });
     if (kind === "todo") {
       await db().sql`

@@ -83,5 +83,13 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "021_tool_icons",
     "sql": "-- Los íconos de las herramientas pasan de emoji a un ícono del tema (por nombre).\nUPDATE tools SET icon = CASE WHEN kind = 'embed' THEN 'Puzzle' ELSE 'Link' END WHERE icon !~ '^[A-Za-z]+$';\nALTER TABLE tools ALTER COLUMN icon SET DEFAULT 'Link';\n"
+  },
+  {
+    "name": "022_l10_event_weeks",
+    "sql": "-- Eventos programados para la L10 de una semana en particular (NULL = la próxima L10).\nALTER TABLE l10_events ADD COLUMN week_from DATE;\n"
+  },
+  {
+    "name": "023_tool_categories",
+    "sql": "-- Categoría de cada herramienta (p. ej. Análisis, Marketing, Documentos) para agruparlas en el índice.\nALTER TABLE tools ADD COLUMN category TEXT NOT NULL DEFAULT '';\n"
   }
 ];

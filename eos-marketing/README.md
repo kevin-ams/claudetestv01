@@ -64,8 +64,9 @@ La primera vez, abre el sitio y verás `/setup` para crear el equipo y el admini
 | `AUTH_SECRET`  | Secreto para firmar las cookies de sesión. Si falta, usa uno de desarrollo. |
 | `EOS_DATA_DIR` | Carpeta de la base de datos local (por defecto `.data/pglite`). |
 | `EOS_TIMEZONE` | Zona horaria para semanas y fechas (por defecto `America/Guatemala`). |
-| `CLICKUP_API_TOKEN`, `CLICKUP_LIST_ID` | Para activar "Enviar a ClickUp" en To-Dos e Issues (preparado en `src/lib/integrations/clickup.ts`, falta implementarlo). |
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Leads semanales desde ActiveCampaign (Ajustes › Leads desde ActiveCampaign). |
+| `CLICKUP_API_TOKEN` | Token personal de ClickUp (Settings › Apps › API Token), secreto. Activa "Enviar a ClickUp" en To-Dos e Issues. |
+| `CLICKUP_SPACE_NAME` / `CLICKUP_SPACE_ID` | Espacio de ClickUp cuyas listas se ofrecen al enviar (por defecto "Marketing"). |
 | `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función programada `netlify/functions/ac-weekly-sync.mts` (cada hora, minuto 7). |
 
 ## Leads desde ActiveCampaign
@@ -145,6 +146,13 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Enviar a ClickUp** (To-Dos e Issues): al presionar se elige la lista del espacio Marketing (con y sin carpeta) y a
+  quién se asigna (personas del workspace; se sugiere el dueño si su correo coincide). Se crea la tarea con fecha
+  límite y el enlace queda en el To-Do. Requiere `CLICKUP_API_TOKEN`.
+- **Eventos de la L10**: se pueden programar para la L10 de otra semana ("Leer en"), reenviar a otros equipos aunque ya
+  se hayan leído, y en "Eventos de L10 anteriores" reutilizarlos en la próxima L10 o en una semana elegida.
+- **Otras herramientas** tienen categoría (Análisis, Marketing, Documentos… o la que escribas); el índice las agrupa
+  y se filtra por categoría.
 - **Caja de herramientas**: en Ajustes › Caja de herramientas (solo administradores) se crean accesos directos
   (enlace a otro sitio, abre pestaña nueva) o mini módulos con el sitio insertado (iframe, solo https; YouTube y
   Google Docs/Sheets/Slides/Drive se convierten a su versión para insertar). Cada una es para todo el equipo o solo

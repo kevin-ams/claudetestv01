@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import type { Tool, ToolAccess, ToolKind } from "./tools-shared";
 
 const SELECT = `
-  SELECT t.id, t.team_id, t.name, t.description, t.kind, t.url, t.icon, t.access, t.active, t.sort_order,
+  SELECT t.id, t.team_id, t.name, t.description, t.category, t.kind, t.url, t.icon, t.access, t.active, t.sort_order,
     COALESCE((SELECT json_agg(r.role_id) FROM tool_roles r WHERE r.tool_id = t.id), '[]'::json) AS role_ids,
     COALESCE((SELECT json_agg(u.user_id) FROM tool_users u WHERE u.tool_id = t.id), '[]'::json) AS user_ids
   FROM tools t`;
@@ -39,6 +39,7 @@ export async function listVisibleTools(input: { teamId: number; userId: number; 
 export type ToolInput = {
   name: string;
   description: string;
+  category: string;
   kind: ToolKind;
   url: string;
   icon: string;
@@ -64,8 +65,8 @@ async function setAudience(teamId: number, toolId: number, input: ToolInput) {
 
 export async function createTool(teamId: number, input: ToolInput, userId: number) {
   const rows = (await db().sql`
-    INSERT INTO tools (team_id, name, description, kind, url, icon, access, sort_order, created_by)
-    VALUES (${teamId}, ${input.name}, ${input.description}, ${input.kind}, ${input.url}, ${input.icon}, ${input.access},
+    INSERT INTO tools (team_id, name, description, category, kind, url, icon, access, sort_order, created_by)
+    VALUES (${teamId}, ${input.name}, ${input.description}, ${input.category}, ${input.kind}, ${input.url}, ${input.icon}, ${input.access},
       (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM tools WHERE team_id = ${teamId}), ${userId})
     RETURNING id
   `) as { id: number }[];
@@ -75,7 +76,7 @@ export async function createTool(teamId: number, input: ToolInput, userId: numbe
 
 export async function updateTool(teamId: number, id: number, input: ToolInput) {
   const rows = (await db().sql`
-    UPDATE tools SET name = ${input.name}, description = ${input.description}, kind = ${input.kind}, url = ${input.url},
+    UPDATE tools SET name = ${input.name}, description = ${input.description}, category = ${input.category}, kind = ${input.kind}, url = ${input.url},
       icon = ${input.icon}, access = ${input.access}, updated_at = NOW()
     WHERE id = ${id} AND team_id = ${teamId}
     RETURNING id

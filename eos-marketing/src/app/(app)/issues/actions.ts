@@ -49,11 +49,11 @@ export async function setIssueDueDateAction(issueId: number, dueDate: string | n
   revalidatePath("/meeting", "layout");
 }
 
-export async function sendIssueToClickUpAction(issueId: number): Promise<SendResult> {
+export async function sendIssueToClickUpAction(issueId: number, target: { listId: string; assigneeId: number | null }): Promise<SendResult> {
   const session = await requireModule("issues");
   const issue = await getIssue(issueId);
   if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
-  const result = await sendToClickUp("issue", issue);
+  const result = await sendToClickUp("issue", issue, { listId: String(target?.listId ?? ""), assigneeId: Number(target?.assigneeId) || null });
   if (result.ok) {
     revalidatePath("/issues");
     revalidatePath("/meeting", "layout");

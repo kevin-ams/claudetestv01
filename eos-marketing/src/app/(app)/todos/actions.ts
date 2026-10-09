@@ -49,12 +49,15 @@ export async function updateTodoAction(todoId: number, formData: FormData) {
   refresh();
 }
 
-export async function sendTodoToClickUpAction(todoId: number): Promise<SendResult> {
+export async function sendTodoToClickUpAction(todoId: number, target: { listId: string; assigneeId: number | null }): Promise<SendResult> {
   const session = await requireModule("todos");
   const todo = await getTodo(todoId);
   if (!todo || todo.team_id !== session.teamId) return { ok: false, message: "To-Do no encontrado." };
-  const result = await sendToClickUp("todo", todo);
-  if (result.ok) refresh();
+  const result = await sendToClickUp("todo", todo, { listId: String(target?.listId ?? ""), assigneeId: Number(target?.assigneeId) || null });
+  if (result.ok) {
+    await logActivity(session, "todos", "Envió To-Do a ClickUp", todo.title);
+    refresh();
+  }
   return result;
 }
 

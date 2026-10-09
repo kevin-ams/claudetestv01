@@ -8,6 +8,7 @@ export type Tool = {
   team_id: number;
   name: string;
   description: string;
+  category: string;
   kind: ToolKind;
   url: string;
   icon: string;
@@ -75,6 +76,21 @@ export function isToolIcon(v: unknown): v is ToolIconName {
 
 /** Ícono por defecto según el tipo (también para herramientas guardadas con un emoji antiguo). */
 export const defaultToolIcon = (kind: ToolKind): ToolIconName => (kind === "embed" ? "Puzzle" : "Link");
+
+/** Categorías sugeridas (se pueden escribir otras). */
+export const SUGGESTED_CATEGORIES = ["Análisis", "Marketing", "Documentos", "Diseño", "Comunicación", "Gestión"];
+
+/** Agrupa por categoría respetando el orden de las herramientas; las que no tienen, al final como "Otras". */
+export function groupByCategory<T extends { category: string }>(tools: T[]): { category: string; tools: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const t of tools) {
+    const key = t.category.trim() || "Otras";
+    groups.set(key, [...(groups.get(key) ?? []), t]);
+  }
+  return [...groups.entries()]
+    .map(([category, list]) => ({ category, tools: list }))
+    .sort((a, b) => Number(a.category === "Otras") - Number(b.category === "Otras"));
+}
 
 export const KIND_LABEL: Record<ToolKind, string> = {
   link: "Enlace (pestaña nueva)",

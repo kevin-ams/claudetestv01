@@ -163,7 +163,8 @@ export function IssueList({
                     <ClickUpButton
                       sentUrl={issue.clickup_url}
                       configured={clickupConfigured}
-                      onSend={() => sendIssueToClickUpAction(issue.id)}
+                      ownerEmail={members.find((m) => m.id === issue.owner_id)?.email ?? null}
+                      onSend={(target) => sendIssueToClickUpAction(issue.id, target)}
                     />
                   </div>
                 </div>

@@ -30,6 +30,11 @@ function clean(input: ToolInput): ToolInput | string {
   return {
     name,
     description: String(input.description ?? "").trim().slice(0, 300),
+    // "análisis" y "Análisis" son la misma categoría.
+    category: (() => {
+      const c = String(input.category ?? "").trim().replace(/\s+/g, " ").slice(0, 40);
+      return c ? c.charAt(0).toUpperCase() + c.slice(1) : "";
+    })(),
     kind,
     url,
     icon: isToolIcon(input.icon) ? input.icon : defaultToolIcon(kind),

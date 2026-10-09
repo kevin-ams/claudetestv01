@@ -8,7 +8,7 @@ import { AppCheckbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { ArrowDown, ArrowUp } from "@gravity-ui/icons";
 import { ToolIcon, ToolIconByName } from "@/components/tool-icon";
-import { KIND_LABEL, TOOL_ICONS, defaultToolIcon, isToolIcon, type Tool, type ToolAccess, type ToolIconName, type ToolKind } from "@/lib/domain/tools-shared";
+import { KIND_LABEL, SUGGESTED_CATEGORIES, TOOL_ICONS, defaultToolIcon, isToolIcon, type Tool, type ToolAccess, type ToolIconName, type ToolKind } from "@/lib/domain/tools-shared";
 import { deleteToolAction, moveToolAction, saveToolAction, toggleToolAction, type ToolResult } from "./actions";
 
 type Option = { id: number; name: string; isAdmin?: boolean };
@@ -21,17 +21,20 @@ function ToolForm({
   tool,
   roles,
   members,
+  categories,
   onDone,
 }: {
   tool?: Tool;
   roles: Option[];
   members: Option[];
+  categories: string[];
   onDone: () => void;
 }) {
   const router = useRouter();
   const [name, setName] = useState(tool?.name ?? "");
   const [icon, setIcon] = useState<ToolIconName | null>(tool && isToolIcon(tool.icon) ? tool.icon : null);
   const [description, setDescription] = useState(tool?.description ?? "");
+  const [category, setCategory] = useState(tool?.category ?? "");
   const [kind, setKind] = useState<ToolKind>(tool?.kind ?? "link");
   const [url, setUrl] = useState(tool?.url ?? "");
   const [access, setAccess] = useState<ToolAccess>(tool?.access ?? "all");
@@ -50,6 +53,7 @@ function ToolForm({
             name,
             icon: icon ?? defaultToolIcon(kind),
             description,
+            category,
             kind,
             url,
             access,
@@ -109,6 +113,36 @@ function ToolForm({
         onChange={(e) => setDescription(e.target.value)}
         className="min-h-14"
       />
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted">Categoría (agrupa las herramientas en el índice)</span>
+        <Input
+          aria-label="Categoría"
+          placeholder="Análisis, Marketing, Documentos… (opcional)"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          list={`tool-categories-${tool?.id ?? "new"}`}
+          className="max-w-sm"
+        />
+        <datalist id={`tool-categories-${tool?.id ?? "new"}`}>
+          {categories.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+        <div className="flex flex-wrap gap-1">
+          {categories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={`rounded-full border px-2 py-0.5 text-xs transition ${
+                category === c ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted hover:border-primary hover:text-primary"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="flex flex-col gap-1">
         <span className="text-xs text-muted">Tipo</span>
         <Segmented
@@ -209,6 +243,8 @@ function audience(tool: Tool, roles: Option[], members: Option[]) {
 }
 
 export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: Option[]; members: Option[] }) {
+  // Sugeridas + las que ya se usan.
+  const categories = [...new Set([...SUGGESTED_CATEGORIES, ...tools.map((t) => t.category).filter(Boolean)])];
   const router = useRouter();
   const [editing, setEditing] = useState<number | "new" | null>(null);
   const [pending, start] = useTransition();
@@ -236,7 +272,7 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
 
       {editing === "new" && (
         <Card className="p-4">
-          <ToolForm roles={roles} members={members} onDone={() => setEditing(null)} />
+          <ToolForm roles={roles} members={members} categories={categories} onDone={() => setEditing(null)} />
         </Card>
       )}
 
@@ -251,7 +287,7 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
           <li key={t.id}>
             <Card className={`p-4 ${t.active ? "" : "opacity-60"}`}>
               {editing === t.id ? (
-                <ToolForm tool={t} roles={roles} members={members} onDone={() => setEditing(null)} />
+                <ToolForm tool={t} roles={roles} members={members} categories={categories} onDone={() => setEditing(null)} />
               ) : (
                 <div className="flex flex-wrap items-start gap-3">
                   <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -260,6 +296,11 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold">
                       {t.name}{" "}
+                      {t.category && (
+                        <Chip size="sm" variant="soft" color="accent" className="ml-1">
+                          {t.category}
+                        </Chip>
+                      )}
                       <Chip size="sm" variant="soft" className="ml-1">
                         {KIND_LABEL[t.kind]}
                       </Chip>

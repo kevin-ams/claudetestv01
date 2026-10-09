@@ -5,7 +5,8 @@ import { getSession } from "@/lib/auth/session";
 import { listMeetings, getActiveMeeting } from "@/lib/domain/meetings";
 import { StartMeetingButton } from "./start-meeting-button";
 import { canEdit } from "@/lib/auth/access";
-import { listPendingEvents } from "@/lib/domain/l10-events";
+import { listPastEvents, listPendingEvents } from "@/lib/domain/l10-events";
+import { weekStartISO } from "@/lib/utils/dates";
 import { listShareableTeams } from "@/lib/domain/scorecard";
 import { EventsPanel } from "./events-panel";
 
@@ -19,10 +20,11 @@ export default async function MeetingListPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [meetings, active, events, teams, editable] = await Promise.all([
+  const [meetings, active, events, pastEvents, teams, editable] = await Promise.all([
     listMeetings(session.teamId),
     getActiveMeeting(session.teamId),
-    listPendingEvents(session.teamId),
+    listPendingEvents(session.teamId, false),
+    listPastEvents(session.teamId),
     listShareableTeams(session.teamId),
     canEdit("meeting"),
   ]);
@@ -46,7 +48,7 @@ export default async function MeetingListPage() {
         )}
       </div>
 
-      <EventsPanel events={events} teams={teams} editable={editable} activeMeetingId={active?.id ?? null} />
+      <EventsPanel events={events} pastEvents={pastEvents} currentWeek={weekStartISO()} teams={teams} editable={editable} activeMeetingId={active?.id ?? null} />
 
       <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
         Historial
