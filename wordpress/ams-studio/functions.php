@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AMS_STUDIO_VERSION', '1.1.0' );
+define( 'AMS_STUDIO_VERSION', '1.2.0' );
 define( 'AMS_STUDIO_DIR', get_template_directory() );
 define( 'AMS_STUDIO_URI', get_template_directory_uri() );
 
@@ -186,7 +186,7 @@ function ams_studio_logo_svg( $class = 'w-10 h-10', $accent = true ) {
 function ams_studio_litespeed_ucss_whitelist( $list ) {
 	return array_merge(
 		(array) $list,
-		array( '.hidden', '.flex', '.py-2', '.py-4', '.scale-95', '.scale-100', '.opacity-0', '.pointer-events-none', '.fa-spin', '.fa-circle-notch', '.ams-tab', '.ams-tab-panel' )
+		array( '.hidden', '.flex', '.py-2', '.py-4', '.scale-95', '.scale-100', '.opacity-0', '.pointer-events-none', '.fa-spin', '.fa-circle-notch', '.fa-sun', '.text-amber-400', '.ams-tab', '.ams-tab-panel', '.ams-reveal', '.is-visible', '.light-mode', '.active' )
 	);
 }
 add_filter( 'litespeed_ucss_whitelist', 'ams_studio_litespeed_ucss_whitelist' );

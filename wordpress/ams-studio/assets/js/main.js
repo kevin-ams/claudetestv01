@@ -131,6 +131,87 @@
 	});
 
 	/* ---------------------------------------------------------------
+	 * Light / dark theme. header.php applies it before first paint:
+	 * the visitor's saved choice, otherwise their browser/OS setting.
+	 * ------------------------------------------------------------- */
+	var themeButtons = document.querySelectorAll('[data-theme-toggle]');
+	var systemLight = window.matchMedia('(prefers-color-scheme: light)');
+
+	var paintThemeControls = function () {
+		var isLight = document.body.classList.contains('light-mode');
+		themeButtons.forEach(function (btn) {
+			btn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+		});
+		document.querySelectorAll('.theme-icon').forEach(function (icon) {
+			icon.className = isLight
+				? 'fa-solid fa-sun theme-icon text-amber-400 group-hover:rotate-45 transition-transform'
+				: 'fa-solid fa-moon theme-icon text-brand-periwinkle group-hover:rotate-12 transition-transform';
+		});
+	};
+
+	var setTheme = function (light, remember) {
+		document.body.classList.toggle('light-mode', light);
+		if (remember) {
+			try { localStorage.setItem('ams_theme_pref', light ? 'light' : 'dark'); } catch (e) {}
+		}
+		paintThemeControls();
+	};
+
+	themeButtons.forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			setTheme(!document.body.classList.contains('light-mode'), true);
+		});
+	});
+
+	// Follow live OS/browser changes until the visitor picks a theme themselves.
+	var onSystemChange = function (e) {
+		var saved = null;
+		try { saved = localStorage.getItem('ams_theme_pref'); } catch (err) {}
+		if (!saved) setTheme(e.matches, false);
+	};
+	if (systemLight.addEventListener) systemLight.addEventListener('change', onSystemChange);
+	else if (systemLight.addListener) systemLight.addListener(onSystemChange);
+
+	paintThemeControls();
+
+	/* ---------------------------------------------------------------
+	 * Scroll reveal (armed by header.php with .ams-reveal on <html>)
+	 * ------------------------------------------------------------- */
+	window.AMS_REVEAL_READY = true;
+	if (document.documentElement.classList.contains('ams-reveal')) {
+		var revealObserver = new IntersectionObserver(function (entries, obs) {
+			entries.forEach(function (entry) {
+				if (entry.isIntersecting) {
+					entry.target.classList.add('is-visible');
+					obs.unobserve(entry.target);
+				}
+			});
+		}, { rootMargin: '0px 0px -80px 0px', threshold: 0 });
+		document.querySelectorAll('.reveal-on-scroll').forEach(function (el) { revealObserver.observe(el); });
+	}
+
+	/* ---------------------------------------------------------------
+	 * Services category filter
+	 * ------------------------------------------------------------- */
+	var svcButtons = document.querySelectorAll('[data-svc-filter]');
+	svcButtons.forEach(function (btn) {
+		btn.addEventListener('click', function () {
+			var category = btn.getAttribute('data-svc-filter');
+			svcButtons.forEach(function (b) {
+				var on = b === btn;
+				b.classList.toggle('active', on);
+				b.classList.toggle('bg-brand-blue', on);
+				b.classList.toggle('text-white', on);
+				b.classList.toggle('text-slate-300', !on);
+				b.setAttribute('aria-pressed', on ? 'true' : 'false');
+			});
+			document.querySelectorAll('.svc-card').forEach(function (card) {
+				card.classList.toggle('hidden', category !== 'all' && !card.classList.contains(category));
+			});
+		});
+	});
+
+	/* ---------------------------------------------------------------
 	 * Toast modal
 	 * ------------------------------------------------------------- */
 	var toast = document.getElementById('toastModal');

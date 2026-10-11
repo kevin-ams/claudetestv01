@@ -2,6 +2,12 @@
 
 Réplica del sitio oficial de AMS Studio (Crystal Glassmorphism, luz azul real y pestañas del ecosistema) empaquetada como tema de WordPress.
 
+## Modo claro / oscuro
+
+- Por defecto el sitio usa el modo que el visitante tiene configurado en su navegador o sistema operativo, y cambia en vivo si lo cambia.
+- El botón luna/sol del menú permite elegir otro modo; esa elección se recuerda en el navegador del visitante y tiene prioridad.
+- Las secciones aparecen con una animación al hacer scroll. Si el visitante tiene activado "reducir movimiento", o si el JavaScript tarda en cargar, se muestran sin animación (nunca quedan ocultas).
+
 ## Instalar o actualizar
 
 1. Descarga `wordpress/ams-studio.zip`.
@@ -20,7 +26,7 @@ Réplica del sitio oficial de AMS Studio (Crystal Glassmorphism, luz azul real y
 
 | Plugin | Qué tener en cuenta |
 |---|---|
-| **LiteSpeed Cache** | Los formularios piden un nonce nuevo justo antes de enviar, así que siguen funcionando aunque la página venga de la caché. Si activas *Generar UCSS*, el tema ya marca como protegidas las clases que agrega por JavaScript (menú móvil, modal). Después de actualizar el tema, purga la caché. |
+| **LiteSpeed Cache** | Los formularios piden un nonce nuevo justo antes de enviar, así que siguen funcionando aunque la página venga de la caché. Si activas *Generar UCSS*, el tema ya marca como protegidas las clases que agrega por JavaScript (menú móvil, modal, modo claro). No actives *Cargar JS retrasado*: el sitio seguiría funcionando, pero sin animaciones ni modo claro/oscuro hasta que el visitante toque la página. Después de actualizar el tema, purga la caché. |
 | **WP Mail SMTP** | Configúralo con el correo de `amscreativeint.com`. El formulario integrado y WPForms envían a través de él. |
 | **WPForms** | Opcional. Crea el formulario y pon su ID en *Personalizar → AMS Studio: Formularios*; el tema le aplica el estilo glass. |
 | **Elementor** | La portada usa el diseño del tema; no hace falta editarla con Elementor. Para páginas nuevas usa la plantilla **Elementor ancho completo**, que conserva el menú y el pie del tema (el contenido arranca debajo del menú fijo). Con **Elementor Pro**, un encabezado o pie hecho en el Theme Builder reemplaza al del tema. |

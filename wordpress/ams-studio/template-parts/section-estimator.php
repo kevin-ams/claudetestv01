@@ -9,7 +9,7 @@ $ams_options  = ams_studio_wizard_options();
 $ams_selected = array( 'branding', 'web' );
 $ams_wpforms  = ams_studio_wpforms( 'ams_wpforms_wizard' );
 ?>
-<section id="estimador" class="py-24 relative z-10 px-4 sm:px-6 lg:px-8">
+<section id="estimador" class="py-24 relative z-10 px-4 sm:px-6 lg:px-8 bg-black/20 border-t border-white/10 reveal-on-scroll">
 	<div class="max-w-5xl mx-auto">
 
 		<div class="glass-panel p-6 sm:p-12 rounded-3xl border border-brand-blue/30 relative overflow-hidden shadow-glow-blue">

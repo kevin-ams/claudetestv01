@@ -1,7 +1,7 @@
 /** Same theme tokens as the original Tailwind CDN config. */
 module.exports = {
 	content: ['./*.php', './template-parts/**/*.php', './inc/**/*.php', './assets/js/**/*.js'],
-	safelist: ['hidden', 'flex', 'opacity-0', 'pointer-events-none', 'scale-95', 'scale-100', 'py-2', 'py-4'],
+	safelist: ['hidden', 'flex', 'opacity-0', 'pointer-events-none', 'scale-95', 'scale-100', 'py-2', 'py-4', 'text-amber-400', 'group-hover:rotate-45', 'bg-brand-blue', 'text-white', 'text-slate-300'],
 	theme: {
 		extend: {
 			colors: {

@@ -13,7 +13,7 @@ $ams_emails = array(
 );
 $ams_wpforms = ams_studio_wpforms( 'ams_wpforms_contact' );
 ?>
-<section id="contacto" class="py-24 relative z-10 px-4 sm:px-6 lg:px-8 bg-black/40 border-t border-white/10">
+<section id="contacto" class="py-24 relative z-10 px-4 sm:px-6 lg:px-8 bg-black/40 border-t border-white/10 reveal-on-scroll">
 	<div class="max-w-7xl mx-auto">
 
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
@@ -35,7 +35,7 @@ $ams_wpforms = ams_studio_wpforms( 'ams_wpforms_contact' );
 								<i class="fa-solid fa-phone" aria-hidden="true"></i>
 							</div>
 							<div>
-								<div class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Teléfono de Contacto Principal</div>
+								<div class="text-[10px] uppercase text-slate-400 font-bold tracking-wider">Línea Telefónica Principal</div>
 								<div class="text-lg font-bold text-white mt-0.5"><?php echo esc_html( $ams_phone ); ?></div>
 							</div>
 						</a>

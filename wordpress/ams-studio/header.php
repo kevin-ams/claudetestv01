@@ -14,6 +14,24 @@
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class( 'bg-brand-charcoal text-slate-200 font-sans antialiased overflow-x-hidden selection:bg-brand-blue selection:text-white' ); ?>>
+<script>
+	/* Before first paint: pick light/dark (the visitor's saved choice, otherwise their
+	   browser/OS setting) and arm the scroll reveal. */
+	(function (d) {
+		var saved = null;
+		try { saved = localStorage.getItem('ams_theme_pref'); } catch (e) {}
+		var light = saved ? saved === 'light' : window.matchMedia('(prefers-color-scheme: light)').matches;
+		if (light) d.body.classList.add('light-mode');
+		if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+			d.documentElement.classList.add('ams-reveal');
+			// If main.js still hasn't run once the page has loaded (e.g. LiteSpeed "Load JS
+			// Delayed" waits for a click), show everything instead of leaving it hidden.
+			window.addEventListener('load', function () {
+				setTimeout(function () { if (!window.AMS_REVEAL_READY) d.documentElement.classList.remove('ams-reveal'); }, 500);
+			});
+		}
+	})(document);
+</script>
 <?php wp_body_open(); ?>
 
 	<!-- Background Ambient Glow Canvas & Blobs -->
@@ -54,10 +72,14 @@
 			</nav>
 
 			<div class="flex items-center gap-2 sm:gap-4">
-				<div class="hidden sm:flex items-center">
+				<div class="hidden sm:flex items-center gap-3">
+					<button type="button" data-theme-toggle aria-label="<?php esc_attr_e( 'Cambiar tema de color', 'ams-studio' ); ?>" aria-pressed="false" class="p-2.5 rounded-xl glass-card text-slate-300 hover:text-white flex items-center justify-center transition-all border border-white/10 hover:border-brand-blue/50 group">
+						<i class="fa-solid fa-moon theme-icon text-brand-periwinkle group-hover:rotate-12 transition-transform" aria-hidden="true"></i>
+					</button>
+
 					<a href="<?php echo esc_url( ams_studio_anchor( 'estimador' ) ); ?>" class="px-5 py-2.5 rounded-xl glass-button-primary text-white text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-						<i class="fa-solid fa-bolt text-brand-periwinkle" aria-hidden="true"></i>
-						<span><?php esc_html_e( 'Iniciar Proyecto', 'ams-studio' ); ?></span>
+						<i class="fa-solid fa-paper-plane text-brand-periwinkle" aria-hidden="true"></i>
+						<span><?php esc_html_e( 'Iniciar Cotización', 'ams-studio' ); ?></span>
 					</a>
 				</div>
 
@@ -69,7 +91,14 @@
 
 		<div id="mobileMenu" class="hidden xl:hidden max-w-7xl mx-auto mt-3 glass-panel bg-brand-charcoal/90 rounded-2xl p-6 border border-white/10 flex-col gap-4 text-center">
 			<?php ams_studio_nav_links( 'mobile-link text-slate-200 hover:text-brand-blue py-2' ); ?>
-			<a href="<?php echo esc_url( ams_studio_anchor( 'estimador' ) ); ?>" class="mobile-link mt-2 w-full py-3 rounded-xl glass-button-primary text-white text-xs font-bold uppercase"><?php esc_html_e( 'Iniciar Proyecto', 'ams-studio' ); ?></a>
+
+			<div class="flex items-center gap-3 pt-2">
+				<button type="button" data-theme-toggle aria-pressed="false" class="w-full py-3 rounded-xl glass-card text-slate-200 text-xs font-bold uppercase flex items-center justify-center gap-2">
+					<i class="fa-solid fa-moon theme-icon text-brand-periwinkle" aria-hidden="true"></i>
+					<span><?php esc_html_e( 'Cambiar Tema', 'ams-studio' ); ?></span>
+				</button>
+				<a href="<?php echo esc_url( ams_studio_anchor( 'estimador' ) ); ?>" class="mobile-link w-full py-3 rounded-xl glass-button-primary text-white text-xs font-bold uppercase"><?php esc_html_e( 'Cotizar Proyecto', 'ams-studio' ); ?></a>
+			</div>
 		</div>
 	</header>
 	<?php endif; ?>

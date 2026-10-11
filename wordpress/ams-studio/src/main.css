@@ -6,7 +6,7 @@
  * Glassmorphism styles (identical to the original page)
  * ------------------------------------------------------------------ */
 .glass-panel {
-	background: rgba(18, 24, 39, 0.55);
+	background: rgba(18, 24, 39, 0.65);
 	backdrop-filter: blur(16px);
 	-webkit-backdrop-filter: blur(16px);
 	border: 1px solid rgba(255, 255, 255, 0.12);
@@ -82,6 +82,28 @@
 	opacity: 0.45;
 	pointer-events: none;
 	z-index: 0;
+	transition: opacity 0.5s ease;
+}
+
+/* ------------------------------------------------------------------
+ * Scroll reveal. Only armed when header.php adds .ams-reveal to <html>,
+ * so content stays visible without JS or with reduced motion.
+ * ------------------------------------------------------------------ */
+.ams-reveal .reveal-on-scroll {
+	opacity: 0;
+	transform: translateY(32px);
+	filter: blur(6px);
+	transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+		transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+		filter 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 'none' rather than blur(0)/translateY(0): any filter or transform on the section
+   would stop the glass cards inside from blurring the page background. */
+.ams-reveal .reveal-on-scroll.is-visible {
+	opacity: 1;
+	transform: none;
+	filter: none;
 }
 
 /* Native radios/checkboxes in royal blue, as in the original. */
@@ -98,6 +120,122 @@ input[type="checkbox"] {
 ::-webkit-scrollbar-track { background: #0B0F19; }
 ::-webkit-scrollbar-thumb { background: #2563FF; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #8DA5FF; }
+
+/* ------------------------------------------------------------------
+ * Light mode (toggled with the moon/sun button, saved in localStorage)
+ * ------------------------------------------------------------------ */
+body.light-mode {
+	background-color: #F4F6FF !important;
+	color: #0F172A !important;
+}
+
+body.light-mode .glass-panel {
+	background: rgba(255, 255, 255, 0.85);
+	border-color: rgba(37, 99, 255, 0.18);
+	box-shadow: 0 8px 32px 0 rgba(37, 99, 255, 0.08);
+}
+
+body.light-mode .glass-card {
+	background: rgba(255, 255, 255, 0.92);
+	border-color: rgba(37, 99, 255, 0.18);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+body.light-mode .glass-card:hover {
+	border-color: rgba(37, 99, 255, 0.5);
+	box-shadow: 0 12px 35px -5px rgba(37, 99, 255, 0.2);
+}
+
+body.light-mode .glass-input,
+body.light-mode .ams-wpforms input[type="text"],
+body.light-mode .ams-wpforms input[type="email"],
+body.light-mode .ams-wpforms input[type="tel"],
+body.light-mode .ams-wpforms input[type="url"],
+body.light-mode .ams-wpforms input[type="number"],
+body.light-mode .ams-wpforms select,
+body.light-mode .ams-wpforms textarea {
+	background: rgba(255, 255, 255, 0.95) !important;
+	border-color: rgba(37, 99, 255, 0.25) !important;
+	color: #0F172A !important;
+}
+
+body.light-mode .glass-input::placeholder,
+body.light-mode .ams-wpforms ::placeholder {
+	color: #64748B !important;
+}
+
+body.light-mode .ams-wpforms .wpforms-field-label,
+body.light-mode .ams-wpforms .wpforms-field-sublabel,
+body.light-mode .ams-wpforms .wpforms-field-checkbox li label,
+body.light-mode .ams-wpforms .wpforms-field-radio li label {
+	color: #334155 !important;
+}
+
+body.light-mode .text-gradient {
+	background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #2563FF 100%);
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+body.light-mode .text-white {
+	color: #0F172A !important;
+}
+
+body.light-mode .glass-button-primary,
+body.light-mode .glass-button-primary *,
+body.light-mode .bg-brand-blue,
+body.light-mode .bg-brand-blue *,
+body.light-mode .svc-filter-btn.active,
+body.light-mode .svc-filter-btn.active * {
+	color: #FFFFFF !important;
+}
+
+body.light-mode .glass-button-primary i,
+body.light-mode .bg-brand-blue i {
+	color: #E0E7FF !important;
+}
+
+body.light-mode .text-slate-200,
+body.light-mode .text-slate-300 {
+	color: #334155 !important;
+}
+
+body.light-mode .text-slate-400,
+body.light-mode .text-slate-500 {
+	color: #475569 !important;
+}
+
+/* Periwinkle labels are too pale to read on white. */
+body.light-mode .text-brand-periwinkle {
+	color: #4361EE !important;
+}
+
+body.light-mode .text-red-300 {
+	color: #DC2626 !important;
+}
+
+body.light-mode .bg-black\/20,
+body.light-mode .bg-black\/40,
+body.light-mode .bg-slate-900\/40 {
+	background-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+body.light-mode .bg-brand-charcoal\/90 {
+	background-color: rgba(255, 255, 255, 0.96) !important;
+}
+
+body.light-mode .border-white\/5,
+body.light-mode .border-white\/10,
+body.light-mode .border-white\/15 {
+	border-color: rgba(37, 99, 255, 0.18) !important;
+}
+
+body.light-mode .ambient-blob {
+	opacity: 0.25;
+}
+
+body.light-mode ::-webkit-scrollbar-track { background: #F4F6FF; }
 
 /* Anchored sections clear the fixed navbar. */
 section[id] { scroll-margin-top: 6rem; }
