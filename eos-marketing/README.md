@@ -151,6 +151,13 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   responsable y se puede mover (quitarlo del equipo propio). La copia muestra "De: equipo · persona" y el original
   "Enviado a … · pendiente/hecho". No se envía dos veces mientras la copia siga pendiente. Columnas
   `todos.from_team_id`, `origin_todo_id`, `sent_by`.
+- **Reportes semanales: dos tipos** (`?tipo=planificacion|cierre`). *Planificación*: igual que abajo, pero el Scorecard
+  muestra los resultados de la semana anterior. *Fin de semana*: evolución de lo trabajado — piezas publicadas contra
+  planificadas (pendientes, reprogramadas), coberturas realizadas y horas reales contra estimadas, Scorecard de la
+  semana contra la anterior (cambio ▲▼ según la dirección de la meta), avance de los To-Dos de la L10, eventos desde la
+  próxima semana, leads y consumo contra la semana anterior por persona, e hitos de Rocks que vencían en la semana. Las
+  secciones elegidas se guardan por tipo (JSON en `teams.weekly_report_sections`). El HTML usa estilos cortos para
+  quedar bajo ~100 KB (Gmail recorta lo más largo); la pantalla avisa si se pasa.
 - **Reportes semanales** (`/reportes-semanales`, módulo controlable desde Roles y accesos): se elige la semana y, como
   checklist, las secciones (Calendario editorial, Control de coberturas, Scorecard semanal, Resumen de la reunión L10
   de esa semana, Eventos próximos, Indicadores de carrera por persona y Resumen de Rocks del trimestre con hitos

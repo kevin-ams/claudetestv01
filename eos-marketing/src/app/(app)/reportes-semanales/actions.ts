@@ -4,7 +4,7 @@ import { requireModule } from "@/lib/auth/access";
 import { logActivity } from "@/lib/domain/activity";
 import { listTeamMembers } from "@/lib/domain/users";
 import { buildWeeklyReport, setWeeklyReportPrefs } from "@/lib/domain/weekly-report";
-import { parseSections, type ReportSection } from "@/lib/domain/weekly-report-shared";
+import { isReportKind, parseSections, type ReportKind, type ReportSection } from "@/lib/domain/weekly-report-shared";
 import { appUrl, parseRecipients, sendEmail } from "@/lib/email";
 import { sectionAvailability } from "./availability";
 
@@ -17,13 +17,14 @@ async function allowedSections(teamId: number, requested: string[]): Promise<Rep
 }
 
 /** Vista previa: el mismo HTML que se envía por correo. */
-export async function previewWeeklyReportAction(week: string, sections: string[], message: string): Promise<Result & { html: string }> {
+export async function previewWeeklyReportAction(kind: ReportKind, week: string, sections: string[], message: string): Promise<Result & { html: string }> {
   try {
     const session = await requireModule("reportes_semanales", "view");
-    if (!ISO.test(week)) return { ok: false, message: "Semana inválida.", html: "" };
+    if (!ISO.test(week) || !isReportKind(kind)) return { ok: false, message: "Semana inválida.", html: "" };
     const chosen = await allowedSections(session.teamId, sections);
     const { html } = await buildWeeklyReport({
       teamId: session.teamId,
+      kind,
       week,
       sections: chosen,
       author: session.name,
@@ -38,6 +39,7 @@ export async function previewWeeklyReportAction(week: string, sections: string[]
 }
 
 export async function sendWeeklyReportAction(input: {
+  kind: ReportKind;
   week: string;
   sections: string[];
   recipients: string;
@@ -46,7 +48,7 @@ export async function sendWeeklyReportAction(input: {
 }): Promise<Result> {
   try {
     const session = await requireModule("reportes_semanales", "view");
-    if (!ISO.test(input.week)) return { ok: false, message: "Semana inválida." };
+    if (!ISO.test(input.week) || !isReportKind(input.kind)) return { ok: false, message: "Semana inválida." };
     const chosen = await allowedSections(session.teamId, input.sections);
     if (chosen.length === 0) return { ok: false, message: "Elige al menos una sección." };
     const extra = parseRecipients(String(input.recipients ?? ""));
@@ -58,16 +60,17 @@ export async function sendWeeklyReportAction(input: {
 
     const { html, subject } = await buildWeeklyReport({
       teamId: session.teamId,
+      kind: input.kind,
       week: input.week,
       sections: chosen,
       author: session.name,
       appUrl: await appUrl(),
       message: String(input.message ?? "").slice(0, 2000),
     });
-    await setWeeklyReportPrefs(session.teamId, extra.emails.join(", "), chosen);
+    await setWeeklyReportPrefs(session.teamId, input.kind, extra.emails.join(", "), chosen);
     const result = await sendEmail({ to, replyTo: session.email, subject, html });
     if (result.ok) {
-      await logActivity(session, "reportes_semanales", "Envió reporte semanal", `Semana ${input.week} (${chosen.join(", ")}) → ${to.join(", ")}`);
+      await logActivity(session, "reportes_semanales", input.kind === "cierre" ? "Envió reporte de fin de semana" : "Envió reporte de planificación", `Semana ${input.week} (${chosen.join(", ")}) → ${to.join(", ")}`);
     }
     return result;
   } catch (e) {
