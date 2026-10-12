@@ -91,5 +91,13 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "023_tool_categories",
     "sql": "-- Categoría de cada herramienta (p. ej. Análisis, Marketing, Documentos) para agruparlas en el índice.\nALTER TABLE tools ADD COLUMN category TEXT NOT NULL DEFAULT '';\n"
+  },
+  {
+    "name": "024_issue_top3",
+    "sql": "-- Top 3 de Issues: los primeros que se discuten en el IDS de la L10 (1, 2, 3; NULL = no está en el top).\nALTER TABLE issues ADD COLUMN top_rank SMALLINT;\n"
+  },
+  {
+    "name": "025_ac_sync_request",
+    "sql": "-- Sincronización manual en segundo plano: cuándo se pidió (para mostrar el avance al volver a la página).\nALTER TABLE teams ADD COLUMN ac_sync_requested_at TIMESTAMPTZ;\n"
   }
 ];

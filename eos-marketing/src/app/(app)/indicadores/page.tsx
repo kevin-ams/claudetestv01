@@ -7,7 +7,7 @@ import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { formatWeekRange, lastClosedWeek, shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import { CareerBoard } from "./career-board";
 import Link from "next/link";
-import { lastSync } from "@/lib/domain/ac-sync";
+import { lastSync, pendingSyncSince } from "@/lib/domain/ac-sync";
 
 const AC_WHEN = new Intl.DateTimeFormat("es", {
   dateStyle: "medium",
@@ -63,6 +63,7 @@ export default async function IndicadoresPage({
         members={members}
         programs={programs}
         acConfigured={isActiveCampaignConfigured()}
+        acPendingSince={await pendingSyncSince(session.teamId)}
       />
       {isActiveCampaignConfigured() && (
         <p className="-mt-2 text-xs text-muted">

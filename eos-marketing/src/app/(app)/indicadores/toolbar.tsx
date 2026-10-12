@@ -25,6 +25,7 @@ export function Toolbar({
   members,
   programs,
   acConfigured,
+  acPendingSince = null,
 }: {
   week: string;
   weekLabel: string;
@@ -35,6 +36,7 @@ export function Toolbar({
   members: PublicUser[];
   programs: string[];
   acConfigured: boolean;
+  acPendingSince?: string | null;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -68,7 +70,7 @@ export function Toolbar({
           {!acConfigured ? (
             <Chip size="sm" color="warning" variant="soft">ActiveCampaign sin configurar</Chip>
           ) : week === currentWeek ? (
-            <AcSyncButton />
+            <AcSyncButton pendingSince={acPendingSince} />
           ) : (
             // Los leads de ActiveCampaign solo se guardan en la semana en curso.
             <Link href={weekHref(currentWeek)} className={buttonVariants({ variant: "outline" })}>

@@ -215,6 +215,46 @@ export async function scanStep(input: { teamId: number | null; freshAfter: Date;
   };
 }
 
+/** Avance de la revisión sin hacer trabajo (para la pantalla mientras corre en segundo plano). */
+export async function scanStatus(teamId: number, freshAfter: Date): Promise<Omit<ScanProgress, "checked" | "errors">> {
+  const pipelines = await linkedPipelines(teamId);
+  const rows = (
+    (await db().sql`
+      SELECT pipeline_id, page_offset, scanned_at, deals_total, deals_done FROM ac_pipeline_scans
+    `) as Pick<ScanRow, "pipeline_id" | "page_offset" | "scanned_at" | "deals_total" | "deals_done">[]
+  ).filter((r) => pipelines.includes(r.pipeline_id));
+  const isFresh = (r: (typeof rows)[number]) => r.page_offset === 0 && r.scanned_at !== null && new Date(r.scanned_at) >= freshAfter;
+  const fresh = rows.filter(isFresh);
+  return {
+    done: pipelines.length > 0 && fresh.length === pipelines.length,
+    pipelinesDone: fresh.length,
+    pipelinesTotal: pipelines.length,
+    dealsDone: rows.reduce((n, r) => n + (isFresh(r) ? r.deals_total : r.deals_done), 0),
+    dealsTotal: rows.reduce((n, r) => n + r.deals_total, 0),
+  };
+}
+
+/** Marca que el equipo pidió una sincronización manual (corre en segundo plano). */
+export async function markSyncRequested(teamId: number): Promise<string> {
+  const rows = (await db().sql`
+    UPDATE teams SET ac_sync_requested_at = NOW() WHERE id = ${teamId} RETURNING ac_sync_requested_at AS at
+  `) as { at: string }[];
+  return new Date(rows[0].at).toISOString();
+}
+
+/** Sincronización manual pendiente: pedida en los últimos 20 minutos y aún sin terminar. */
+export async function pendingSyncSince(teamId: number): Promise<string | null> {
+  const rows = (await db().sql`
+    SELECT ac_sync_requested_at AS req, ac_last_sync_at AS last FROM teams WHERE id = ${teamId}
+  `) as { req: string | null; last: string | null }[];
+  const r = rows[0];
+  if (!r?.req) return null;
+  const req = new Date(r.req);
+  if (Date.now() - req.getTime() > 20 * 60 * 1000) return null;
+  if (r.last && new Date(r.last) >= req) return null;
+  return req.toISOString();
+}
+
 /** Leads calificados de la semana por carrera vinculada: tratos que entraron al embudo esa semana. */
 export async function weekCounts(teamId: number | null, weekStart: string) {
   const links = (await db().sql`

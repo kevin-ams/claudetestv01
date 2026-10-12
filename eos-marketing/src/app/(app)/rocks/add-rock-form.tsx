@@ -1,5 +1,7 @@
 "use client";
 
+import { SubmitButton } from "@/components/submit-button";
+
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Input, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
@@ -55,9 +57,9 @@ export function AddRockForm({
         Rock de la empresa
       </AppCheckbox>
       <div className="flex gap-2">
-        <Button variant="primary" type="submit">
+        <SubmitButton variant="primary" pendingLabel="Guardando…">
           Crear Rock
-        </Button>
+        </SubmitButton>
         <Button variant="outline" type="button" onPress={() => setOpen(false)}>
           Cancelar
         </Button>

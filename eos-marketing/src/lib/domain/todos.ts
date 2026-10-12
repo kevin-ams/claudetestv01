@@ -28,6 +28,14 @@ export async function createTodo(input: {
   dueDate: string | null;
   meetingId: number | null;
 }): Promise<Todo> {
+  // Evita duplicados por doble clic o reenvío: el mismo To-Do en el mismo equipo en los últimos 30 segundos.
+  const dup = (await db().sql`
+    SELECT * FROM todos
+    WHERE team_id = ${input.teamId} AND status = 'open' AND lower(trim(title)) = lower(trim(${input.title}))
+      AND owner_id IS NOT DISTINCT FROM ${input.ownerId}::int AND created_at > NOW() - INTERVAL '30 seconds'
+    ORDER BY id DESC LIMIT 1
+  `) as Todo[];
+  if (dup[0]) return dup[0];
   const rows = await db().sql`
     INSERT INTO todos (team_id, title, description, owner_id, due_date, meeting_id)
     VALUES (${input.teamId}, ${input.title}, ${input.description ?? ""}, ${input.ownerId}, ${input.dueDate}, ${input.meetingId})

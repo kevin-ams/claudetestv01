@@ -156,6 +156,8 @@ export type Issue = {
   status: IssueStatus;
   term: IssueTerm;
   sort_order: number;
+  /** Top 3 de la L10 (1, 2 o 3); null = no está en el top. */
+  top_rank: number | null;
   created_at: string;
   solved_at: string | null;
   due_date: string | null;

@@ -2,12 +2,14 @@
 
 import { Button, Input, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { PublicUser } from "@/lib/domain/types";
 import { createIssueAction } from "./actions";
 
 export function AddIssueForm({ members }: { members: PublicUser[] }) {
   const [open, setOpen] = useState(false);
+  // Bloquea el envío mientras se guarda: un doble clic creaba el issue dos veces.
+  const [pending, start] = useTransition();
 
   if (!open) {
     return (
@@ -19,9 +21,14 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
 
   return (
     <form
-      action={async (fd) => {
-        await createIssueAction(fd);
-        setOpen(false);
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (pending) return;
+        const fd = new FormData(e.currentTarget);
+        start(async () => {
+          await createIssueAction(fd);
+          setOpen(false);
+        });
       }}
       className="card card--default flex max-w-xl flex-col gap-2 p-4"
     >
@@ -43,8 +50,8 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
         <Input fullWidth type="date" name="dueDate" aria-label="Fecha" title="Fecha específica (opcional)" />
       </div>
       <div className="flex gap-2">
-        <Button variant="primary" type="submit">
-          Agregar
+        <Button variant="primary" type="submit" isDisabled={pending}>
+          {pending ? "Agregando…" : "Agregar"}
         </Button>
         <Button variant="outline" type="button" onPress={() => setOpen(false)}>
           Cancelar

@@ -27,8 +27,12 @@ export async function POST(request: Request) {
   }
 
   const week = weekStartISO();
-  // Un embudo revisado en los últimos 45 minutos cuenta como al día en esta pasada horaria.
-  const r = await scanStep({ teamId: null, freshAfter: new Date(Date.now() - 45 * 60 * 1000), budgetMs: 8000 });
+  // Un embudo revisado en los últimos 45 minutos cuenta como al día en esta pasada horaria. Una
+  // sincronización manual (?fresh=ISO) pide revisar de nuevo lo que no se revisó desde ese momento.
+  const fresh = Date.parse(new URL(request.url).searchParams.get("fresh") ?? "");
+  const freshAfter =
+    Number.isFinite(fresh) && fresh <= Date.now() && fresh > Date.now() - 864e5 ? new Date(fresh) : new Date(Date.now() - 45 * 60 * 1000);
+  const r = await scanStep({ teamId: null, freshAfter, budgetMs: 8000 });
   if (r.done && r.pipelinesTotal > 0) {
     const counts = await writeWeek({ teamId: null, weekStart: week, userId: null, current: true });
     await finishSync({ teamId: null, weekStart: week, userId: null, auto: true, counts, log: false });

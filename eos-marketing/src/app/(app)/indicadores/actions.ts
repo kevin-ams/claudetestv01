@@ -23,7 +23,7 @@ import {
   isActiveCampaignConfigured,
   ActiveCampaignNotConfiguredError,
 } from "@/lib/integrations/activecampaign";
-import { finishSync, scanStep, writeWeek } from "@/lib/domain/ac-sync";
+import { finishSync, lastSync, markSyncRequested, scanStatus, scanStep, writeWeek } from "@/lib/domain/ac-sync";
 import { shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import type { CareerLevel } from "@/lib/domain/types";
 
@@ -277,4 +277,46 @@ export async function syncLeadsStepAction(startedAt: string, write = true): Prom
   } catch (err) {
     return { ok: false, done: true, ...empty, message: err instanceof Error ? err.message : "No se pudo actualizar desde ActiveCampaign." };
   }
+}
+
+/**
+ * Lanza la sincronización en segundo plano (función de Netlify de hasta 15 minutos): sigue aunque
+ * se cierre la página. Si no está disponible (p. ej. en local), la pantalla la hace en tandas.
+ */
+export async function startBackgroundSyncAction(): Promise<{ background: boolean; startedAt: string; message: string }> {
+  const session = await requireModule("indicadores");
+  const now = new Date().toISOString();
+  const base = (process.env.APP_URL || process.env.URL || "").replace(/\/$/, "");
+  const secret = process.env.CRON_SECRET ?? "";
+  if (!isActiveCampaignConfigured()) return { background: false, startedAt: now, message: new ActiveCampaignNotConfiguredError().message };
+  if (!base || secret.length < 16) return { background: false, startedAt: now, message: "" };
+  try {
+    const startedAt = await markSyncRequested(session.teamId);
+    const res = await fetch(`${base}/.netlify/functions/ac-sync-background`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fresh: startedAt }),
+      signal: AbortSignal.timeout(10000),
+    });
+    if (res.status !== 202) return { background: false, startedAt: now, message: "" };
+    await logActivity(session, "indicadores", "Inició sincronización de leads en segundo plano", "");
+    return { background: true, startedAt, message: "" };
+  } catch {
+    return { background: false, startedAt: now, message: "" };
+  }
+}
+
+/** Avance de la sincronización en segundo plano (la pantalla lo consulta cada pocos segundos). */
+export async function syncStatusAction(startedAt: string) {
+  const session = await requireModule("indicadores", "view");
+  const t = Date.parse(startedAt);
+  const since = new Date(Number.isFinite(t) ? t : Date.now());
+  const [status, last] = await Promise.all([scanStatus(session.teamId, since), lastSync(session.teamId)]);
+  // Terminó cuando todo se revisó después de pedirla y ya se guardó la semana.
+  const finished = status.done && !!last.at && new Date(last.at) >= since;
+  if (finished) {
+    refresh();
+    revalidatePath("/ajustes/activecampaign");
+  }
+  return { ...status, done: finished, message: finished ? `Leads calificados actualizados · ${last.detail}` : "" };
 }

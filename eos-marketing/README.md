@@ -146,6 +146,14 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Issues**: Top 3 para la L10 (botón "Top 3", máximo 3, se ordenan 1-2-3 y salen primero en Issues y en el IDS),
+  edición de cada issue (título, detalle, dueño, plazo, fecha) y protección contra duplicados (el botón se bloquea al
+  guardar y el servidor ignora el mismo issue de la misma persona en los últimos 2 minutos; igual en To-Dos, 30 s).
+- **L10 › Scorecard › Indicadores de carrera**: además del resumen por persona, la vista "Todas las carreras por
+  persona" muestra cada carrera (leads, meta, consumo, plan, costo por lead) agrupada por responsable, con subtotales.
+- **Sincronización manual en segundo plano**: "Sincronizar ahora" lanza `netlify/functions/ac-sync-background.mts`
+  (función de fondo, hasta 15 min) que sigue aunque se cierre la página; la pantalla consulta el avance y lo retoma al
+  volver. Si no está disponible (local), la sincronización se hace desde la pantalla como antes.
 - **Enviar a ClickUp** (To-Dos e Issues): al presionar se elige la lista del espacio Marketing (con y sin carpeta) y a
   quién se asigna (personas del workspace; se sugiere el dueño si su correo coincide). Se crea la tarea con fecha
   límite y el enlace queda en el To-Do. Requiere `CLICKUP_API_TOKEN`.

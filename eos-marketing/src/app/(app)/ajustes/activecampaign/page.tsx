@@ -2,7 +2,7 @@ import { Card } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
 import { canEdit, isTeamAdmin } from "@/lib/auth/access";
 import { listCareers } from "@/lib/domain/careers";
-import { lastSync, listLinks } from "@/lib/domain/ac-sync";
+import { lastSync, listLinks, pendingSyncSince } from "@/lib/domain/ac-sync";
 import { isActiveCampaignConfigured, listPipelines, type AcPipeline } from "@/lib/integrations/activecampaign";
 import { AcSyncButton } from "@/components/ac-sync-button";
 import { SettingsHeader } from "../settings-header";
@@ -74,7 +74,7 @@ export default async function ActiveCampaignPage() {
             </p>
           </div>
           {configured && !error && editable && (
-            <AcSyncButton label="Sincronizar ahora (semana en curso)" variant="primary" disabled={links.length === 0} />
+            <AcSyncButton pendingSince={await pendingSyncSince(session.teamId)} label="Sincronizar ahora (semana en curso)" variant="primary" disabled={links.length === 0} />
           )}
         </div>
       </Card>

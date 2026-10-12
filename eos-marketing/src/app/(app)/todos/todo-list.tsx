@@ -1,5 +1,7 @@
 "use client";
 
+import { SubmitButton } from "@/components/submit-button";
+
 import { ArrowRight, Xmark } from "@gravity-ui/icons";
 import { groupByOwner, OwnerFilterBar, type OwnerView } from "@/components/owner-filter";
 import { AppCheckbox } from "@/components/ui/checkbox";
@@ -51,9 +53,9 @@ function AddTodoForm({ members }: { members: PublicUser[] }) {
         <Input fullWidth name="title" required className="min-w-[200px] flex-1" placeholder="Nuevo to-do" />
         <OwnerSelect members={members} defaultValue={null} />
         <Input type="date" name="dueDate" className="w-auto" aria-label="Fecha límite" />
-        <Button variant="primary" type="submit">
+        <SubmitButton variant="primary" pendingLabel="Agregando…">
           Agregar
-        </Button>
+        </SubmitButton>
       </div>
       {showDescription ? (
         <TextArea fullWidth name="description" className="min-h-16" placeholder="Descripción del to-do" autoFocus />

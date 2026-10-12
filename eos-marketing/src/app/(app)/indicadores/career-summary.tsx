@@ -1,6 +1,11 @@
+"use client";
+
 import { ArrowRight } from "@gravity-ui/icons";
 import { Button, Card, Chip } from "@heroui/react";
 import Link from "next/link";
+import { useState } from "react";
+import { Segmented } from "@/components/ui/segmented";
+import { CareersByOwner } from "./careers-by-owner";
 import type { PublicUser } from "@/lib/domain/types";
 import {
   budgetTone,
@@ -159,6 +164,7 @@ export function CareerSummary({
   /** En la reunión L10: levanta un Issue por una carrera a revisar. */
   onRaiseIssue?: (row: CareerRow) => void;
 }) {
+  const [view, setView] = useState<"summary" | "all">("summary");
   if (rows.length === 0) return null;
 
   const hasLeads = rows.some((r) => r.leads !== null);
@@ -177,10 +183,23 @@ export function CareerSummary({
         </Link>
       </div>
       <SummaryTiles rows={rows} />
+      <Segmented
+        aria-label="Vista de carreras"
+        options={[
+          { id: "summary" as const, label: "Resumen por persona" },
+          { id: "all" as const, label: `Todas las carreras (${rows.length}) por persona` },
+        ]}
+        value={view}
+        onChange={setView}
+      />
       <Card className="block gap-0 p-4">
-        <GroupTable rows={rows} by="owner" members={members} />
+        {view === "summary" ? (
+          <GroupTable rows={rows} by="owner" members={members} />
+        ) : (
+          <CareersByOwner rows={rows} members={members} onRaiseIssue={onRaiseIssue} />
+        )}
       </Card>
-      {offTrack.length > 0 && (
+      {view === "summary" && offTrack.length > 0 && (
         <Card className="block gap-0 p-4">
           <p className="mb-2 text-sm font-semibold">
             Carreras más lejos de su meta de leads (candidatas a Issue)
