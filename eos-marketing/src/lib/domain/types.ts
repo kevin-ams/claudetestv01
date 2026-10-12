@@ -184,6 +184,14 @@ export type Todo = {
   clickup_task_id: string | null;
   clickup_url: string | null;
   clickup_sent_at: string | null;
+  /** Si llegó de otro equipo: de cuál y su To-Do original. */
+  from_team_id?: number | null;
+  origin_todo_id?: number | null;
+  sent_by?: number | null;
+  from_team_name?: string | null;
+  sent_by_name?: string | null;
+  /** Equipos a los que se envió (To-Dos propios) y si ya lo completaron. */
+  sent_to?: { team_id: number; team_name: string; done: boolean }[];
 };
 
 export type MeetingStatus = "scheduled" | "in_progress" | "completed";

@@ -146,6 +146,11 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **To-Dos a otros equipos**: cada To-Do tiene "Enviar a otro equipo": se elige el equipo, su responsable allá
+  (se sugiere la misma persona si también está en ese equipo) y la fecha límite; opcionalmente se avisa por correo al
+  responsable y se puede mover (quitarlo del equipo propio). La copia muestra "De: equipo · persona" y el original
+  "Enviado a … · pendiente/hecho". No se envía dos veces mientras la copia siga pendiente. Columnas
+  `todos.from_team_id`, `origin_todo_id`, `sent_by`.
 - **Reportes semanales** (`/reportes-semanales`, módulo controlable desde Roles y accesos): se elige la semana y, como
   checklist, las secciones (Calendario editorial, Control de coberturas, Scorecard semanal, Resumen de la reunión L10
   de esa semana, Eventos próximos, Indicadores de carrera por persona y Resumen de Rocks del trimestre con hitos

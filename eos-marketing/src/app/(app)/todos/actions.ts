@@ -3,8 +3,12 @@
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
 import { labelOf, logActivity } from "@/lib/domain/activity";
-import { createTodo, completeTodo, deleteTodo, getTodo, updateTodo } from "@/lib/domain/todos";
+import { createTodo, completeTodo, deleteTodo, getTodo, sendTodoToTeam, updateTodo } from "@/lib/domain/todos";
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
+import { listShareableTeams } from "@/lib/domain/scorecard";
+import { getTeam } from "@/lib/domain/teams";
+import { listTeamMembers } from "@/lib/domain/users";
+import { appUrl, emailConfigured, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 
 function ownerId(formData: FormData): number | null {
   const raw = formData.get("ownerId");
@@ -74,4 +78,71 @@ export async function deleteTodoAction(todoId: number) {
   await deleteTodo(todoId);
   await logActivity(session, "todos", "Eliminó To-Do", label);
   refresh();
+}
+
+// --- Enviar To-Dos a otros equipos ------------------------------------------------
+
+export type TeamOption = { id: number; name: string; members: { id: number; name: string; email: string }[] };
+
+/** Equipos a los que se puede enviar un To-Do, con sus personas (para elegir responsable). */
+export async function todoTeamOptionsAction(): Promise<{ teams: TeamOption[]; emailEnabled: boolean }> {
+  const session = await requireModule("todos");
+  const teams = await listShareableTeams(session.teamId);
+  const withMembers = await Promise.all(
+    teams.map(async (t) => ({
+      ...t,
+      members: (await listTeamMembers(t.id)).map((m) => ({ id: m.id, name: m.name, email: m.email })),
+    }))
+  );
+  return { teams: withMembers, emailEnabled: emailConfigured() };
+}
+
+export async function sendTodoToTeamAction(
+  todoId: number,
+  input: { teamId: number; ownerId: number | null; dueDate: string | null; notify: boolean; move: boolean }
+): Promise<SendResult> {
+  try {
+    const session = await requireModule("todos");
+    const todo = await getTodo(todoId);
+    if (!todo || todo.team_id !== session.teamId) return { ok: false, message: "To-Do no encontrado." };
+    const teamId = Number(input?.teamId);
+    const allowed = await listShareableTeams(session.teamId);
+    const target = allowed.find((t) => t.id === teamId);
+    if (!target) return { ok: false, message: "Elige un equipo válido." };
+    const members = await listTeamMembers(teamId);
+    const owner = members.find((m) => m.id === Number(input.ownerId)) ?? null;
+    const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(String(input.dueDate ?? "")) ? String(input.dueDate) : todo.due_date?.slice(0, 10) ?? null;
+
+    const copy = await sendTodoToTeam({ todo, toTeamId: teamId, ownerId: owner?.id ?? null, dueDate, userId: session.userId });
+    if (!copy) return { ok: false, message: `${target.name} ya tiene este To-Do pendiente.` };
+    await logActivity(session, "todos", input.move ? "Movió To-Do a otro equipo" : "Envió To-Do a otro equipo", `${todo.title} → ${target.name}`);
+
+    let note = "";
+    if (input.notify && owner && !owner.email.endsWith(".local") && emailConfigured()) {
+      const from = await getTeam(session.teamId);
+      const mail = await sendEmail({
+        to: [owner.email],
+        replyTo: session.email,
+        subject: `Nuevo To-Do de ${from?.name ?? "otro equipo"}: ${todo.title}`,
+        html: emailLayout({
+          title: "Te asignaron un To-Do",
+          intro: `${escapeHtml(session.name)} (${escapeHtml(from?.name ?? "otro equipo")}) te envió un To-Do en <b>${escapeHtml(target.name)}</b>:`,
+          body: `<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;color:#111827;font-weight:bold;margin:16px 0 4px">${escapeHtml(todo.title)}</p>${
+            todo.description ? `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#374151;white-space:pre-line;margin:0">${escapeHtml(todo.description)}</p>` : ""
+          }${dueDate ? `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#374151;margin:8px 0 0">Fecha límite: <b>${escapeHtml(dueDate)}</b></p>` : ""}`,
+          cta: { label: "Ver To-Dos", url: `${await appUrl()}/todos` },
+        }),
+      });
+      note = mail.ok ? ` Se avisó por correo a ${owner.name}.` : ` (No se pudo avisar por correo: ${mail.message})`;
+    }
+    if (input.move) await deleteTodo(todo.id);
+    refresh();
+    return {
+      ok: true,
+      message: `${input.move ? "Movido" : "Enviado"} a ${target.name}${owner ? ` (responsable: ${owner.name})` : ""}.${note}`,
+    };
+  } catch (e) {
+    console.error("[todos] enviar a equipo", e);
+    return { ok: false, message: e instanceof Error && e.name === "AccessDeniedError" ? e.message : "No se pudo enviar el To-Do." };
+  }
 }

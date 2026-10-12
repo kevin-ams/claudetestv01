@@ -103,5 +103,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "026_weekly_report",
     "sql": "-- Reportes semanales: destinatarios y secciones que el equipo eligió la última vez.\nALTER TABLE teams ADD COLUMN weekly_report_recipients TEXT NOT NULL DEFAULT '';\nALTER TABLE teams ADD COLUMN weekly_report_sections TEXT NOT NULL DEFAULT '';\n"
+  },
+  {
+    "name": "027_todo_teams",
+    "sql": "-- To-Dos enviados a otros equipos: la copia guarda de qué equipo y To-Do viene.\nALTER TABLE todos ADD COLUMN from_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL;\nALTER TABLE todos ADD COLUMN origin_todo_id INTEGER REFERENCES todos(id) ON DELETE SET NULL;\nALTER TABLE todos ADD COLUMN sent_by INTEGER REFERENCES users(id) ON DELETE SET NULL;\nCREATE INDEX todos_origin_idx ON todos (origin_todo_id);\n"
   }
 ];

@@ -10,12 +10,14 @@ import { AppSelect } from "@/components/ui/select";
 import { useState, useTransition } from "react";
 import type { Todo, PublicUser } from "@/lib/domain/types";
 import { ClickUpButton } from "@/components/clickup-button";
+import { TeamSendButton } from "@/components/team-send-button";
 import {
   completeTodoAction,
   deleteTodoAction,
   createTodoAction,
   updateTodoAction,
   sendTodoToClickUpAction,
+  sendTodoToTeamAction,
 } from "./actions";
 
 function isOverdue(todo: Todo) {
@@ -127,6 +129,21 @@ function TodoItem({
       />
       <div className="min-w-0 flex-1">
         <p className="font-medium">{todo.title}</p>
+        {(todo.from_team_name || (todo.sent_to?.length ?? 0) > 0) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {todo.from_team_name && (
+              <Chip size="sm" variant="soft" color="accent">
+                De: {todo.from_team_name}
+                {todo.sent_by_name ? ` · ${todo.sent_by_name}` : ""}
+              </Chip>
+            )}
+            {todo.sent_to?.map((t) => (
+              <Chip key={t.team_id} size="sm" variant="soft" color={t.done ? "success" : "default"}>
+                Enviado a {t.team_name} · {t.done ? "hecho" : "pendiente"}
+              </Chip>
+            ))}
+          </div>
+        )}
         {todo.description && (
           <p className="mt-0.5 whitespace-pre-line text-sm text-muted">{todo.description}</p>
         )}
@@ -140,6 +157,11 @@ function TodoItem({
             configured={clickupConfigured}
             ownerEmail={members.find((m) => m.id === todo.owner_id)?.email ?? null}
             onSend={(target) => sendTodoToClickUpAction(todo.id, target)}
+          />
+          <TeamSendButton
+            ownerEmail={members.find((m) => m.id === todo.owner_id)?.email ?? null}
+            dueDate={todo.due_date}
+            onSend={(input) => sendTodoToTeamAction(todo.id, input)}
           />
           {onRaiseIssue && (
             <Button size="sm" variant="outline"

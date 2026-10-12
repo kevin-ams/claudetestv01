@@ -6,18 +6,42 @@ export async function listTodos(
   teamId: number,
   status?: TodoStatus
 ): Promise<Todo[]> {
-  if (status) {
-    const rows = await db().sql`
-      SELECT * FROM todos WHERE team_id = ${teamId} AND status = ${status}
-      ORDER BY due_date ASC NULLS LAST, id DESC
-    `;
-    return rows as Todo[];
-  }
-  const rows = await db().sql`
-    SELECT * FROM todos WHERE team_id = ${teamId}
-    ORDER BY status ASC, due_date ASC NULLS LAST, id DESC
-  `;
-  return rows as Todo[];
+  const rows = (await db().sql`
+    SELECT t.*, ft.name AS from_team_name, su.name AS sent_by_name,
+      COALESCE((
+        SELECT json_agg(json_build_object('team_id', c.team_id, 'team_name', ct.name, 'done', c.status = 'done') ORDER BY ct.name)
+        FROM todos c JOIN teams ct ON ct.id = c.team_id WHERE c.origin_todo_id = t.id
+      ), '[]'::json) AS sent_to
+    FROM todos t
+    LEFT JOIN teams ft ON ft.id = t.from_team_id
+    LEFT JOIN users su ON su.id = t.sent_by
+    WHERE t.team_id = ${teamId} AND (${status ?? null}::text IS NULL OR t.status = ${status ?? null})
+    ORDER BY t.status ASC, t.due_date ASC NULLS LAST, t.id DESC
+  `) as Todo[];
+  return rows.map((r) => ({ ...r, sent_to: typeof r.sent_to === "string" ? JSON.parse(r.sent_to) : r.sent_to }));
+}
+
+/**
+ * Envía una copia del To-Do a otro equipo (con su responsable allá). Devuelve la copia, o
+ * null si ese equipo ya tiene pendiente una copia de este To-Do.
+ */
+export async function sendTodoToTeam(input: {
+  todo: Todo;
+  toTeamId: number;
+  ownerId: number | null;
+  dueDate: string | null;
+  userId: number;
+}): Promise<Todo | null> {
+  const rows = (await db().sql`
+    INSERT INTO todos (team_id, title, description, owner_id, due_date, from_team_id, origin_todo_id, sent_by)
+    SELECT ${input.toTeamId}, ${input.todo.title}, ${input.todo.description}, ${input.ownerId}, ${input.dueDate},
+      ${input.todo.team_id}, ${input.todo.id}, ${input.userId}
+    WHERE NOT EXISTS (
+      SELECT 1 FROM todos WHERE origin_todo_id = ${input.todo.id} AND team_id = ${input.toTeamId} AND status = 'open'
+    )
+    RETURNING *
+  `) as Todo[];
+  return rows[0] ?? null;
 }
 
 export async function createTodo(input: {
