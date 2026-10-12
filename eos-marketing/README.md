@@ -152,7 +152,7 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   "Enviado a … · pendiente/hecho". No se envía dos veces mientras la copia siga pendiente. Columnas
   `todos.from_team_id`, `origin_todo_id`, `sent_by`.
 - **Reportes semanales: dos tipos** (`?tipo=planificacion|cierre`). *Planificación*: igual que abajo, pero el Scorecard
-  muestra los resultados de la semana anterior. *Fin de semana*: evolución de lo trabajado — piezas publicadas contra
+  y los Indicadores de carrera muestran los resultados de la semana anterior (la semana en curso aún no tiene datos). *Fin de semana*: evolución de lo trabajado — piezas publicadas contra
   planificadas (pendientes, reprogramadas), coberturas realizadas y horas reales contra estimadas, Scorecard de la
   semana contra la anterior (cambio ▲▼ según la dirección de la meta), avance de los To-Dos de la L10, eventos desde la
   próxima semana, leads y consumo contra la semana anterior por persona, e hitos de Rocks que vencían en la semana. Las

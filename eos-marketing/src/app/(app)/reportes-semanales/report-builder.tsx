@@ -48,6 +48,7 @@ export function WeeklyReportBuilder({
   const [previewing, startPreview] = useTransition();
   const [sending, startSend] = useTransition();
   const request = useRef(0);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const router = useRouter();
   const kindInfo = kinds.find((k) => k.id === kind) ?? kinds[0];
 
@@ -55,14 +56,17 @@ export function WeeklyReportBuilder({
   function refresh(nextWeek = week, nextChosen = chosen, nextMessage = message) {
     const id = ++request.current;
     startPreview(async () => {
-      const r = await previewWeeklyReportAction(kind, nextWeek, [...nextChosen], nextMessage).catch(() => ({
-        ok: false,
-        message: "No se pudo armar la vista previa. Si se publicó una versión nueva, recarga la página.",
-        html: "",
-      }));
+      const r = await previewWeeklyReportAction(kind, nextWeek, [...nextChosen], nextMessage).catch(() => null);
       if (id !== request.current) return;
+      // La acción no respondió (p. ej. la página es de una versión anterior): se recarga con la semana elegida.
+      if (!r) {
+        // Recarga completa a propósito: una página de una versión anterior necesita traer la nueva.
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+        window.location.assign(`?tipo=${kind}&semana=${nextWeek}`);
+        return;
+      }
+      setPreviewError(r.ok ? null : r.message);
       if (r.ok) setHtml(r.html);
-      else setResult(r);
     });
   }
 
@@ -219,7 +223,12 @@ export function WeeklyReportBuilder({
               {previewing ? "Actualizando…" : "Actualizar"}
             </Button>
           </div>
-          {html.length > 100_000 && (
+          {previewError && (
+          <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow" role="alert">
+            {previewError} La vista previa puede no corresponder a la semana elegida.
+          </p>
+        )}
+        {html.length > 100_000 && (
           <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
             Este correo es muy largo ({Math.round(html.length / 1000)} KB): Gmail podría recortarlo y mostrar &quot;Ver mensaje completo&quot;. Quita alguna sección si
             quieres que se vea entero.

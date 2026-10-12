@@ -346,10 +346,12 @@ async function eventosSection(c: Ctx) {
 
 async function indicadoresSection(c: Ctx) {
   const prevWeek = shiftWeek(c.week, -1);
+  // Planificación: la semana en curso aún no tiene datos; se muestran los resultados de la anterior (como el Scorecard).
+  const dataWeek = closing(c) ? c.week : prevWeek;
   const [careers, weekly, goals, prevWeekly, prevGoals] = await Promise.all([
     listCareers(c.teamId),
-    listWeekly(c.teamId, c.week),
-    weeklyGoals(c.teamId, c.week),
+    listWeekly(c.teamId, dataWeek),
+    weeklyGoals(c.teamId, dataWeek),
     closing(c) ? listWeekly(c.teamId, prevWeek) : Promise.resolve([]),
     closing(c) ? weeklyGoals(c.teamId, prevWeek) : Promise.resolve({}),
   ]);
@@ -425,7 +427,9 @@ async function indicadoresSection(c: Ctx) {
             ["Costo por lead", costPerLead(t.hasSpent ? t.spent : null, t.hasLeads ? t.leads : null)],
           ],
     ),
-    closing(c) ? note(`Comparado con la semana anterior (${e(formatWeekRange(prevWeek))}).`) : "",
+    closing(c)
+      ? note(`Comparado con la semana anterior (${e(formatWeekRange(prevWeek))}).`)
+      : note(`Resultados de la semana anterior (<b>${e(formatWeekRange(prevWeek))}</b>).`),
     sub("Por persona"),
     byPerson,
     below.length
@@ -441,7 +445,7 @@ async function indicadoresSection(c: Ctx) {
           ["left", "left", "right", "right"],
         )
       : "",
-    t.hasLeads ? "" : note("Todavía no hay leads cargados para esta semana."),
+    t.hasLeads ? "" : note(`Todavía no hay leads cargados para la semana del ${e(formatWeekRange(dataWeek))}.`),
   ].join("");
 }
 

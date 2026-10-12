@@ -8,7 +8,7 @@ export const REPORT_KINDS: { id: ReportKind; label: string; title: string; hint:
     id: "planificacion",
     label: "Planificación",
     title: "Reporte de planificación",
-    hint: "Lo planificado para la semana; el Scorecard muestra los resultados de la semana anterior.",
+    hint: "Lo planificado para la semana; el Scorecard y los indicadores de carrera muestran los resultados de la semana anterior.",
   },
   {
     id: "cierre",
@@ -62,7 +62,7 @@ export const REPORT_SECTIONS = [
   {
     key: "indicadores",
     label: "Indicadores de carrera",
-    hint: "Leads y consumo contra meta, por persona",
+    hint: "Leads y consumo de la semana anterior contra meta, por persona",
     hintCierre: "Leads y consumo de la semana contra la anterior, por persona",
     module: "indicadores",
   },
