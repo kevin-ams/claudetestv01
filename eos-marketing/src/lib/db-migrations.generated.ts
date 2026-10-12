@@ -99,5 +99,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "025_ac_sync_request",
     "sql": "-- Sincronización manual en segundo plano: cuándo se pidió (para mostrar el avance al volver a la página).\nALTER TABLE teams ADD COLUMN ac_sync_requested_at TIMESTAMPTZ;\n"
+  },
+  {
+    "name": "026_weekly_report",
+    "sql": "-- Reportes semanales: destinatarios y secciones que el equipo eligió la última vez.\nALTER TABLE teams ADD COLUMN weekly_report_recipients TEXT NOT NULL DEFAULT '';\nALTER TABLE teams ADD COLUMN weekly_report_sections TEXT NOT NULL DEFAULT '';\n"
   }
 ];

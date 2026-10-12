@@ -146,6 +146,14 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Reportes semanales** (`/reportes-semanales`, módulo controlable desde Roles y accesos): se elige la semana y, como
+  checklist, las secciones (Calendario editorial, Control de coberturas, Scorecard semanal, Resumen de la reunión L10
+  de esa semana, Eventos próximos, Indicadores de carrera por persona y Resumen de Rocks del trimestre con hitos
+  atrasados a esa semana). Solo se ofrecen las secciones a las que el rol tiene acceso y, para calendario, coberturas
+  e indicadores, si el equipo usa ese módulo. La vista previa es el mismo HTML del correo; se envía con Resend a los
+  correos escritos y, opcionalmente, a todo el equipo. Destinatarios y secciones se recuerdan por equipo
+  (`teams.weekly_report_recipients`, `teams.weekly_report_sections`). El estado de los Rocks es el actual (no hay
+  historial de estados).
 - **Issues**: Top 3 para la L10 (botón "Top 3", máximo 3, se ordenan 1-2-3 y salen primero en Issues y en el IDS),
   edición de cada issue (título, detalle, dueño, plazo, fecha) y protección contra duplicados (el botón se bloquea al
   guardar y el servidor ignora el mismo issue de la misma persona en los últimos 2 minutos; igual en To-Dos, 30 s).

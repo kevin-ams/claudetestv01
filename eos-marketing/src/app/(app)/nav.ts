@@ -11,6 +11,7 @@ import {
   Gear,
   GraduationCap,
   House,
+  FileText,
   ListCheck,
   Persons,
   Route,
@@ -66,6 +67,7 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     items: [
       { href: "/analisis", label: "Análisis", Icon: ChartLine },
       { href: "/analisis-contenido", label: "Análisis de contenido", Icon: ChartPie },
+      { href: "/reportes-semanales", label: "Reportes semanales", Icon: FileText },
     ],
   },
   {

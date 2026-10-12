@@ -21,6 +21,8 @@ export type Team = {
   logo_mime: string | null;
   logo_updated_at: string | null;
   planning_recipients: string;
+  weekly_report_recipients: string;
+  weekly_report_sections: string;
 };
 
 export type TeamMember = {
