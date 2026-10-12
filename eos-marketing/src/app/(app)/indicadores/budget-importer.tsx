@@ -15,6 +15,8 @@ import {
   parseCsv,
   parseDate,
   type ColumnKind,
+  matchCareerByName,
+  normalizeText,
 } from "@/lib/domain/careers-shared";
 import { shiftWeek } from "@/lib/utils/dates";
 import { importBudgetAction, type ActionResult } from "./actions";
@@ -72,11 +74,15 @@ export function BudgetImporter({
   const lines = useMemo(() => {
     if (!parsed) return [];
     const matchCol = cols.code !== -1 ? cols.code : cols.campaign;
+    const nameCol = parsed.header.findIndex((h) => /^(carrera|nombre( de la carrera)?|programa academico)$/.test(normalizeText(h)));
     return parsed.body.map((r, i) => {
       const text = (matchCol !== -1 ? r[matchCol] : "")?.trim() ?? "";
       const label = (cols.campaign !== -1 ? r[cols.campaign] : text)?.trim() ?? "";
       const amount = cols.spend !== -1 ? parseAmount(r[cols.spend] ?? "") : null;
-      const auto = matchCareer(text, careers, aliases);
+      // Si el código no coincide, se intenta por el nombre de la carrera (columna "Carrera" o "Nombre").
+      const auto =
+        matchCareer(text, careers, aliases) ??
+        (nameCol !== -1 && nameCol !== matchCol ? matchCareerByName(r[nameCol] ?? "", careers) : null);
       const override = overrides[i];
       const careerId =
         override === undefined ? auto : override === IGNORE ? null : Number(override);

@@ -335,6 +335,19 @@ export function matchCareer(
   return best?.id ?? null;
 }
 
+/**
+ * Respaldo cuando el código no coincide: busca la carrera por su nombre (sin acentos ni
+ * mayúsculas ni lo que va entre paréntesis, p. ej. "(Sede Central)"). Solo asigna si el nombre
+ * coincide completo con una única carrera: así "… Quetzaltenango" no cae en la sede central.
+ */
+export function matchCareerByName(name: string, careers: Pick<Career, "id" | "name">[]): number | null {
+  const strip = (v: string) => normalizeText(v).replace(/\([^)]*\)/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+  const key = strip(name);
+  if (key.length < 6) return null;
+  const exact = careers.filter((c) => strip(c.name) === key);
+  return exact.length === 1 ? exact[0].id : null;
+}
+
 export function aliasKey(text: string): string {
   return normalizeText(text);
 }
