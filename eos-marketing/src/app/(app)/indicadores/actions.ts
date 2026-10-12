@@ -1,6 +1,6 @@
 "use server";
 
-import { requireModule } from "@/lib/auth/access";
+import { AccessDeniedError, requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
 import { labelOf, logActivity } from "@/lib/domain/activity";
 import {
@@ -166,10 +166,29 @@ export type BudgetImportPayload = {
   aliases: { text: string; careerId: number }[];
 };
 
+/**
+ * Importa el consumo. Los errores se devuelven como mensaje (en producción, un error lanzado solo
+ * muestra la pantalla genérica sin el motivo).
+ */
 export async function importBudgetAction(payload: BudgetImportPayload): Promise<ActionResult> {
+  try {
+    return await importBudget(payload);
+  } catch (e) {
+    if (e instanceof AccessDeniedError) {
+      return { ok: false, message: "Tu rol no tiene permiso de edición en Indicadores de carrera. Pide a un administrador que lo cambie en Ajustes › Roles y accesos." };
+    }
+    console.error("[importBudgetAction]", e);
+    return { ok: false, message: `No se pudo importar el consumo: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+async function importBudget(payload: BudgetImportPayload): Promise<ActionResult> {
   const session = await requireModule("indicadores");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(payload?.week ?? ""))) return { ok: false, message: "Elige la semana (lunes) a la que corresponde el consumo." };
   const weekStart = normalizeWeek(payload.week);
   const teamCareers = new Set((await listCareers(session.teamId)).map((c) => c.id));
+  payload.rows = Array.isArray(payload.rows) ? payload.rows : [];
+  payload.aliases = Array.isArray(payload.aliases) ? payload.aliases : [];
 
   const totals = new Map<number, number>();
   for (const row of payload.rows) {
