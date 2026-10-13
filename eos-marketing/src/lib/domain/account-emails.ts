@@ -24,13 +24,15 @@ export async function sendAccessEmail(
   user: { id: number; name: string; email: string },
   teamName: string,
   invitedBy: string,
-  color?: string
+  color?: string,
+  replyTo?: string
 ): Promise<EmailResult> {
   const token = await createPasswordToken(user.id, "invite");
   const base = await appUrl();
   const url = `${base}/restablecer?token=${token}`;
   return sendEmail({
     to: [user.email],
+    replyTo,
     subject: `${invitedBy} te dio acceso a ${teamName} en EOS Nivel 10`,
     html: emailLayout({
       title: `Bienvenido(a) a ${escapeHtml(teamName)}`,

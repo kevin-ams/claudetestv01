@@ -6,7 +6,7 @@ import { labelOf, logActivity } from "@/lib/domain/activity";
 import { createTodo, completeTodo, deleteTodo, getTodo, sendTodoToTeam, updateTodo } from "@/lib/domain/todos";
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 import { listShareableTeams } from "@/lib/domain/scorecard";
-import { getTeam } from "@/lib/domain/teams";
+import { getTeam, teamReplyTo } from "@/lib/domain/teams";
 import { listTeamMembers } from "@/lib/domain/users";
 import { appUrl, emailConfigured, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 
@@ -122,7 +122,7 @@ export async function sendTodoToTeamAction(
       const from = await getTeam(session.teamId);
       const mail = await sendEmail({
         to: [owner.email],
-        replyTo: session.email,
+        replyTo: await teamReplyTo(session.teamId, session.email),
         subject: `Nuevo To-Do de ${from?.name ?? "otro equipo"}: ${todo.title}`,
         html: emailLayout({
           title: "Te asignaron un To-Do",

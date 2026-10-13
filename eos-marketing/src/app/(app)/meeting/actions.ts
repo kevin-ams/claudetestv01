@@ -22,7 +22,7 @@ import { createTodo } from "@/lib/domain/todos";
 import { createIssue } from "@/lib/domain/issues";
 import { isUserInTeam, listTeamMembers } from "@/lib/domain/users";
 import { meetingRecap } from "@/lib/domain/meeting-recap";
-import { getTeam } from "@/lib/domain/teams";
+import { getTeam, teamReplyTo } from "@/lib/domain/teams";
 import { buildMeetingSummaryPdf } from "@/lib/pdf/meeting-summary";
 import { DEFAULT_THEME_COLOR } from "@/lib/theme";
 import { appUrl, emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
@@ -201,7 +201,7 @@ export async function sendMeetingSummaryAction(
   const avg = recap.average !== null ? `${recap.average.toFixed(1)}/10` : "sin calificar";
   const result = await sendEmail({
     to,
-    replyTo: session.email,
+    replyTo: await teamReplyTo(session.teamId, session.email),
     subject: `Resumen Reunión L10 · ${recap.teamName} · ${date}`,
     html: emailLayout({
       title: `Resumen de la Reunión L10`,

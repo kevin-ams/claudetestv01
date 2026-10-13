@@ -20,7 +20,7 @@ import { CAPAS } from "@/lib/domain/editorial-shared";
 import { isUserInTeam } from "@/lib/domain/users";
 import { formatWeekRange, weekStartISO } from "@/lib/utils/dates";
 import { weekPlanPdf } from "@/lib/domain/week-plan";
-import { setPlanningRecipients } from "@/lib/domain/teams";
+import { setPlanningRecipients, teamReplyTo } from "@/lib/domain/teams";
 import { emailLayout, escapeHtml, parseRecipients, sendEmail } from "@/lib/email";
 import { parseISO } from "date-fns";
 import { importSheetWeek, previewSheetWeek, readSheetWeeks } from "@/lib/domain/editorial-sheet";
@@ -169,7 +169,7 @@ export async function sendWeekPlanAction(week: string, recipients: string): Prom
   const active = pieces.filter((p) => !["Cancelado", "Reprogramado"].includes(p.status));
   const result = await sendEmail({
     to: emails,
-    replyTo: session.email,
+    replyTo: await teamReplyTo(session.teamId, session.email),
     subject: `Planificación de contenido · ${team?.name ?? "Equipo"} · ${range}`,
     html: emailLayout({
       title: "Planificación semanal de contenido",

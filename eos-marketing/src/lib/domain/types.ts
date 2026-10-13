@@ -23,6 +23,8 @@ export type Team = {
   planning_recipients: string;
   weekly_report_recipients: string;
   weekly_report_sections: string;
+  /** Correo para las respuestas de los correos del equipo ("" = quien envía). */
+  reply_to: string;
 };
 
 export type TeamMember = {

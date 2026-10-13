@@ -107,5 +107,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "027_todo_teams",
     "sql": "-- To-Dos enviados a otros equipos: la copia guarda de qué equipo y To-Do viene.\nALTER TABLE todos ADD COLUMN from_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL;\nALTER TABLE todos ADD COLUMN origin_todo_id INTEGER REFERENCES todos(id) ON DELETE SET NULL;\nALTER TABLE todos ADD COLUMN sent_by INTEGER REFERENCES users(id) ON DELETE SET NULL;\nCREATE INDEX todos_origin_idx ON todos (origin_todo_id);\n"
+  },
+  {
+    "name": "028_team_reply_to",
+    "sql": "-- Correo al que llegan las respuestas de los correos del equipo (vacío = quien envía).\nALTER TABLE teams ADD COLUMN reply_to TEXT NOT NULL DEFAULT '';\n"
   }
 ];

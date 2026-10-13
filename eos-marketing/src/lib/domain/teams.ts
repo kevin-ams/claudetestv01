@@ -62,3 +62,14 @@ export async function getTeamLogo(teamId: number): Promise<{ image: Uint8Array; 
 export async function setPlanningRecipients(teamId: number, recipients: string) {
   await db().sql`UPDATE teams SET planning_recipients = ${recipients} WHERE id = ${teamId}`;
 }
+
+/** Correo al que llegan las respuestas de los correos del equipo ("" = la persona que envía). */
+export async function setTeamReplyTo(teamId: number, email: string) {
+  await db().sql`UPDATE teams SET reply_to = ${email} WHERE id = ${teamId}`;
+}
+
+/** "Responder a" de los correos del equipo: el configurado en Ajustes › Equipo o, si no hay, `fallback`. */
+export async function teamReplyTo(teamId: number, fallback?: string): Promise<string | undefined> {
+  const rows = (await db().sql`SELECT reply_to FROM teams WHERE id = ${teamId}`) as { reply_to: string }[];
+  return rows[0]?.reply_to || fallback;
+}

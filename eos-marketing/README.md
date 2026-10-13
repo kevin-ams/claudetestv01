@@ -146,6 +146,9 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Correo para respuestas** (Ajustes › Equipo, solo administradores): "Responder a" de los correos del equipo
+  (reporte semanal, resumen L10, planificación de contenido, To-Do enviado a otro equipo y correo de acceso). Vacío =
+  responde a la persona que envió el correo. Columna `teams.reply_to`. El restablecimiento de contraseña no lo usa.
 - **To-Dos a otros equipos**: cada To-Do tiene "Enviar a otro equipo": se elige el equipo, su responsable allá
   (se sugiere la misma persona si también está en ese equipo) y la fecha límite; opcionalmente se avisa por correo al
   responsable y se puede mover (quitarlo del equipo propio). La copia muestra "De: equipo · persona" y el original

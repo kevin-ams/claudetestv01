@@ -11,6 +11,7 @@ import { getTeam } from "@/lib/domain/teams";
 import { AddTeammateForm } from "./add-teammate-form";
 import { renameTeamAction } from "./actions";
 import { EditAccessForm } from "./edit-access-form";
+import { ReplyToForm } from "./reply-to-form";
 import { SettingsHeader } from "../settings-header";
 
 export default async function TeamSettingsPage() {
@@ -44,6 +45,7 @@ export default async function TeamSettingsPage() {
           </Button>
         </form>
       )}
+      {admin && <ReplyToForm defaultValue={team?.reply_to ?? ""} />}
 
       <Card className="block gap-0 mb-6 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">

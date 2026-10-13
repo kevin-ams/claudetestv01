@@ -14,7 +14,8 @@ import {
   updateUserAccess,
 } from "@/lib/domain/users";
 import { countAdmins, listRoles, setMemberRole } from "@/lib/domain/roles";
-import { getTeam, renameTeam } from "@/lib/domain/teams";
+import { getTeam, renameTeam, setTeamReplyTo } from "@/lib/domain/teams";
+import { EMAIL_RE } from "@/lib/email";
 import { sendAccessEmail } from "@/lib/domain/account-emails";
 import { randomBytes } from "node:crypto";
 
@@ -58,7 +59,7 @@ export async function addTeammateAction(
   const added = `${user.name} fue agregado(a) al equipo como ${role?.name ?? "Usuario"}.`;
   if (!sendInvite) return { error: null, success: added };
   const team = await getTeam(session.teamId);
-  const mail = await sendAccessEmail(user, team?.name ?? "tu equipo", session.name, team?.theme_color);
+  const mail = await sendAccessEmail(user, team?.name ?? "tu equipo", session.name, team?.theme_color, team?.reply_to || session.email);
   if (mail.ok) await logActivity(session, "equipo", "Envió correo de acceso", `${user.name} <${user.email}>`);
   return mail.ok
     ? { error: null, success: `${added} Le enviamos un correo para crear su contraseña.` }
@@ -147,7 +148,22 @@ export async function sendAccessEmailAction(userId: number): Promise<MemberResul
     return { ok: false, message: `Primero cambia el correo provisional de ${member.name} por su correo real (botón Editar acceso).` };
   }
   const team = await getTeam(session.teamId);
-  const mail = await sendAccessEmail(member, team?.name ?? "tu equipo", session.name, team?.theme_color);
+  const mail = await sendAccessEmail(member, team?.name ?? "tu equipo", session.name, team?.theme_color, team?.reply_to || session.email);
   if (mail.ok) await logActivity(session, "equipo", "Envió correo de acceso", `${member.name} <${member.email}>`);
   return mail.ok ? { ok: true, message: `Correo de acceso enviado a ${member.email}.` } : { ok: false, message: mail.message };
+}
+
+/** Correo al que llegan las respuestas de los correos del equipo (vacío = quien envía). */
+export async function setReplyToAction(email: string): Promise<MemberResult> {
+  const session = await requireSession();
+  if (!(await isTeamAdmin())) return { ok: false, message: "Solo un administrador puede cambiar este correo." };
+  const value = String(email ?? "").trim().toLowerCase();
+  if (value && !EMAIL_RE.test(value)) return { ok: false, message: "Escribe un correo válido (o déjalo vacío)." };
+  await setTeamReplyTo(session.teamId, value);
+  await logActivity(session, "equipo", "Cambió el correo para respuestas", value || "(quien envía)");
+  revalidatePath("/ajustes/equipo");
+  return {
+    ok: true,
+    message: value ? `Las respuestas a los correos del equipo llegarán a ${value}.` : "Las respuestas llegarán a la persona que envía cada correo.",
+  };
 }

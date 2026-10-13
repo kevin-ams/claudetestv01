@@ -2,6 +2,7 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { logActivity } from "@/lib/domain/activity";
+import { teamReplyTo } from "@/lib/domain/teams";
 import { listTeamMembers } from "@/lib/domain/users";
 import { buildWeeklyReport, setWeeklyReportPrefs } from "@/lib/domain/weekly-report";
 import { isReportKind, parseSections, type ReportKind, type ReportSection } from "@/lib/domain/weekly-report-shared";
@@ -68,7 +69,7 @@ export async function sendWeeklyReportAction(input: {
       message: String(input.message ?? "").slice(0, 2000),
     });
     await setWeeklyReportPrefs(session.teamId, input.kind, extra.emails.join(", "), chosen);
-    const result = await sendEmail({ to, replyTo: session.email, subject, html });
+    const result = await sendEmail({ to, replyTo: await teamReplyTo(session.teamId, session.email), subject, html });
     if (result.ok) {
       await logActivity(session, "reportes_semanales", input.kind === "cierre" ? "Envió reporte de fin de semana" : "Envió reporte de planificación", `Semana ${input.week} (${chosen.join(", ")}) → ${to.join(", ")}`);
     }
