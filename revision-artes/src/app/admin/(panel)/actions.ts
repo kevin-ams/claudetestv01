@@ -274,17 +274,23 @@ export async function nuevaVersionAction(
   const admin = await requireAdmin();
   const arte = await getArte(arteId);
   if (!arte) return { error: "El arte no existe" };
+  // "Sin archivo nuevo": confirmación manual de los cambios, se mantiene el enlace actual.
+  const sinArchivo = formData.get("sinArchivo") === "on";
   const parsed = nuevaVersionSchema.safeParse({
-    driveUrl: formData.get("driveUrl") ?? "",
+    driveUrl: sinArchivo ? arte.drive_url : (formData.get("driveUrl") ?? ""),
     nota: formData.get("nota") ?? "",
     atendidas: formData.getAll("atendidas"),
   });
   if (!parsed.success) return { error: firstError(parsed.error) };
-  if (parsed.data.driveUrl === arte.drive_url) {
-    return { error: "El enlace es el mismo de la versión actual. Pega el enlace del archivo corregido." };
+  if (!sinArchivo && parsed.data.driveUrl === arte.drive_url) {
+    return {
+      error:
+        "El enlace es el mismo de la versión actual. Pega el enlace del archivo corregido o marca “Confirmar cambios sin archivo nuevo”.",
+    };
   }
   const autor = { tipo: "admin" as const, nombre: admin.name, email: admin.email };
-  await crearNuevaVersion(arte, parsed.data, autor);
+  const nota = sinArchivo ? `${parsed.data.nota} (cambios hechos en el mismo archivo)` : parsed.data.nota;
+  await crearNuevaVersion(arte, { ...parsed.data, nota }, autor);
   revalidatePath(`/admin/artes/${arteId}`);
   revalidatePath(`/admin/facultades/${arte.facultad_id}`);
   revalidatePath(`/portal/artes/${arteId}`);

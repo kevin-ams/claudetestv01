@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Alert, Button, Checkbox, Description, Input, Label, TextArea, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
@@ -13,7 +14,8 @@ type Solicitud = { id: number; autor: string; comentario: string };
 /**
  * Sube una nueva versión del arte a partir de los cambios que pidió la
  * facultad: muestra lo solicitado, permite marcar qué puntos se atendieron
- * y pide el enlace de Drive del archivo corregido.
+ * y pide el enlace de Drive del archivo corregido. Con "sin archivo nuevo"
+ * se confirman los cambios manualmente y se mantiene el enlace actual.
  */
 export function NuevaVersionForm({
   arteId,
@@ -34,6 +36,7 @@ export function NuevaVersionForm({
     resetOnSuccess: true,
   });
   const hayCambios = puntos.length > 0 || solicitudes.length > 0;
+  const [sinArchivo, setSinArchivo] = useState(false);
 
   return (
     <form {...formProps} className="flex flex-col gap-4">
@@ -74,11 +77,27 @@ export function NuevaVersionForm({
         </Alert>
       )}
 
-      <TextField name="driveUrl" type="url" isRequired>
-        <Label>Enlace de Drive de la v{versionActual + 1}</Label>
-        <Input placeholder="https://drive.google.com/file/d/…/view" />
-        <Description>Sube el archivo corregido a Drive y pega aquí su enlace.</Description>
-      </TextField>
+      <Checkbox name="sinArchivo" isSelected={sinArchivo} onChange={setSinArchivo}>
+        <Checkbox.Content>
+          <Checkbox.Control>
+            <Checkbox.Indicator />
+          </Checkbox.Control>
+          <span className="text-sm">
+            <span className="font-medium">Confirmar cambios sin archivo nuevo</span>
+            <span className="block text-xs text-muted">
+              Los cambios se hicieron en el mismo archivo de Drive o no requieren archivo. Se mantiene el enlace
+              actual.
+            </span>
+          </span>
+        </Checkbox.Content>
+      </Checkbox>
+      {!sinArchivo && (
+        <TextField name="driveUrl" type="url" isRequired>
+          <Label>Enlace de Drive de la v{versionActual + 1}</Label>
+          <Input placeholder="https://drive.google.com/file/d/…/view" />
+          <Description>Sube el archivo corregido a Drive y pega aquí su enlace.</Description>
+        </TextField>
+      )}
       <TextField name="nota" isRequired>
         <Label>¿Qué se cambió?</Label>
         <TextArea rows={3} placeholder="Ej. Se cambió el color del logo y se corrigió la fecha." />
@@ -92,7 +111,7 @@ export function NuevaVersionForm({
       <FormMessage error={state.error} success={state.ok ? (state.message ?? "Listo") : null} />
       <div>
         <Button type="submit" isPending={pending}>
-          Publicar v{versionActual + 1} para revisión
+          {sinArchivo ? `Confirmar cambios (v${versionActual + 1})` : `Publicar v${versionActual + 1} para revisión`}
         </Button>
       </div>
     </form>
