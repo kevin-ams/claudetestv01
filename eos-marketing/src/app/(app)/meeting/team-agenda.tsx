@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowRight, ArrowUpRightFromSquare, CloudArrowUpIn, Pencil, Xmark } from "@gravity-ui/icons";
+import { ArrowRight, ArrowUpRightFromSquare, ChevronLeft, ChevronRight, CloudArrowUpIn, Pencil, Xmark } from "@gravity-ui/icons";
 import { Button, Chip, Input, TextArea } from "@heroui/react";
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { clickUpOptionsAction } from "@/app/(app)/clickup-actions";
 import { AppCheckbox } from "@/components/ui/checkbox";
@@ -410,6 +411,7 @@ export function TeamAgendaPanel({
   editable,
   canRaiseIssues = true,
   clickupConfigured,
+  nav,
 }: {
   week: string;
   weekLabel: string;
@@ -419,6 +421,8 @@ export function TeamAgendaPanel({
   editable: boolean;
   canRaiseIssues?: boolean;
   clickupConfigured: boolean;
+  /** Antes de la L10: cambiar de semana (p. ej. llenar el viernes la agenda de la próxima). */
+  nav?: { prevHref: string; nextHref: string; defaultHref: string | null; isDefault: boolean };
 }) {
   const [title, setTitle] = useState("");
   const [owner, setOwner] = useState(currentUserId);
@@ -439,8 +443,25 @@ export function TeamAgendaPanel({
         <div>
           <h3 className="text-sm font-semibold">Agenda del equipo</h3>
           <p className="text-xs text-muted">
-            Semana {weekLabel}: en qué trabajará cada persona. Si hay algo que hablar, pásalo a Issue.
+            Semana {weekLabel}
+            {nav?.isDefault ? " (la de la próxima L10)" : ""}: en qué trabajará cada persona. Llénala antes de la reunión; si hay
+            algo que hablar, pásalo a Issue.
           </p>
+          {nav && (
+            <span className="mt-1 flex flex-wrap items-center gap-1 text-xs">
+              <Link href={nav.prevHref} scroll={false} className="inline-flex items-center rounded-md px-1.5 py-0.5 text-muted hover:bg-default" aria-label="Semana anterior">
+                <ChevronLeft width={14} height={14} aria-hidden /> Anterior
+              </Link>
+              <Link href={nav.nextHref} scroll={false} className="inline-flex items-center rounded-md px-1.5 py-0.5 text-muted hover:bg-default" aria-label="Semana siguiente">
+                Siguiente <ChevronRight width={14} height={14} aria-hidden />
+              </Link>
+              {nav.defaultHref && (
+                <Link href={nav.defaultHref} scroll={false} className="rounded-md px-1.5 py-0.5 text-primary hover:bg-default">
+                  Ir a la semana de la próxima L10
+                </Link>
+              )}
+            </span>
+          )}
         </div>
         <span className="flex items-center gap-1">
           <Chip size="sm" variant="soft" color="success">

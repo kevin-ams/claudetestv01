@@ -151,7 +151,7 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   botón "Issue" lo pasa a la lista de Issues (con la persona como dueña) y queda marcado "En Issues". "Importar de
   ClickUp" busca las tareas asignadas a una persona en todo el espacio o en las listas elegidas, con fecha límite en la
   semana (y, opcionalmente, las vencidas sin cerrar, que entran como Off track); no repite las ya importadas. Usa el
-  endpoint `GET /team/{id}/task` de ClickUp. La semana es la de la reunión. Tabla `team_agenda`.
+  endpoint `GET /team/{id}/task` de ClickUp. En la reunión se ve la semana de la reunión; antes de la L10 se abre la semana de la próxima L10 (la de la reunión en curso, o la siguiente si la L10 de esta semana ya terminó) y se puede navegar a otras semanas (`/meeting?agenda=yyyy-mm-dd`). Tabla `team_agenda`.
 - **Correo para respuestas** (Ajustes › Equipo, solo administradores): "Responder a" de los correos del equipo
   (reporte semanal, resumen L10, planificación de contenido, To-Do enviado a otro equipo y correo de acceso). Vacío =
   responde a la persona que envió el correo. Columna `teams.reply_to`. El restablecimiento de contraseña no lo usa.
