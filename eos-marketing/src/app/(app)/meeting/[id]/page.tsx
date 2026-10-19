@@ -14,6 +14,9 @@ import { lastNWeeks, currentQuarter, lastClosedWeek, formatWeekRange } from "@/l
 import { isClickUpConfigured } from "@/lib/integrations/clickup";
 import { MeetingRunner } from "./meeting-runner";
 import { listMeetingEvents, listPendingEvents } from "@/lib/domain/l10-events";
+import { listAgenda } from "@/lib/domain/team-agenda";
+import { canEdit } from "@/lib/auth/access";
+import { weekStartISO } from "@/lib/utils/dates";
 
 export default async function MeetingPage({
   params,
@@ -29,6 +32,8 @@ export default async function MeetingPage({
   if (!meeting || meeting.team_id !== session.teamId) notFound();
 
   const weeks = lastNWeeks(4);
+  // Agenda del equipo: la semana de la reunión.
+  const agendaWeek = weekStartISO(new Date(meeting.started_at ?? meeting.created_at));
   const careerWeek = lastClosedWeek();
   const { quarter, year } = currentQuarter();
 
@@ -49,6 +54,8 @@ export default async function MeetingPage({
     attendance,
     admin,
     events,
+    agenda,
+    issuesEditable,
   ] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
@@ -67,6 +74,8 @@ export default async function MeetingPage({
     isTeamAdmin(),
     // En curso: los eventos pendientes; terminada: los que se leyeron en ella.
     meeting.status === "completed" ? listMeetingEvents(session.teamId, meetingId) : listPendingEvents(session.teamId),
+    listAgenda(session.teamId, agendaWeek),
+    canEdit("issues"),
   ]);
   const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
   const milestonesByRock: Record<number, typeof milestones> = {};
@@ -93,6 +102,7 @@ export default async function MeetingPage({
       todos={todos}
       headlines={headlines}
       events={events}
+      agenda={{ week: agendaWeek, weekLabel: formatWeekRange(agendaWeek), items: agenda, canRaiseIssues: issuesEditable }}
       ratings={ratings}
       clickupConfigured={isClickUpConfigured()}
       attendance={attendance}

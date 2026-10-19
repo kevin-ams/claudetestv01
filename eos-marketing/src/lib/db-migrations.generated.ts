@@ -111,5 +111,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "028_team_reply_to",
     "sql": "-- Correo al que llegan las respuestas de los correos del equipo (vacío = quien envía).\nALTER TABLE teams ADD COLUMN reply_to TEXT NOT NULL DEFAULT '';\n"
+  },
+  {
+    "name": "029_team_agenda",
+    "sql": "-- Agenda del equipo: en qué trabajará cada persona durante la semana, con semáforo.\n-- Se llena antes de la L10 y se revisa en el segmento de Noticias. Puede venir de ClickUp.\nCREATE TABLE team_agenda (\n  id SERIAL PRIMARY KEY,\n  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,       -- quién trabajará en esto\n  week_start DATE NOT NULL,                                              -- lunes de la semana\n  title TEXT NOT NULL,\n  detail TEXT NOT NULL DEFAULT '',\n  status TEXT NOT NULL DEFAULT 'on_track',                               -- on_track | off_track\n  due_date DATE,\n  clickup_task_id TEXT,\n  clickup_url TEXT,\n  clickup_list TEXT NOT NULL DEFAULT '',\n  issue_id INTEGER REFERENCES issues(id) ON DELETE SET NULL,             -- si se pasó a Issue\n  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_team_agenda_week ON team_agenda(team_id, week_start);\nCREATE UNIQUE INDEX idx_team_agenda_clickup ON team_agenda(team_id, user_id, week_start, clickup_task_id) WHERE clickup_task_id IS NOT NULL;\n"
   }
 ];

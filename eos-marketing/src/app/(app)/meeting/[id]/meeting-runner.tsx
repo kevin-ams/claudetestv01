@@ -46,6 +46,8 @@ import { AppCheckbox } from "@/components/ui/checkbox";
 import { AppSelect } from "@/components/ui/select";
 import type { L10Event } from "@/lib/domain/l10-events";
 import { formatEventDate } from "../events-panel";
+import { TeamAgendaPanel } from "../team-agenda";
+import type { AgendaItem } from "@/lib/domain/team-agenda-shared";
 
 function useElapsed(since: string | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -458,6 +460,7 @@ export function MeetingRunner({
   todos,
   headlines,
   events,
+  agenda,
   ratings,
   clickupConfigured,
   attendance,
@@ -480,6 +483,7 @@ export function MeetingRunner({
   todos: Todo[];
   headlines: MeetingHeadline[];
   events: L10Event[];
+  agenda: { week: string; weekLabel: string; items: AgendaItem[]; canRaiseIssues: boolean };
   ratings: { user_id: number; rating: number; user_name: string }[];
   clickupConfigured: boolean;
   attendance: AttendanceRow[];
@@ -689,12 +693,26 @@ export function MeetingRunner({
         )}
 
         {segment.key === "headlines" && (
+          <div className="flex flex-col gap-6">
+          <Card className="block gap-0 p-4">
+            <TeamAgendaPanel
+              week={agenda.week}
+              weekLabel={agenda.weekLabel}
+              items={agenda.items}
+              members={members}
+              currentUserId={session.userId}
+              editable
+              canRaiseIssues={agenda.canRaiseIssues}
+              clickupConfigured={clickupConfigured}
+            />
+          </Card>
           <HeadlinesPanel
             meetingId={meeting.id}
             headlines={headlines}
             events={events}
             onRaiseIssue={(h) => setDraft({ kind: "issue", title: h.content, source: "Noticias" })}
           />
+          </div>
         )}
 
         {segment.key === "todos" && (

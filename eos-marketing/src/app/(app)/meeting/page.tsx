@@ -6,9 +6,14 @@ import { listMeetings, getActiveMeeting } from "@/lib/domain/meetings";
 import { StartMeetingButton } from "./start-meeting-button";
 import { canEdit } from "@/lib/auth/access";
 import { listPastEvents, listPendingEvents } from "@/lib/domain/l10-events";
-import { weekStartISO } from "@/lib/utils/dates";
+import { formatWeekRange, weekStartISO } from "@/lib/utils/dates";
 import { listShareableTeams } from "@/lib/domain/scorecard";
 import { EventsPanel } from "./events-panel";
+import { Card } from "@heroui/react";
+import { listAgenda } from "@/lib/domain/team-agenda";
+import { listTeamMembers } from "@/lib/domain/users";
+import { isClickUpConfigured } from "@/lib/integrations/clickup";
+import { TeamAgendaPanel } from "./team-agenda";
 
 const STATUS_LABEL: Record<string, string> = {
   scheduled: "Programada",
@@ -20,13 +25,17 @@ export default async function MeetingListPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [meetings, active, events, pastEvents, teams, editable] = await Promise.all([
+  const week = weekStartISO();
+  const [meetings, active, events, pastEvents, teams, editable, agenda, members, issuesEditable] = await Promise.all([
     listMeetings(session.teamId),
     getActiveMeeting(session.teamId),
     listPendingEvents(session.teamId, false),
     listPastEvents(session.teamId),
     listShareableTeams(session.teamId),
     canEdit("meeting"),
+    listAgenda(session.teamId, week),
+    listTeamMembers(session.teamId),
+    canEdit("issues"),
   ]);
 
   return (
@@ -47,6 +56,19 @@ export default async function MeetingListPage() {
           <StartMeetingButton />
         )}
       </div>
+
+      <Card className="mb-8 p-4">
+        <TeamAgendaPanel
+          week={week}
+          weekLabel={formatWeekRange(week)}
+          items={agenda}
+          members={members}
+          currentUserId={session.userId}
+          editable={editable}
+          canRaiseIssues={issuesEditable}
+          clickupConfigured={isClickUpConfigured()}
+        />
+      </Card>
 
       <EventsPanel events={events} pastEvents={pastEvents} currentWeek={weekStartISO()} teams={teams} editable={editable} activeMeetingId={active?.id ?? null} />
 
