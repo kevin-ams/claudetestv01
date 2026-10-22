@@ -1,4 +1,4 @@
-import { Calendar } from "@gravity-ui/icons";
+import { Calendar, Check } from "@gravity-ui/icons";
 import Link from "next/link";
 import { Card, Chip } from "@heroui/react";
 import type { CampanaResumen } from "@/lib/domain/campanas";
@@ -14,12 +14,25 @@ export function CampanaCard({
   "data-guia"?: string;
 }) {
   const porRevisar = campana.pendientes + campana.cambios;
+  // Campaña aprobada: tiene artes y todos están aprobados.
+  const aprobada = campana.total > 0 && campana.aprobados === campana.total;
+  const fondo = aprobada
+    ? "border border-[var(--ges-aprobado-borde)] bg-[var(--ges-aprobado-bg)]"
+    : campana.id === null
+      ? "bg-surface-secondary"
+      : "";
   return (
     <Link href={href} {...rest} className="group block h-full rounded-3xl focus-visible:outline-2 focus-visible:outline-accent">
-      <Card className={`h-full transition-shadow group-hover:shadow-lg ${campana.id === null ? "bg-surface-secondary" : ""}`}>
+      <Card className={`h-full transition-shadow group-hover:shadow-lg ${fondo}`}>
         <Card.Header>
           <div className="flex items-start justify-between gap-2">
             <Card.Title className="text-base">{campana.nombre}</Card.Title>
+            {aprobada && (
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold text-[var(--ges-aprobado-texto)]">
+                <Check aria-hidden className="size-3.5" />
+                Campaña aprobada
+              </span>
+            )}
             {campana.pendientes > 0 && (
               <span data-guia="pendientes-campana" className="flex h-6 min-w-6 shrink-0 items-center justify-center rounded-full bg-warning px-2 text-xs font-bold text-warning-foreground">
                 {campana.pendientes}
@@ -33,7 +46,9 @@ export function CampanaCard({
             ? "Sin artes todavía"
             : porRevisar > 0
               ? `${porRevisar} de ${campana.total} ${campana.total === 1 ? "arte" : "artes"} por revisar`
-              : `Todo revisado (${campana.total} ${campana.total === 1 ? "arte" : "artes"})`}
+              : aprobada
+                ? `${campana.total === 1 ? "El arte está aprobado" : `Los ${campana.total} artes están aprobados`} y ${campana.total === 1 ? "listo" : "listos"} para publicarse`
+                : `Todo revisado (${campana.total} ${campana.total === 1 ? "arte" : "artes"})`}
           {campana.proxima_fecha && <span className="mt-1 flex items-center gap-1 text-xs"><Calendar aria-hidden className="size-3.5" /> Próxima publicación: {formatFecha(campana.proxima_fecha)}</span>}
           {campana.creado_por_nombre && <span className="block text-xs">Creada por {campana.creado_por_nombre}</span>}
         </Card.Content>

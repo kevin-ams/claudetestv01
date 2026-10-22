@@ -27,6 +27,10 @@
   --border: color-mix(in oklab, var(--ges-periwinkle) 25%, white);
   --separator: color-mix(in oklab, var(--ges-periwinkle) 20%, white);
   --muted: color-mix(in oklab, var(--ges-charcoal) 60%, white);
+  /* Verde menta suave para campañas aprobadas (armoniza con el lavanda). */
+  --ges-aprobado-bg: #ecf9f2;
+  --ges-aprobado-borde: #a6e3c3;
+  --ges-aprobado-texto: #17804a;
 }
 
 @theme inline {
