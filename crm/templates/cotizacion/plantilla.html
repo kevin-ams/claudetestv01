@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Propuesta comercial · Ams Studio</title>
+<!--
+  Plantilla propuesta de cotización (Ams Studio).
+  Los textos entre [corchetes] y los montos son de ejemplo; en la fase 3 el CRM
+  rellena la portada, el alcance y la página de "Inversión" con los datos reales.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand: #2563ff;
+    --brand-soft: #8da5ff;
+    --brand-tint: #f4f6ff;
+    --ink: #0f172a;
+    --muted: #64748b;
+    --border: #e4e8f2;
+  }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    color: var(--ink);
+    background: #e9ecf3;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    width: 210mm;
+    height: 297mm;
+    margin: 0 auto 12mm;
+    padding: 22mm 20mm 18mm;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+  }
+  @media print { body { background: #fff; } .page { margin: 0; } }
+
+  .eyebrow {
+    font-size: 8.5pt;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brand);
+  }
+  h1, h2, h3 { margin: 0; letter-spacing: -0.02em; }
+  h2 { font-size: 24pt; font-weight: 800; margin-top: 4mm; }
+  h3 { font-size: 12pt; font-weight: 700; }
+  p { margin: 0; line-height: 1.6; font-size: 10pt; color: #334155; }
+
+  .page-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 6mm; margin-bottom: 10mm; border-bottom: 1px solid var(--border);
+    font-size: 8.5pt; color: var(--muted);
+  }
+  .page-header .brand { display: flex; align-items: center; gap: 2.5mm; font-size: 11pt; color: var(--ink); }
+  .page-footer {
+    margin-top: auto; padding-top: 5mm; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; font-size: 8pt; color: var(--muted);
+  }
+
+  /* Portada */
+  .cover { background: var(--brand); color: #fff; padding: 24mm 22mm; }
+  .cover .eyebrow { color: rgba(255,255,255,0.75); }
+  .cover h1 { font-size: 40pt; font-weight: 800; line-height: 1.05; margin-top: 8mm; }
+  .cover .subtitle { font-size: 14pt; color: rgba(255,255,255,0.85); margin-top: 6mm; font-weight: 500; }
+  .cover .symbol-big { position: absolute; right: -30mm; bottom: 40mm; width: 170mm; opacity: 0.18; }
+  .cover-meta {
+    margin-top: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm;
+    padding-top: 8mm; border-top: 1px solid rgba(255,255,255,0.3);
+  }
+  .cover-meta span { display: block; font-size: 8pt; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.7); }
+  .cover-meta strong { display: block; margin-top: 1.5mm; font-size: 11pt; font-weight: 600; }
+
+  /* Bloques */
+  .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 10mm; }
+  .pillar { background: var(--brand-tint); border-radius: 4mm; padding: 6mm; }
+  .pillar h3 { color: var(--brand); }
+  .pillar p { margin-top: 2mm; font-size: 9pt; }
+  .quote-block {
+    margin-top: 10mm; padding: 7mm 8mm; border-left: 3px solid var(--brand);
+    background: #fafbff; font-size: 11pt; line-height: 1.6;
+  }
+
+  .scope { margin-top: 8mm; display: flex; flex-direction: column; gap: 5mm; }
+  .scope-item { display: grid; grid-template-columns: 10mm 1fr; gap: 4mm; }
+  .scope-item .num {
+    width: 10mm; height: 10mm; border-radius: 3mm; background: var(--brand-tint); color: var(--brand);
+    display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 10pt;
+  }
+  .scope-item ul { margin: 2mm 0 0; padding-left: 4.5mm; font-size: 9.5pt; color: #334155; line-height: 1.6; }
+
+  .timeline { margin-top: 10mm; }
+  .timeline-row { display: grid; grid-template-columns: 45mm 1fr; align-items: center; gap: 4mm; margin-top: 2.5mm; font-size: 9pt; }
+  .timeline-track { position: relative; height: 5mm; background: var(--brand-tint); border-radius: 2.5mm; }
+  .timeline-bar { position: absolute; top: 0; height: 5mm; border-radius: 2.5mm; background: var(--brand); }
+  .timeline-weeks { display: grid; grid-template-columns: 45mm 1fr; gap: 4mm; font-size: 7.5pt; color: var(--muted); }
+  .timeline-weeks div:last-child { display: flex; justify-content: space-between; }
+
+  /* Inversión (página generada por el CRM) */
+  .client-box { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 8mm; }
+  .client-box > div { border: 1px solid var(--border); border-radius: 3mm; padding: 5mm; font-size: 9pt; line-height: 1.6; }
+  .client-box span { display: block; font-size: 7.5pt; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.5mm; }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8mm; font-size: 9pt; }
+  thead th {
+    text-align: left; font-size: 7.5pt; letter-spacing: 0.12em; text-transform: uppercase;
+    color: #fff; background: var(--ink); padding: 3mm 3mm; font-weight: 600;
+  }
+  thead th:first-child { border-radius: 2mm 0 0 2mm; }
+  thead th:last-child { border-radius: 0 2mm 2mm 0; }
+  tbody td { padding: 3.5mm 3mm; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody td small { display: block; color: var(--muted); font-size: 8pt; margin-top: 0.8mm; }
+  .r { text-align: right; white-space: nowrap; }
+
+  .totals { display: flex; justify-content: flex-end; margin-top: 6mm; }
+  .totals table { width: 85mm; margin: 0; }
+  .totals td { padding: 1.8mm 0; border: none; font-size: 9.5pt; }
+  .totals .grand td { padding-top: 3mm; border-top: 2px solid var(--ink); font-size: 13pt; font-weight: 800; }
+  .totals .tax td { font-size: 8.5pt; color: var(--muted); }
+
+  .payment { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 8mm; }
+  .payment > div { background: var(--brand-tint); border-radius: 3mm; padding: 5mm; font-size: 9pt; line-height: 1.6; }
+  .payment strong { color: var(--brand); }
+
+  .terms { margin-top: 6mm; padding-left: 4.5mm; font-size: 9.5pt; line-height: 1.7; color: #334155; }
+  .accept {
+    margin-top: 10mm; border: 1.5px solid var(--brand); border-radius: 4mm; padding: 7mm;
+    display: grid; grid-template-columns: 1fr 32mm; gap: 6mm; align-items: center;
+  }
+  .accept .btn {
+    display: inline-block; margin-top: 4mm; background: var(--brand); color: #fff;
+    padding: 2.5mm 6mm; border-radius: 2.5mm; font-weight: 700; font-size: 10pt; text-decoration: none;
+  }
+  .qr {
+    width: 32mm; height: 32mm; border-radius: 3mm; border: 1px dashed var(--brand-soft);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 7.5pt; color: var(--muted); padding: 3mm;
+  }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; margin-top: 18mm; font-size: 8.5pt; color: var(--muted); }
+  .signatures div { border-top: 1px solid var(--ink); padding-top: 2mm; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="ams" viewBox="80 35 485 286">
+      <path d="M88 140 Q88 115 113 115 L135 115 C200 115 250 132 287 160 C330 195 360 250 360 313 L113 313 Q88 313 88 288 Z" fill="var(--l, #5b7bff)"/>
+      <path d="M233 313 C233 250 255 200 287 160 C340 95 420 43 520 43 Q557 43 557 80 L557 288 Q557 313 532 313 Z" fill="var(--r, #2563ff)"/>
+      <path d="M233 313 C233 250 255 200 287 160 C330 195 360 250 360 313 Z" fill="var(--o, #8da5ff)"/>
+    </symbol>
+  </defs>
+</svg>
+
+<!-- 1. Portada -->
+<section class="page cover">
+  <div style="display:flex;align-items:center;gap:3mm;--l:#f4f6ff;--r:#d9defb;--o:#8da5ff">
+    <svg width="34" height="20"><use href="#ams"/></svg>
+    <strong style="font-size:13pt"><span style="font-weight:800">Ams</span> <span style="font-weight:500">Studio</span></strong>
+  </div>
+  <svg class="symbol-big" viewBox="80 35 485 286" style="--l:#fff;--r:#fff;--o:#fff"><use href="#ams"/></svg>
+
+  <p class="eyebrow" style="margin-top:55mm">Propuesta comercial</p>
+  <h1>Identidad de marca<br>y sitio web</h1>
+  <p class="subtitle">Preparada para [Empresa Ejemplo, S.A.]</p>
+
+  <div class="cover-meta">
+    <div><span>Cotización</span><strong>COT-2026-0001</strong></div>
+    <div><span>Fecha</span><strong>22 de octubre de 2026</strong></div>
+    <div><span>Válida hasta</span><strong>6 de noviembre de 2026</strong></div>
+  </div>
+</section>
+
+<!-- 2. Sobre Ams Studio -->
+<section class="page">
+  <div class="page-header">
+    <div class="brand"><svg width="26" height="15"><use href="#ams"/></svg><b>Ams</b>&nbsp;Studio</div>
+    <div>COT-2026-0001</div>
+  </div>
+
+  <p class="eyebrow">01 · Quiénes somos</p>
+  <h2>Build What Matters</h2>
+  <p style="margin-top:5mm;font-size:11pt">
+    Ams Studio acompaña a equipos ambiciosos a diseñar, construir y escalar productos digitales.
+    Combinamos estrategia, diseño y tecnología para crear marcas y experiencias que generan resultados de negocio.
+  </p>
+
+  <div class="pillars">
+    <div class="pillar"><h3>Moderno</h3><p>Limpio, atemporal y con visión de futuro.</p></div>
+    <div class="pillar"><h3>Modular</h3><p>Flexible, escalable y adaptable a cada etapa de tu negocio.</p></div>
+    <div class="pillar"><h3>Estratégico</h3><p>Con propósito y enfocado en objetivos de negocio.</p></div>
+    <div class="pillar"><h3>Tecnológico</h3><p>Construido para lo que viene.</p></div>
+  </div>
+
+  <p class="eyebrow" style="margin-top:14mm">02 · Entendimiento del proyecto</p>
+  <div class="quote-block">
+    [Resumen del reto del cliente en 2–3 frases: situación actual, objetivo y cómo lo vamos a medir.
+    En la fase de IA, el CRM propondrá este texto a partir de las notas de la reunión con el cliente.]
+  </div>
+
+  <div class="page-footer"><span>amscreativeint.com</span><span>2</span></div>
+</section>
+
+<!-- 3. Alcance -->
+<section class="page">
+  <div class="page-header">
+    <div class="brand"><svg width="26" height="15"><use href="#ams"/></svg><b>Ams</b>&nbsp;Studio</div>
+    <div>COT-2026-0001</div>
+  </div>
+
+  <p class="eyebrow">03 · Alcance</p>
+  <h2>Qué vamos a entregar</h2>
+
+  <div class="scope">
+    <div class="scope-item">
+      <div class="num">1</div>
+      <div><h3>Identidad de marca</h3>
+        <ul><li>Logotipo principal y variantes</li><li>Paleta de color y tipografía</li><li>Manual de marca en PDF</li></ul></div>
+    </div>
+    <div class="scope-item">
+      <div class="num">2</div>
+      <div><h3>Sitio web de 5 páginas</h3>
+        <ul><li>Diseño UI responsive</li><li>Desarrollo y publicación</li><li>Formulario de contacto y SEO básico</li></ul></div>
+    </div>
+    <div class="scope-item">
+      <div class="num">3</div>
+      <div><h3>Contenido</h3>
+        <ul><li>Redacción de textos para cada página</li><li>Dos rondas de revisión</li></ul></div>
+    </div>
+    <div class="scope-item">
+      <div class="num">4</div>
+      <div><h3>Hosting y mantenimiento</h3>
+        <ul><li>12 meses de hosting</li><li>Actualizaciones y respaldos mensuales</li></ul></div>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <p class="eyebrow">Cronograma estimado</p>
+    <div class="timeline-weeks" style="margin-top:4mm"><div></div><div><span>Sem 1</span><span>Sem 2</span><span>Sem 3</span><span>Sem 4</span><span>Sem 5</span><span>Sem 6</span></div></div>
+    <div class="timeline-row"><span>Descubrimiento</span><div class="timeline-track"><div class="timeline-bar" style="left:0;width:17%"></div></div></div>
+    <div class="timeline-row"><span>Identidad de marca</span><div class="timeline-track"><div class="timeline-bar" style="left:12%;width:30%"></div></div></div>
+    <div class="timeline-row"><span>Diseño web</span><div class="timeline-track"><div class="timeline-bar" style="left:38%;width:28%"></div></div></div>
+    <div class="timeline-row"><span>Desarrollo y lanzamiento</span><div class="timeline-track"><div class="timeline-bar" style="left:62%;width:38%"></div></div></div>
+  </div>
+
+  <div class="page-footer"><span>amscreativeint.com</span><span>3</span></div>
+</section>
+
+<!-- 4. Inversión: esta es la página que genera el CRM -->
+<section class="page">
+  <div class="page-header">
+    <div class="brand"><svg width="26" height="15"><use href="#ams"/></svg><b>Ams</b>&nbsp;Studio</div>
+    <div>COT-2026-0001</div>
+  </div>
+
+  <p class="eyebrow">04 · Inversión</p>
+  <h2>Detalle de la cotización</h2>
+
+  <div class="client-box">
+    <div><span>Cliente</span><b>[Empresa Ejemplo, S.A.]</b><br>NIT: [1234567-8]<br>Atención: [Nombre del contacto]</div>
+    <div><span>Cotización</span>Folio: <b>COT-2026-0001</b> · v1<br>Fecha: 22/10/2026 · Vigencia: 15 días<br>Moneda: Quetzales (GTQ)</div>
+  </div>
+
+  <table>
+    <thead><tr><th>Descripción</th><th class="r">Cant.</th><th class="r">Precio unit.</th><th class="r">Desc.</th><th class="r">Total</th></tr></thead>
+    <tbody>
+      <tr><td><b>Identidad de marca</b><small>Logotipo, paleta, tipografía y manual de marca</small></td><td class="r">1</td><td class="r">Q8,500.00</td><td class="r">—</td><td class="r">Q8,500.00</td></tr>
+      <tr><td><b>Sitio web de 5 páginas</b><small>Diseño UI, desarrollo, formulario y SEO básico</small></td><td class="r">1</td><td class="r">Q14,000.00</td><td class="r">—</td><td class="r">Q14,000.00</td></tr>
+      <tr><td><b>Redacción de contenido web</b><small>Por página, incluye dos rondas de revisión</small></td><td class="r">5</td><td class="r">Q450.00</td><td class="r">—</td><td class="r">Q2,250.00</td></tr>
+      <tr><td><b>Hosting y mantenimiento</b><small>Mensual · 12 meses</small></td><td class="r">12</td><td class="r">Q350.00</td><td class="r">10 %</td><td class="r">Q3,780.00</td></tr>
+    </tbody>
+  </table>
+
+  <div class="totals">
+    <table>
+      <tr><td>Subtotal</td><td class="r">Q28,950.00</td></tr>
+      <tr><td>Descuentos</td><td class="r">− Q420.00</td></tr>
+      <tr class="grand"><td>Total</td><td class="r">Q28,530.00</td></tr>
+      <tr class="tax"><td>Precios con IVA (12 %) incluido</td><td></td></tr>
+      <tr class="tax"><td>Base imponible</td><td class="r">Q25,473.21</td></tr>
+      <tr class="tax"><td>IVA 12 %</td><td class="r">Q3,056.79</td></tr>
+    </table>
+  </div>
+
+  <div class="payment">
+    <div><strong>Forma de pago</strong><br>50 % de anticipo para iniciar: <b>Q14,265.00</b><br>50 % contra entrega: <b>Q14,265.00</b></div>
+    <div><strong>Datos de pago</strong><br>[Banco] · Cuenta [número]<br>A nombre de [razón social de Ams Studio]</div>
+  </div>
+
+  <div class="page-footer"><span>amscreativeint.com</span><span>4</span></div>
+</section>
+
+<!-- 5. Términos y aceptación -->
+<section class="page">
+  <div class="page-header">
+    <div class="brand"><svg width="26" height="15"><use href="#ams"/></svg><b>Ams</b>&nbsp;Studio</div>
+    <div>COT-2026-0001</div>
+  </div>
+
+  <p class="eyebrow">05 · Términos</p>
+  <h2>Condiciones</h2>
+  <ol class="terms">
+    <li>Esta cotización es válida por 15 días a partir de su fecha de emisión.</li>
+    <li>Los precios incluyen IVA según se indica en la página de inversión.</li>
+    <li>El proyecto inicia al recibir el anticipo y la aceptación de esta propuesta.</li>
+    <li>Incluye dos rondas de revisión por entregable; los cambios adicionales se cotizan aparte.</li>
+    <li>Los derechos de uso de los entregables se transfieren al cliente al completar el pago.</li>
+    <li>[Agrega aquí tus condiciones propias.]</li>
+  </ol>
+
+  <div class="accept">
+    <div>
+      <h3>Acepta esta propuesta en línea</h3>
+      <p style="margin-top:2mm">Revisa, comenta y acepta desde el portal del cliente. Al aceptar, esta versión queda registrada y te enviamos la confirmación por correo.</p>
+      <a class="btn" href="#">Ver y aceptar propuesta</a>
+    </div>
+    <div class="qr">Código QR al portal del cliente</div>
+  </div>
+
+  <div class="signatures">
+    <div>[Nombre del asesor] · Ams Studio</div>
+    <div>Aceptado por el cliente · Fecha</div>
+  </div>
+
+  <div class="page-footer"><span>amscreativeint.com</span><span>5</span></div>
+</section>
+
+</body>
+</html>
