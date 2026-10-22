@@ -71,6 +71,15 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
 8. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
    Desmarcar *Acceso al portal activo* bloquea a la facultad sin borrar nada.
 
+## Subida en lote
+
+En cada campaña, **Subir en lote** permite crear varios artes de una vez (hasta 50; lo habitual
+son ~10): se pegan los enlaces de Drive, uno por línea (opcional `Título | enlace`), se completan
+en una tabla con miniaturas (con "Aplicar a todas" para carrera, formato y fecha) y se crean
+todos juntos. Se marcan antes de crear los enlaces inválidos, repetidos o que ya están en la
+campaña; si alguna fila falla no se crea ninguna. Opcionalmente se avisa a la facultad con un
+solo correo (vienen sugeridos los correos de quienes ya revisaron artes de esa facultad).
+
 ## Reporte para Diseño
 
 En cada campaña, **📄 Reporte para Diseño** genera un reporte imprimible (Imprimir / Guardar PDF)

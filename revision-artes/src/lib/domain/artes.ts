@@ -261,6 +261,21 @@ export async function listRevisores(arteId: number): Promise<Revisor[]> {
   return rows as Revisor[];
 }
 
+/** Personas de la facultad que alguna vez revisaron artes (para avisar de artes nuevos). */
+export async function listRevisoresFacultad(facultadId: number): Promise<Revisor[]> {
+  const rows = await db().sql`
+    SELECT LOWER(r.autor_email) AS email,
+      (ARRAY_AGG(r.autor_nombre ORDER BY r.created_at DESC))[1] AS nombre,
+      TRUE AS comento
+    FROM revisiones r
+    JOIN artes a ON a.id = r.arte_id
+    WHERE a.facultad_id = ${facultadId} AND r.autor_tipo = 'facultad'
+    GROUP BY LOWER(r.autor_email)
+    ORDER BY nombre ASC
+  `;
+  return rows as Revisor[];
+}
+
 export async function registrarNotificacion(arte: Arte, emails: string[], autor: Autor) {
   await db().sql`
     INSERT INTO revisiones (arte_id, accion, comentario, version, autor_tipo, autor_nombre, autor_email)

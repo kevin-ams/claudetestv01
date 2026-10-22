@@ -119,3 +119,39 @@ export async function avisarCampanaRevisada(campanaId: number, revisor: { nombre
     if (!res.ok) console.error("[aviso campaña revisada]", campana.id, d.email, res.message);
   }
 }
+
+/**
+ * Avisa por correo a la facultad que hay artes nuevos para revisar en una
+ * campaña (subida en lote). Un solo correo con la lista y el enlace directo.
+ */
+export async function avisarArtesNuevos(
+  campanaId: number,
+  titulos: string[],
+  correos: string[],
+  autor: Autor
+): Promise<EmailResult> {
+  const campana = await getCampana(campanaId);
+  if (!campana) return { ok: false, message: "La campaña no existe." };
+  const facultad = await getFacultad(campana.facultad_id);
+  if (!facultad) return { ok: false, message: "La facultad no existe." };
+
+  const base = await appUrl();
+  const enlace = `${base}/portal/ingresar?codigo=${encodeURIComponent(facultad.codigo_acceso)}&next=${encodeURIComponent(`/portal/campanas/${campana.id}`)}`;
+  const n = titulos.length;
+  const lista = titulos.map((t) => `<li style="margin-bottom:4px">${escapeHtml(t)}</li>`).join("");
+  const html = emailLayout({
+    title: `${n} ${n === 1 ? "arte nuevo" : "artes nuevos"} para revisar`,
+    intro: `El equipo de Marketing Digital cargó <strong>${n} ${n === 1 ? "arte" : "artes"}</strong> en la campaña <strong>“${escapeHtml(campana.nombre)}”</strong> de ${escapeHtml(facultad.nombre)}. Entra al portal para aprobarlos o pedir cambios.`,
+    body: `<ul style="margin-top:16px;padding-left:20px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;color:#374151">${lista}</ul>`,
+    cta: { label: "Revisar la campaña", url: enlace },
+    logoUrl: `${base}/logo-ges.png`,
+    footer: `Responde a este correo para escribirle a ${escapeHtml(autor.nombre)}.`,
+  });
+  return sendEmail({
+    to: correos,
+    subject: `Artes para revisar: ${campana.nombre} (${n})`,
+    html,
+    text: `Hay ${n} artes nuevos para revisar en la campaña "${campana.nombre}".\n\n${titulos.map((t) => `- ${t}`).join("\n")}\n\nRevisar: ${enlace}`,
+    replyTo: autor.email,
+  });
+}

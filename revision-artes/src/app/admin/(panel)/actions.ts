@@ -12,20 +12,21 @@ import {
   regenerarCodigo,
   updateFacultad,
 } from "@/lib/domain/facultades";
-import { createCarrera, deleteCarrera, getCarrera, renameCarrera } from "@/lib/domain/carreras";
+import { createCarrera, deleteCarrera, getCarrera, listCarreras, renameCarrera } from "@/lib/domain/carreras";
 import { createCampana, deleteCampana, getCampana, updateCampana } from "@/lib/domain/campanas";
 import {
   createArte,
   crearNuevaVersion,
   deleteArte,
   getArte,
+  listArtes,
   listRevisores,
   revisarArte,
   updateArte,
   type ArteDatos,
 } from "@/lib/domain/artes";
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
-import { notificarNuevaVersion } from "@/lib/notificaciones";
+import { avisarArtesNuevos, notificarNuevaVersion } from "@/lib/notificaciones";
 import { marcarLeido, marcarTodosLeidos } from "@/lib/domain/avisos";
 import { appUrl, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 import { asegurarTokenReporte, reporteCampana, revocarTokenReporte } from "@/lib/domain/reporte";
@@ -493,4 +494,115 @@ export async function marcarAvisoLeidoAction(avisoId: number) {
 export async function marcarTodosAvisosAction() {
   const admin = await requireAdmin();
   await marcarTodosLeidos(admin.adminId);
+}
+
+// ---------- Subida de artes en lote ----------
+
+const filaLote = z.object({
+  titulo: z.string().trim().min(2, "El título es muy corto").max(200),
+  driveUrl,
+  carreraId: z.string(),
+  formato: z.string().trim().max(100),
+  fechaPublicacion: z
+    .string()
+    .trim()
+    .regex(/^(\d{4}-\d{2}-\d{2})?$/, "Fecha inválida"),
+  descripcion: z.string().trim().max(5000),
+});
+
+export type FilaLote = z.input<typeof filaLote>;
+export type ResultadoLote = {
+  ok: boolean;
+  error?: string;
+  /** Errores por fila (índice → mensaje), para marcarlas en la tabla. */
+  errores?: Record<number, string>;
+  creados?: number;
+  mensaje?: string;
+};
+
+/**
+ * Crea varios artes de una vez en una campaña. Valida todas las filas antes
+ * de crear nada (si una falla, no se crea ninguna) y, si se pide, avisa a la
+ * facultad con un solo correo.
+ */
+export async function crearLoteAction(
+  facultadId: number,
+  campanaId: number,
+  entrada: { filas: FilaLote[]; avisar: boolean; correos: string }
+): Promise<ResultadoLote> {
+  const admin = await requireAdmin();
+  const campana = await getCampana(campanaId, facultadId);
+  if (!campana) return { ok: false, error: "La campaña no existe" };
+  const filas = Array.isArray(entrada?.filas) ? entrada.filas : [];
+  if (filas.length === 0) return { ok: false, error: "No hay artes para crear" };
+  if (filas.length > 50) return { ok: false, error: "Máximo 50 artes por lote" };
+
+  const carreras = new Set((await listCarreras(facultadId)).map((c) => String(c.id)));
+  const existentes = new Set(
+    (await listArtes(facultadId)).filter((a) => a.campana_id === campana.id).map((a) => parseDriveUrl(a.drive_url)?.id)
+  );
+  const vistos = new Set<string>();
+  const errores: Record<number, string> = {};
+  const datos: { datos: ArteDatos; url: string }[] = [];
+
+  filas.forEach((f, i) => {
+    const parsed = filaLote.safeParse(f);
+    if (!parsed.success) {
+      errores[i] = firstError(parsed.error);
+      return;
+    }
+    const v = parsed.data;
+    const id = parseDriveUrl(v.driveUrl)?.id ?? "";
+    if (vistos.has(id)) errores[i] = "Este enlace está repetido en el lote";
+    else if (existentes.has(id)) errores[i] = "Este archivo ya está en la campaña";
+    else if (v.carreraId && v.carreraId !== "general" && !carreras.has(v.carreraId)) {
+      errores[i] = "La carrera no pertenece a esta facultad";
+    }
+    vistos.add(id);
+    datos.push({
+      url: v.driveUrl,
+      datos: {
+        carreraId: v.carreraId && v.carreraId !== "general" ? Number(v.carreraId) : null,
+        campanaId: campana.id,
+        titulo: v.titulo,
+        formato: v.formato,
+        descripcion: v.descripcion,
+        fechaPublicacion: v.fechaPublicacion || null,
+      },
+    });
+  });
+  if (Object.keys(errores).length > 0) {
+    return { ok: false, error: "Revisa las filas marcadas: no se creó ningún arte.", errores };
+  }
+
+  let correos: string[] = [];
+  if (entrada.avisar) {
+    correos = [
+      ...new Set(
+        String(entrada.correos ?? "")
+          .split(/[\s,;]+/)
+          .map((c) => c.trim().toLowerCase())
+          .filter(Boolean)
+      ),
+    ];
+    if (correos.length === 0) return { ok: false, error: "Escribe al menos un correo para el aviso, o desmarca el aviso." };
+    const malo = correos.find((c) => !EMAIL_RE.test(c));
+    if (malo) return { ok: false, error: `Correo inválido: ${malo}` };
+  }
+
+  for (const d of datos) await createArte(facultadId, d.datos, d.url);
+  revalidatePath(`/admin/facultades/${facultadId}`, "layout");
+  revalidatePath("/portal", "layout");
+
+  let mensaje = `Se crearon ${datos.length} ${datos.length === 1 ? "arte" : "artes"} en “${campana.nombre}”.`;
+  if (entrada.avisar) {
+    const aviso = await avisarArtesNuevos(
+      campana.id,
+      datos.map((d) => d.datos.titulo),
+      correos,
+      { tipo: "admin", nombre: admin.name, email: admin.email }
+    );
+    mensaje += aviso.ok ? ` ${aviso.message}` : ` El aviso no se envió: ${aviso.message}`;
+  }
+  return { ok: true, creados: datos.length, mensaje };
 }

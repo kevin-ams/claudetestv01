@@ -1,7 +1,7 @@
-import { FileText } from "@gravity-ui/icons";
+import { FileText, Layers } from "@gravity-ui/icons";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Card } from "@heroui/react";
+import { Alert, Card } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
@@ -20,7 +20,7 @@ export default async function AdminCampanaPage({
 }: PageProps<"/admin/facultades/[id]/campanas/[cid]">) {
   await requireAdmin();
   const { id, cid } = await params;
-  const { carrera, estado } = await searchParams;
+  const { carrera, estado, lote } = await searchParams;
   const facultad = Number.isInteger(Number(id)) ? await getFacultad(Number(id)) : null;
   if (!facultad) notFound();
 
@@ -56,11 +56,26 @@ export default async function AdminCampanaPage({
         )}
       </div>
 
+      {typeof lote === "string" && lote && (
+        <Alert status="success">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>{lote}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         <section className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Artes ({artes.length})</h2>
             <div className="flex flex-wrap gap-2">
+              {campana && (
+                <Link href={`${base}/lote`} className={buttonVariants({ variant: "secondary" })}>
+                  <Layers aria-hidden className="size-4" />
+                  Subir en lote
+                </Link>
+              )}
               {campana && (
                 <Link href={`${base}/reporte`} className={buttonVariants({ variant: "secondary" })}>
                   <FileText aria-hidden className="size-4" />
