@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getUserById } from "@/lib/domain/users";
 import { SESSION_COOKIE, signSession, verifySession, type SessionPayload } from "./token";
 
 export async function createSessionCookie(payload: SessionPayload) {
@@ -27,10 +28,14 @@ export async function getSession(): Promise<SessionPayload | null> {
   return verifySession(token);
 }
 
+// Revisa la base de datos en cada uso: un usuario desactivado pierde el acceso
+// aunque su cookie siga vigente, y los cambios de rol aplican de inmediato.
 export async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
   if (!session) redirect("/login");
-  return session;
+  const user = await getUserById(session.userId);
+  if (!user || !user.active) redirect("/login?error=inactive");
+  return { ...session, role: user.role, name: user.name };
 }
 
 export async function requireAdmin(): Promise<SessionPayload> {

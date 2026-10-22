@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireSession } from "@/lib/auth/session";
 import { Sidebar } from "./sidebar";
 
@@ -15,13 +16,15 @@ export default async function CrmLayout({ children }: LayoutProps<"/">) {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col md:pl-64">
         <header className="sticky top-0 z-20 flex h-16 items-center justify-end gap-3 border-b border-border bg-background/80 px-6 backdrop-blur">
-          <div className="text-right leading-tight">
-            <p className="text-sm font-semibold">{session.name}</p>
-            <p className="text-xs text-muted">{session.email}</p>
-          </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
-            {initials}
-          </div>
+          <Link href="/perfil" className="flex items-center gap-3 rounded-lg px-2 py-1 hover:bg-brand-tint">
+            <div className="text-right leading-tight">
+              <p className="text-sm font-semibold">{session.name}</p>
+              <p className="text-xs text-muted">{session.email}</p>
+            </div>
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">
+              {initials}
+            </div>
+          </Link>
           <form action="/api/auth/logout" method="post">
             <button type="submit" className="btn btn-ghost text-xs">
               Salir

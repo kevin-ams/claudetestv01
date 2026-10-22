@@ -6,6 +6,8 @@ export type User = {
   name: string;
   email: string;
   avatar_url: string | null;
+  password_hash: string | null;
+  active: boolean;
   role: "admin" | "member";
   created_at: string;
   last_login_at: string | null;

@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
     name: profile.name,
     avatarUrl: profile.picture ?? null,
   });
+  if (!user.active) {
+    return fail(request, "inactive");
+  }
 
   await createSessionCookie({
     userId: user.id,

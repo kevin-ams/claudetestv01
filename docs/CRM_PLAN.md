@@ -17,6 +17,7 @@ Se desarrolla y prueba en local (`npm run dev`) y, cuando esté estable, se publ
 | Cotizador | Al estilo **Zoho Invoice** (ver §5) |
 | FEL | **No se conecta a certificador por ahora**: facturas internas o proformas |
 | Etapas | Lead → Llamada → Propuesta → Reunión en negociación → Ganado / Perdido, configurables (reordenar, agregar, quitar) |
+| Acceso | Google para `@amscreativeint.com` **y** correo + contraseña para externos o como respaldo (los crea un administrador) |
 | Repositorio | `ams-crm`. Mientras se crea, el código vive en `crm/`. **No publicar en Netlify todavía** |
 | Marca | Ver §6 |
 
@@ -95,6 +96,7 @@ Principio: **la IA propone y una persona aprueba**.
 - **Desglose del IVA incluido**: base = total / 1.12 e IVA = total − base, para mostrarlos en el documento.
 - **Folio** consecutivo configurable (`COT-2026-0001`) y estados: borrador → enviada → vista → aceptada / rechazada / vencida.
 - **Versiones** (v1, v2…), comparadas por la IA.
+- **Constructor de plantillas** (editable desde el CRM): la propuesta base está en `crm/templates/cotizacion/`. Por secciones (portada, quiénes somos, entendimiento, alcance, cronograma, inversión, condiciones, aceptación) que se pueden activar u ocultar, reordenar y editar en texto. Se pueden guardar varias plantillas (por ejemplo, Branding, Web o Iguala) y elegir una por cotización.
 - **Plantilla PDF con la marca Ams Studio**. Cuando me compartas tu plantilla de presentación, la página de precios generada se insertará en su sección de precios (con `pdf-lib`) y saldrá un único PDF.
 - **Envío por Gmail** con enlace al **portal del cliente**, donde el cliente ve, descarga, **acepta o rechaza** y comenta. Al aceptar, la versión se congela y el negocio pasa a "Ganado".
 - **Convertir a factura** en un clic.

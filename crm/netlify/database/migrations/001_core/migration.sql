@@ -6,6 +6,9 @@ CREATE TABLE users (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   avatar_url TEXT,
+  -- Acceso alterno a Google (personas externas o soporte). NULL = solo Google.
+  password_hash TEXT,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
   role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   last_login_at TIMESTAMPTZ
