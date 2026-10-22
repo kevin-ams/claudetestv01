@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // El CRM es una app independiente con su propia configuración.
+    "crm/**",
   ]),
 ]);
 

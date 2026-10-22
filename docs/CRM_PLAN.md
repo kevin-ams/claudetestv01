@@ -15,6 +15,9 @@ Se desarrolla y prueba en local (`npm run dev`) y, cuando esté estable, se publ
 | Impuesto | Por documento: **IVA 12 % incluido** (régimen general) o **5 %** (pequeño contribuyente) |
 | Tipo de cliente | **B2B y B2C**: la empresa es opcional y el contacto puede existir solo |
 | Cotizador | Al estilo **Zoho Invoice** (ver §5) |
+| FEL | **No se conecta a certificador por ahora**: facturas internas o proformas |
+| Etapas | Lead → Llamada → Propuesta → Reunión en negociación → Ganado / Perdido, configurables (reordenar, agregar, quitar) |
+| Repositorio | `ams-crm`. Mientras se crea, el código vive en `crm/`. **No publicar en Netlify todavía** |
 | Marca | Ver §6 |
 
 ## 1. Qué hacen los mejores CRM (investigación)
@@ -152,7 +155,6 @@ Archivos en `docs/brand/`: tablero de marca, símbolo, ícono de app y logotipos
 
 ## 9. Pendiente de ti
 
-1. Confirmar el nombre del repositorio (`ams-crm`) y el subdominio (`crm.amscreativeint.com`).
+1. Crear el repositorio vacío `ams-crm` en GitHub y darle acceso a Claude; la integración actual no tiene permiso para crear repositorios.
 2. Plantilla de presentación para la cotización y en qué página va la sección de precios.
-3. Si ya emites FEL y con qué certificador.
-4. Etapas de tu pipeline de ventas (p. ej. Lead → Reunión → Propuesta → Negociación → Ganado/Perdido).
+3. Credenciales OAuth de Google (proyecto en Google Cloud con consentimiento **Interno**).
