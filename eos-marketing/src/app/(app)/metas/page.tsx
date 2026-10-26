@@ -2,6 +2,8 @@ import { getSession } from "@/lib/auth/session";
 import { listCareers, listMonthlyGoals } from "@/lib/domain/careers";
 import { listTeamMembers } from "@/lib/domain/users";
 import { GoalsGrid } from "./goals-grid";
+import { GoalsImport } from "./goals-import";
+import { listGoalHistory } from "@/lib/domain/goals-sheet";
 
 /** Los 12 meses del año más enero y febrero del siguiente, para planificar el arranque del próximo año. */
 function monthsOf(year: number) {
@@ -20,10 +22,11 @@ export default async function MetasPage({
   const year = Number(sp.anio) || new Date().getFullYear();
   const months = monthsOf(year);
 
-  const [careers, goals, members] = await Promise.all([
+  const [careers, goals, members, history] = await Promise.all([
     listCareers(session.teamId),
     listMonthlyGoals(session.teamId, months),
     listTeamMembers(session.teamId),
+    listGoalHistory(session.teamId, year),
   ]);
 
   return (
@@ -38,7 +41,10 @@ export default async function MetasPage({
       {careers.length === 0 ? (
         <p className="card card--default block gap-0 p-6 text-sm text-muted">Todavía no hay carreras. Agrégalas en Indicadores de carrera.</p>
       ) : (
-        <GoalsGrid year={year} months={months} careers={careers} goals={goals} members={members} />
+        <>
+          <GoalsImport careers={careers} />
+          <GoalsGrid year={year} months={months} careers={careers} goals={goals} members={members} history={history} />
+        </>
       )}
     </div>
   );

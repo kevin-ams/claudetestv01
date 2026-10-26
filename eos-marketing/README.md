@@ -146,6 +146,13 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Metas de carrera › Importar desde Google Sheets** (manual, solo cuando se presiona): se pega el enlace de la hoja
+  (compartida como pública o publicada) y se leen las pestañas con "Meta del ciclo" y "Presupuesto del ciclo". Los
+  meses (OCT, NOV, DIC, ENE 27…) se cargan como metas mensuales y lo que ya se tenía antes del primer mes (ciclo −
+  "Faltaban / Presupuesto al inicio del mes") queda como **histórico** de la carrera (fila debajo de cada carrera,
+  editable a mano). "Total ciclo" = histórico + meses desde el primer mes; se muestra la meta del ciclo de la hoja para
+  comparar. Los códigos se cruzan por código, alias guardado o nombre; los que no coinciden se asignan a mano en la
+  vista previa (se recuerda). Tabla `career_goal_history`.
 - **Agenda del equipo** (Reunión L10 › antes de empezar y en el segmento de Noticias): bloc de notas con **una nota
   por persona y semana** (texto libre, fecha opcional y semáforo On track / Off track). Se puede asignar a otra persona
   si esa persona aún no tiene la suya. "Issue" pasa la nota a la lista de Issues (con la persona como dueña).

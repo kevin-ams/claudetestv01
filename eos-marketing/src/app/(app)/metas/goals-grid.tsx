@@ -5,11 +5,12 @@ import { Segmented } from "@/components/ui/segmented";
 import { Button, Card, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import Link from "next/link";
-import { useMemo, useState, useTransition } from "react";
+import { Fragment, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Career, CareerMonthlyGoal, PublicUser } from "@/lib/domain/types";
 import { money, normalizeText, num } from "@/lib/domain/careers-shared";
-import { copyMonthAction, setMonthlyGoalAction, type GoalField } from "./actions";
+import { copyMonthAction, setGoalHistoryAction, setMonthlyGoalAction, type GoalField } from "./actions";
+import type { GoalHistory } from "@/lib/domain/goals-shared";
 
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -23,9 +24,11 @@ function monthLabel(month: string, year: number) {
 function GoalCell({
   value,
   onSave,
+  label,
 }: {
   value: number;
   onSave: (value: number | null) => Promise<void>;
+  label?: string;
 }) {
   const router = useRouter();
   const [local, setLocal] = useState(value ? String(value) : "");
@@ -58,6 +61,7 @@ function GoalCell({
         pending ? "opacity-50" : ""
       }`}
       value={local}
+      aria-label={label}
       placeholder="·"
       onChange={(e) => setLocal(e.target.value)}
       onBlur={commit}
@@ -122,12 +126,14 @@ export function GoalsGrid({
   careers,
   goals,
   members,
+  history,
 }: {
   year: number;
   months: string[];
   careers: Career[];
   goals: CareerMonthlyGoal[];
   members: PublicUser[];
+  history: GoalHistory[];
 }) {
   const [field, setField] = useState<GoalField>("leads");
   const [program, setProgram] = useState("");
@@ -140,6 +146,16 @@ export function GoalsGrid({
     return g ? (field === "leads" ? g.leads_goal : g.budget_goal) : 0;
   };
   const fmt = field === "leads" ? num : money;
+  const historyOf = useMemo(() => new Map(history.map((h) => [h.career_id, h])), [history]);
+  const histValue = (h: GoalHistory | undefined) => (h ? (field === "leads" ? h.leads : h.budget) : null);
+  /** Total del ciclo: histórico + meses desde el primer mes con distribución (incluye ene–feb del año siguiente). */
+  const cycleTotal = (careerId: number) => {
+    const h = historyOf.get(careerId);
+    const hv = histValue(h);
+    if (!h || hv === null) return null;
+    return hv + months.reduce((sum, m) => sum + (m >= h.from_month ? valueOf(careerId, m) : 0), 0);
+  };
+  const anyHistory = history.some((h) => histValue(h) !== null);
 
   const programs = useMemo(
     () => [...new Set(careers.map((c) => c.program))].sort((a, b) => a.localeCompare(b, "es")),
@@ -159,6 +175,7 @@ export function GoalsGrid({
   // El total es solo del año; enero y febrero del siguiente se muestran aparte.
   const inYear = (m: string) => m.startsWith(`${year}-`);
   const yearTotal = monthTotals.reduce((a, t, i) => a + (inYear(months[i]) ? t : 0), 0);
+  const cycleSum = filtered.reduce((a, c) => a + (cycleTotal(c.id) ?? 0), 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -224,13 +241,24 @@ export function GoalsGrid({
                 </th>
               ))}
               <th className="px-3 text-right">Total {year}</th>
+              {anyHistory && (
+                <th className="px-3 text-right" title="Histórico + meses desde el inicio de la distribución">
+                  Total ciclo
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {filtered.map((c) => {
               const rowTotal = months.reduce((sum, m) => sum + (inYear(m) ? valueOf(c.id, m) : 0), 0);
+              const h = historyOf.get(c.id);
+              const hv = histValue(h);
+              const cycle = h ? (field === "leads" ? h.cycle_leads : h.cycle_budget) : null;
+              const ct = cycleTotal(c.id);
+              const before = h ? months.filter((m) => m < h.from_month).length : 0;
               return (
-                <tr key={c.id} className="border-b border-border last:border-0 hover:bg-background/60">
+                <Fragment key={c.id}>
+                <tr className={`border-b border-border last:border-0 hover:bg-background/60 ${hv !== null ? "border-b-0" : ""}`}>
                   <td className="sticky left-0 z-10 max-w-72 bg-card px-3 py-1.5">
                     <div className="flex items-baseline gap-2">
                       {c.code && <span className="font-mono text-xs font-semibold text-primary">{c.code}</span>}
@@ -254,7 +282,44 @@ export function GoalsGrid({
                   <td className="whitespace-nowrap px-3 text-right font-semibold tabular-nums">
                     {rowTotal ? fmt(rowTotal) : "—"}
                   </td>
+                  {anyHistory && (
+                    <td className="whitespace-nowrap px-3 text-right font-semibold tabular-nums text-primary">
+                      {ct !== null ? fmt(ct) : "—"}
+                      {ct !== null && cycle !== null && (
+                        <span className={`block text-[10px] font-normal ${Math.abs(ct - cycle) > 0.011 ? "text-yellow" : "text-muted"}`}>
+                          ciclo {fmt(cycle)}
+                        </span>
+                      )}
+                    </td>
+                  )}
                 </tr>
+                {h && hv !== null && (
+                  <tr className="border-b border-border bg-background/40 text-xs last:border-0">
+                    <td className="sticky left-0 z-10 bg-card px-3 py-1 pl-6 text-muted">
+                      ↳ Histórico <span className="text-[11px]">(antes de {monthLabel(h.from_month, year)})</span>
+                    </td>
+                    {before > 0 && (
+                      <td colSpan={before} className="px-1">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-[11px] text-muted">ya se tenía</span>
+                          <div className="w-24">
+                            <GoalCell
+                              key={field}
+                              label={`Histórico de ${c.code || c.name}`}
+                              value={hv}
+                              onSave={(v) => setGoalHistoryAction(c.id, year, h.from_month, field, v)}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                    <td colSpan={months.length - before + 1 + (anyHistory ? 1 : 0)} className="px-3 text-[11px] text-muted">
+                      {before === 0 && `Histórico: ${fmt(hv)} · `}
+                      Total ciclo = histórico + meses desde {monthLabel(h.from_month, year)}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -267,6 +332,7 @@ export function GoalsGrid({
                 </td>
               ))}
               <td className="whitespace-nowrap px-3 text-right tabular-nums">{yearTotal ? fmt(yearTotal) : "—"}</td>
+              {anyHistory && <td className="whitespace-nowrap px-3 text-right tabular-nums text-primary">{cycleSum ? fmt(cycleSum) : "—"}</td>}
             </tr>
           </tfoot>
         </table>
