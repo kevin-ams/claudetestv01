@@ -81,6 +81,8 @@ export type QuickItemInput = {
   title: string;
   description: string;
   ownerId: number | null;
+  /** To-Dos: varias personas; se crea uno independiente para cada una. */
+  ownerIds?: number[];
   dueDate: string | null;
   term?: IssueTerm;
 };
@@ -100,7 +102,12 @@ async function checkQuickItem(meetingId: number, input: QuickItemInput) {
 /** To-Do creado durante la reunión (queda ligado a ella). */
 export async function createMeetingTodoAction(meetingId: number, input: QuickItemInput) {
   const { session, title, description, ownerId, dueDate } = await checkQuickItem(meetingId, input);
-  await createTodo({ teamId: session.teamId, title, description, ownerId, dueDate, meetingId });
+  const requested = [...new Set((Array.isArray(input.ownerIds) ? input.ownerIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 50);
+  const owners: number[] = [];
+  for (const id of requested) if (await isUserInTeam(id, session.teamId)) owners.push(id);
+  for (const owner of owners.length ? owners : [ownerId]) {
+    await createTodo({ teamId: session.teamId, title, description, ownerId: owner, dueDate, meetingId });
+  }
   revalidatePath(`/meeting/${meetingId}`);
   revalidatePath("/todos");
 }

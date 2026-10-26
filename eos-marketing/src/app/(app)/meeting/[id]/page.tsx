@@ -13,7 +13,8 @@ import { mergeWeekly } from "@/lib/domain/careers-shared";
 import { lastNWeeks, currentQuarter, lastClosedWeek, formatWeekRange } from "@/lib/utils/dates";
 import { isClickUpConfigured } from "@/lib/integrations/clickup";
 import { MeetingRunner } from "./meeting-runner";
-import { listMeetingEvents, listPendingEvents } from "@/lib/domain/l10-events";
+import { listMeetingEvents, listPastEvents, listPendingEvents } from "@/lib/domain/l10-events";
+import { listShareableTeams } from "@/lib/domain/scorecard";
 import { listAgenda } from "@/lib/domain/team-agenda";
 import { canEdit } from "@/lib/auth/access";
 import { weekStartISO } from "@/lib/utils/dates";
@@ -56,6 +57,8 @@ export default async function MeetingPage({
     events,
     agenda,
     issuesEditable,
+    pastEvents,
+    shareTeams,
   ] = await Promise.all([
     listOwners(session.teamId),
     listMetrics(session.teamId),
@@ -76,6 +79,8 @@ export default async function MeetingPage({
     meeting.status === "completed" ? listMeetingEvents(session.teamId, meetingId) : listPendingEvents(session.teamId),
     listAgenda(session.teamId, agendaWeek),
     canEdit("issues"),
+    listPastEvents(session.teamId),
+    listShareableTeams(session.teamId),
   ]);
   const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
   const milestonesByRock: Record<number, typeof milestones> = {};
@@ -101,7 +106,7 @@ export default async function MeetingPage({
       openIssues={openIssues}
       todos={todos}
       headlines={headlines}
-      events={events}
+      events={{ pending: events, past: pastEvents, teams: shareTeams, currentWeek: weekStartISO() }}
       agenda={{ week: agendaWeek, weekLabel: formatWeekRange(agendaWeek), items: agenda, canRaiseIssues: issuesEditable }}
       ratings={ratings}
       clickupConfigured={isClickUpConfigured()}

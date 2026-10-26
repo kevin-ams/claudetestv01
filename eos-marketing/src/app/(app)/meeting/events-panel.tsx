@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRotateLeft, ArrowShapeTurnUpRight, Calendar, ChevronDown, ChevronRight } from "@gravity-ui/icons";
+import { ArrowRight, ArrowRotateLeft, ArrowShapeTurnUpRight, Calendar, ChevronDown, ChevronRight } from "@gravity-ui/icons";
 import { Button, Card, Chip, Input, TextArea } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -228,11 +228,14 @@ function EventItem({
   teams,
   editable,
   past = false,
+  onRaiseIssue,
 }: {
   event: L10Event;
   teams: { id: number; name: string }[];
   editable: boolean;
   past?: boolean;
+  /** En la reunión: pasar el evento a IDS. */
+  onRaiseIssue?: (event: L10Event) => void;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<"view" | "edit" | "send" | "reuse">("view");
@@ -298,19 +301,24 @@ function EventItem({
             </div>
           )}
         </div>
-        {editable && (
+        {(editable || onRaiseIssue) && (
           <div className="flex shrink-0 flex-wrap gap-1">
-            {past && (
+            {onRaiseIssue && !past && (
+              <Button size="sm" variant="outline" className="text-red" onPress={() => onRaiseIssue(event)}>
+                <ArrowRight aria-hidden /> Issue
+              </Button>
+            )}
+            {editable && past && (
               <Button size="sm" variant="outline" onPress={() => setMode(mode === "reuse" ? "view" : "reuse")}>
                 <ArrowRotateLeft aria-hidden /> Reutilizar
               </Button>
             )}
-            {past && !received && (
+            {editable && past && !received && (
               <Button size="sm" variant="ghost" onPress={() => setMode(mode === "send" ? "view" : "send")}>
                 <ArrowShapeTurnUpRight aria-hidden /> Enviar a otro equipo
               </Button>
             )}
-            {!past && !received && (
+            {editable && !past && !received && (
               <>
                 <Button size="sm" variant="outline" onPress={() => setMode(mode === "send" ? "view" : "send")}>
                   <ArrowShapeTurnUpRight aria-hidden /> Enviar a otro equipo
@@ -320,7 +328,7 @@ function EventItem({
                 </Button>
               </>
             )}
-            {!past && (
+            {editable && !past && (
             <Button
               size="sm"
               variant="ghost"
@@ -376,6 +384,8 @@ export function EventsPanel({
   teams,
   editable,
   activeMeetingId,
+  inMeeting = false,
+  onRaiseIssue,
 }: {
   events: L10Event[];
   pastEvents: L10Event[];
@@ -383,6 +393,9 @@ export function EventsPanel({
   teams: { id: number; name: string }[];
   editable: boolean;
   activeMeetingId: number | null;
+  /** Dentro de la reunión (segmento de Noticias): mismo panel, con título propio y botón "Issue". */
+  inMeeting?: boolean;
+  onRaiseIssue?: (event: L10Event) => void;
 }) {
   const router = useRouter();
   const [showPast, setShowPast] = useState(false);
@@ -392,13 +405,19 @@ export function EventsPanel({
   const received = due.filter((e) => e.from_team_id !== null);
 
   return (
-    <Card className="mb-8 flex flex-col gap-4 p-4">
+    <Card className={`flex flex-col gap-4 p-4 ${inMeeting ? "" : "mb-8"}`}>
       <div>
-        <h2 className="font-semibold">Eventos para la próxima L10</h2>
+        <h2 className="font-semibold">{inMeeting ? "Eventos de esta L10" : "Eventos para la próxima L10"}</h2>
         <p className="text-sm text-muted">
-          Agrégalos antes de la reunión: se leen en el segmento de Noticias
-          {activeMeetingId ? " de la reunión en curso" : ""} y, al terminar la L10, quedan en su historial. Puedes
-          programarlos para la L10 de otra semana, enviarlos a otro equipo y reutilizar los de reuniones anteriores.
+          {inMeeting ? (
+            "Se leen en este segmento y, al terminar la reunión, quedan en su historial. Todavía puedes agregar, editar, enviar a otro equipo o pasar uno a Issue."
+          ) : (
+            <>
+              Agrégalos antes de la reunión: se leen en el segmento de Noticias
+              {activeMeetingId ? " de la reunión en curso" : ""} y, al terminar la L10, quedan en su historial. Puedes
+              programarlos para la L10 de otra semana, enviarlos a otro equipo y reutilizar los de reuniones anteriores.
+            </>
+          )}
         </p>
       </div>
       {editable && (
@@ -412,7 +431,7 @@ export function EventsPanel({
         />
       )}
       {events.length === 0 ? (
-        <p className="text-sm text-muted">Todavía no hay eventos para la próxima reunión.</p>
+        <p className="text-sm text-muted">{inMeeting ? "No hay eventos para esta reunión." : "Todavía no hay eventos para la próxima reunión."}</p>
       ) : (
         <div className="flex flex-col gap-4">
           {received.length > 0 && (
@@ -420,7 +439,7 @@ export function EventsPanel({
               <h3 className="text-xs font-bold uppercase tracking-wide text-muted">Enviados por otros equipos ({received.length})</h3>
               <ul className="flex flex-col gap-2">
                 {received.map((e) => (
-                  <EventItem key={e.id} event={e} teams={teams} editable={editable} />
+                  <EventItem key={e.id} event={e} teams={teams} editable={editable} onRaiseIssue={onRaiseIssue} />
                 ))}
               </ul>
             </section>
@@ -430,7 +449,7 @@ export function EventsPanel({
               <h3 className="text-xs font-bold uppercase tracking-wide text-muted">De este equipo ({own.length})</h3>
               <ul className="flex flex-col gap-2">
                 {own.map((e) => (
-                  <EventItem key={e.id} event={e} teams={teams} editable={editable} />
+                  <EventItem key={e.id} event={e} teams={teams} editable={editable} onRaiseIssue={onRaiseIssue} />
                 ))}
               </ul>
             </section>
@@ -440,7 +459,7 @@ export function EventsPanel({
               <h3 className="text-xs font-bold uppercase tracking-wide text-muted">Programados para otras semanas ({scheduled.length})</h3>
               <ul className="flex flex-col gap-2">
                 {scheduled.map((e) => (
-                  <EventItem key={e.id} event={e} teams={teams} editable={editable} />
+                  <EventItem key={e.id} event={e} teams={teams} editable={editable} onRaiseIssue={onRaiseIssue} />
                 ))}
               </ul>
             </section>

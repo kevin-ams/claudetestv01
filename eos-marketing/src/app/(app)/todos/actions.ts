@@ -7,7 +7,7 @@ import { createTodo, completeTodo, deleteTodo, getTodo, sendTodoToTeam, updateTo
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 import { listShareableTeams } from "@/lib/domain/scorecard";
 import { getTeam, teamReplyTo } from "@/lib/domain/teams";
-import { listTeamMembers } from "@/lib/domain/users";
+import { isUserInTeam, listTeamMembers } from "@/lib/domain/users";
 import { appUrl, emailConfigured, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 
 function ownerId(formData: FormData): number | null {
@@ -16,24 +16,36 @@ function ownerId(formData: FormData): number | null {
   return Number(raw);
 }
 
+/** Dueños válidos (personas del equipo), sin repetir. */
+async function ownerIds(raw: FormDataEntryValue[] | unknown[], teamId: number): Promise<number[]> {
+  const ids = [...new Set(raw.map((v) => Number(v)).filter((n) => Number.isInteger(n) && n > 0))].slice(0, 50);
+  const valid: number[] = [];
+  for (const id of ids) if (await isUserInTeam(id, teamId)) valid.push(id);
+  return valid;
+}
+
 function refresh() {
   revalidatePath("/todos");
   revalidatePath("/meeting", "layout");
 }
 
+/** Crea el To-Do; con varios dueños, uno independiente para cada persona. */
 export async function createTodoAction(formData: FormData) {
   const session = await requireModule("todos");
   const title = String(formData.get("title") ?? "").trim();
   if (!title) return;
-  await createTodo({
-    teamId: session.teamId,
-    title,
-    description: String(formData.get("description") ?? "").trim(),
-    ownerId: ownerId(formData),
-    dueDate: (formData.get("dueDate") as string) || null,
-    meetingId: null,
-  });
-  await logActivity(session, "todos", "Creó To-Do", title);
+  const owners = await ownerIds(formData.getAll("ownerId"), session.teamId);
+  for (const owner of owners.length ? owners : [null]) {
+    await createTodo({
+      teamId: session.teamId,
+      title,
+      description: String(formData.get("description") ?? "").trim(),
+      ownerId: owner,
+      dueDate: (formData.get("dueDate") as string) || null,
+      meetingId: null,
+    });
+  }
+  await logActivity(session, "todos", "Creó To-Do", owners.length > 1 ? `${title} (${owners.length} personas)` : title);
   refresh();
 }
 

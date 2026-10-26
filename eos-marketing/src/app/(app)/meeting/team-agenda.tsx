@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowRight, ArrowUpRightFromSquare, ChevronLeft, ChevronRight, CloudArrowUpIn, Pencil, Xmark } from "@gravity-ui/icons";
+import { ArrowRight, ChevronLeft, ChevronRight, CloudArrowUpIn, Pencil, Xmark } from "@gravity-ui/icons";
 import { Button, Chip, Input, TextArea } from "@heroui/react";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { Fragment, useEffect, useState, useTransition } from "react";
 import { clickUpOptionsAction } from "@/app/(app)/clickup-actions";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { AppSelect } from "@/components/ui/select";
@@ -26,6 +26,25 @@ const safe = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
 
 const DAY = new Intl.DateTimeFormat("es", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const shortDate = (d: string) => DAY.format(new Date(`${d}T12:00:00Z`));
+const NOTE_PLACEHOLDER = "¿En qué trabajarás esta semana? Escribe libremente, por ejemplo una línea por tema.";
+
+/** Texto de la nota con los enlaces activos. */
+function NoteText({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return (
+    <p className="whitespace-pre-line break-words text-sm">
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noreferrer" className="text-primary underline">
+            {part.includes("clickup.com") ? "ver en ClickUp" : part}
+          </a>
+        ) : (
+          <Fragment key={i}>{part}</Fragment>
+        )
+      )}
+    </p>
+  );
+}
 
 /** Semáforo: On track (verde) u Off track (rojo). */
 function StatusToggle({ value, disabled, onChange }: { value: AgendaStatus; disabled?: boolean; onChange: (v: AgendaStatus) => void }) {
@@ -63,7 +82,8 @@ function MemberSelect({ members, value, onChange, label }: { members: PublicUser
   );
 }
 
-function AgendaRow({
+/** Nota de una persona: texto libre, responsable, fecha y semáforo. */
+function AgendaNote({
   item,
   members,
   editable,
@@ -78,8 +98,7 @@ function AgendaRow({
 }) {
   const [status, setStatus] = useState(item.status);
   const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(item.title);
-  const [detail, setDetail] = useState(item.detail);
+  const [note, setNote] = useState(item.note);
   const [owner, setOwner] = useState(item.user_id);
   const [due, setDue] = useState(item.due_date ?? "");
   const [pending, start] = useTransition();
@@ -95,91 +114,90 @@ function AgendaRow({
     });
   };
 
-  if (editing) {
-    return (
-      <li className="card card--default flex flex-col gap-2 p-3">
-        <Input aria-label="Actividad" value={title} onChange={(e) => setTitle(e.target.value)} fullWidth />
-        <TextArea aria-label="Detalle" placeholder="Detalle (opcional)" value={detail} onChange={(e) => setDetail(e.target.value)} className="min-h-14" fullWidth />
-        <div className="flex flex-wrap items-center gap-2">
-          <MemberSelect members={members} value={owner} onChange={setOwner} label="Responsable" />
-          <Input aria-label="Fecha" type="date" value={due} onChange={(e) => setDue(e.target.value)} className="w-auto" />
-          <Button
-            size="sm"
-            variant="primary"
-            isPending={pending}
-            onPress={() =>
-              start(async () => {
-                const r = await safe(updateAgendaItemAction(item.id, { title, detail, userId: owner, dueDate: due || null }), { ok: false, message: STALE });
-                if (r.ok) setEditing(false);
-                else onMessage(r);
-              })
-            }
-          >
-            Guardar
-          </Button>
-          <Button size="sm" variant="ghost" onPress={() => setEditing(false)}>
-            Cancelar
-          </Button>
-        </div>
-      </li>
-    );
-  }
-
   return (
-    <li className={`card card--default flex flex-row items-start gap-3 p-2.5 ${status === "off_track" ? "border-l-4 border-l-red" : ""}`}>
-      <StatusToggle value={status} disabled={!editable} onChange={changeStatus} />
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">
-          {item.clickup_url ? (
-            <a href={item.clickup_url} target="_blank" rel="noreferrer" className="hover:underline">
-              {item.title} <ArrowUpRightFromSquare className="inline-block align-[-1px] text-muted" width={11} height={11} aria-hidden />
-            </a>
-          ) : (
-            item.title
-          )}
-        </p>
-        {item.detail && <p className="whitespace-pre-line text-xs text-muted">{item.detail}</p>}
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted">
-          {item.due_date && <span>{shortDate(item.due_date)}</span>}
-          {item.clickup_list && <span>ClickUp · {item.clickup_list}</span>}
-          {item.issue_id && (
-            <Chip size="sm" variant="soft" color="warning">
-              En Issues
-            </Chip>
-          )}
-        </div>
+    <li className={`card card--default flex flex-col gap-2 p-3 ${status === "off_track" ? "border-l-4 border-l-red" : ""}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">{item.user_name}</span>
+        <StatusToggle value={status} disabled={!editable} onChange={changeStatus} />
+        {item.due_date && !editing && <span className="text-xs text-muted">Fecha: {shortDate(item.due_date)}</span>}
+        {item.issue_id && (
+          <Chip size="sm" variant="soft" color="warning">
+            En Issues
+          </Chip>
+        )}
+        {editable && !editing && (
+          <span className="ml-auto flex items-center gap-1">
+            {canRaiseIssues && !item.issue_id && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-6 px-2 text-[11px] text-red"
+                isDisabled={pending}
+                onPress={() => start(async () => onMessage(await safe(agendaToIssueAction(item.id), { ok: false, message: STALE })))}
+              >
+                <ArrowRight width={12} height={12} aria-hidden /> Issue
+              </Button>
+            )}
+            <Button isIconOnly size="sm" variant="ghost" aria-label={`Editar la agenda de ${item.user_name}`} onPress={() => setEditing(true)}>
+              <Pencil aria-hidden />
+            </Button>
+            <Button
+              isIconOnly
+              size="sm"
+              variant="ghost"
+              className="text-red"
+              aria-label={`Quitar la agenda de ${item.user_name}`}
+              isDisabled={pending}
+              onPress={() => {
+                if (!confirm(`¿Quitar la agenda de ${item.user_name} de esta semana?`)) return;
+                start(async () => {
+                  const r = await safe(deleteAgendaItemAction(item.id), { ok: false, message: STALE });
+                  if (!r.ok) onMessage(r);
+                });
+              }}
+            >
+              <Xmark aria-hidden />
+            </Button>
+          </span>
+        )}
       </div>
-      {editable && (
-        <span className="flex shrink-0 items-center gap-1">
-          {canRaiseIssues && !item.issue_id && (
+      {editing ? (
+        <div className="flex flex-col gap-2">
+          <TextArea aria-label="Agenda" placeholder={NOTE_PLACEHOLDER} value={note} onChange={(e) => setNote(e.target.value)} className="min-h-40" fullWidth autoFocus />
+          <div className="flex flex-wrap items-center gap-2">
+            <MemberSelect members={members} value={owner} onChange={setOwner} label="Persona" />
+            <Input aria-label="Fecha" type="date" value={due} onChange={(e) => setDue(e.target.value)} className="w-auto" />
             <Button
               size="sm"
-              variant="outline"
-              className="h-6 px-2 text-[11px] text-red"
-              isDisabled={pending}
-              onPress={() => start(async () => onMessage(await safe(agendaToIssueAction(item.id), { ok: false, message: STALE })))}
+              variant="primary"
+              isPending={pending}
+              isDisabled={!note.trim()}
+              onPress={() =>
+                start(async () => {
+                  const r = await safe(updateAgendaItemAction(item.id, { note, userId: owner, dueDate: due || null }), { ok: false, message: STALE });
+                  if (r.ok) setEditing(false);
+                  else onMessage(r);
+                })
+              }
             >
-              <ArrowRight width={12} height={12} aria-hidden /> Issue
+              Guardar
             </Button>
-          )}
-          <Button isIconOnly size="sm" variant="ghost" aria-label={`Editar ${item.title}`} onPress={() => setEditing(true)}>
-            <Pencil aria-hidden />
-          </Button>
-          <Button
-            isIconOnly
-            size="sm"
-            variant="ghost"
-            className="text-red"
-            aria-label={`Quitar ${item.title}`}
-            isDisabled={pending}
-            onPress={() => start(async () => {
-              const r = await safe(deleteAgendaItemAction(item.id), { ok: false, message: STALE });
-              if (!r.ok) onMessage(r);
-            })}
-          >
-            <Xmark aria-hidden />
-          </Button>
-        </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => {
+                setNote(item.note);
+                setOwner(item.user_id);
+                setDue(item.due_date ?? "");
+                setEditing(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <NoteText text={item.note} />
       )}
     </li>
   );
@@ -280,7 +298,7 @@ function ClickUpImport({
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-background p-3">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-sm font-semibold">Importar tareas de la semana desde ClickUp</h4>
+        <h4 className="text-sm font-semibold">Agregar tareas de ClickUp a la agenda</h4>
         <Button size="sm" variant="ghost" onPress={onClose}>
           Cerrar
         </Button>
@@ -329,7 +347,7 @@ function ClickUpImport({
               </div>
             )}
             <AppCheckbox checked={includeOverdue} onChange={(e) => setIncludeOverdue(e.target.checked)}>
-              <span className="text-sm">Incluir tareas vencidas sin cerrar (entran como Off track)</span>
+              <span className="text-sm">Incluir tareas vencidas sin cerrar (la agenda queda en Off track)</span>
             </AppCheckbox>
           </div>
           <Button
@@ -388,7 +406,7 @@ function ClickUpImport({
                   })
                 }
               >
-                Importar {chosen.size} tarea(s)
+                Agregar {chosen.size} tarea(s) a la agenda
               </Button>
             </>
           )}
@@ -399,8 +417,8 @@ function ClickUpImport({
 }
 
 /**
- * Agenda del equipo: en qué trabajará cada persona durante la semana, con semáforo On/Off track.
- * Lo que haya que hablar pasa a Issues. Se puede importar desde ClickUp.
+ * Agenda del equipo: una nota por persona y semana (en qué trabajará), con fecha y semáforo On/Off track.
+ * Lo que haya que hablar pasa a Issues. Se pueden agregar tareas de ClickUp a la nota.
  */
 export function TeamAgendaPanel({
   week,
@@ -424,28 +442,31 @@ export function TeamAgendaPanel({
   /** Antes de la L10: cambiar de semana (p. ej. llenar el viernes la agenda de la próxima). */
   nav?: { prevHref: string; nextHref: string; defaultHref: string | null; isDefault: boolean };
 }) {
-  const [title, setTitle] = useState("");
-  const [owner, setOwner] = useState(currentUserId);
+  // Mi agenda primero; luego el resto por nombre.
+  const people = [...members].sort((a, b) => Number(b.id === currentUserId) - Number(a.id === currentUserId) || a.name.localeCompare(b.name, "es"));
+  const has = new Set(items.map((i) => i.user_id));
+  const without = people.filter((m) => !has.has(m.id));
+  const notes = people.flatMap((m) => items.filter((i) => i.user_id === m.id));
+  const off = items.filter((i) => i.status === "off_track").length;
+
+  const [owner, setOwner] = useState(without[0]?.id ?? currentUserId);
+  const [note, setNote] = useState("");
   const [due, setDue] = useState("");
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState<Result | null>(null);
   const [adding, startAdd] = useTransition();
-
-  // Mis actividades primero; luego el resto por nombre.
-  const people = [...members].sort((a, b) => Number(b.id === currentUserId) - Number(a.id === currentUserId) || a.name.localeCompare(b.name, "es"));
-  const withItems = people.filter((m) => items.some((i) => i.user_id === m.id));
-  const without = people.filter((m) => !items.some((i) => i.user_id === m.id));
-  const off = items.filter((i) => i.status === "off_track").length;
+  // Si la persona elegida ya tiene su agenda (p. ej. después de guardar), se pasa a la siguiente sin agenda.
+  const ownerFree = without.some((m) => m.id === owner) ? owner : (without[0]?.id ?? null);
 
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold">Agenda del equipo</h3>
           <p className="text-xs text-muted">
             Semana {weekLabel}
-            {nav?.isDefault ? " (la de la próxima L10)" : ""}: en qué trabajará cada persona. Llénala antes de la reunión; si hay
-            algo que hablar, pásalo a Issue.
+            {nav?.isDefault ? " (la de la próxima L10)" : ""}: una nota por persona con lo que trabajará en la semana. Llénala
+            antes de la reunión; si hay algo que hablar, pásala a Issue.
           </p>
           {nav && (
             <span className="mt-1 flex flex-wrap items-center gap-1 text-xs">
@@ -473,37 +494,47 @@ export function TeamAgendaPanel({
         </span>
       </div>
 
-      {editable && (
+      {editable && ownerFree !== null && (
         <form
-          className="flex flex-wrap items-center gap-2"
+          className="flex flex-col gap-2 rounded-lg border border-dashed border-border p-3"
           onSubmit={(e) => {
             e.preventDefault();
-            if (!title.trim()) return;
+            if (!note.trim()) return;
             startAdd(async () => {
-              const r = await safe(addAgendaItemAction(week, { title, detail: "", userId: owner, dueDate: due || null }), { ok: false, message: STALE });
+              const r = await safe(addAgendaItemAction(week, { note, userId: ownerFree, dueDate: due || null }), { ok: false, message: STALE });
               if (r.ok) {
-                setTitle("");
+                setNote("");
                 setDue("");
               } else setMessage(r);
             });
           }}
         >
-          <Input aria-label="Actividad" placeholder="¿En qué se trabajará esta semana?" value={title} onChange={(e) => setTitle(e.target.value)} className="min-w-[220px] flex-1" />
-          <MemberSelect members={people} value={owner} onChange={setOwner} label="Persona" />
-          <Input aria-label="Fecha (opcional)" type="date" value={due} onChange={(e) => setDue(e.target.value)} className="w-auto" />
-          <Button type="submit" variant="primary" isPending={adding} isDisabled={!title.trim()}>
-            Agregar
-          </Button>
-          {clickupConfigured && !importing && (
-            <Button variant="outline" onPress={() => setImporting(true)}>
-              <CloudArrowUpIn aria-hidden /> Importar de ClickUp
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted">Agenda de</span>
+            <MemberSelect members={without} value={ownerFree} onChange={setOwner} label="Persona" />
+            <Input aria-label="Fecha (opcional)" type="date" value={due} onChange={(e) => setDue(e.target.value)} className="w-auto" />
+          </div>
+          <TextArea aria-label="Agenda de la semana" placeholder={NOTE_PLACEHOLDER} value={note} onChange={(e) => setNote(e.target.value)} className="min-h-28" fullWidth />
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit" variant="primary" isPending={adding} isDisabled={!note.trim()}>
+              Guardar agenda
             </Button>
-          )}
+            {clickupConfigured && !importing && (
+              <Button variant="outline" onPress={() => setImporting(true)}>
+                <CloudArrowUpIn aria-hidden /> Agregar tareas de ClickUp
+              </Button>
+            )}
+          </div>
         </form>
+      )}
+      {editable && ownerFree === null && clickupConfigured && !importing && (
+        <Button variant="outline" size="sm" className="self-start" onPress={() => setImporting(true)}>
+          <CloudArrowUpIn aria-hidden /> Agregar tareas de ClickUp
+        </Button>
       )}
 
       {importing && (
-        <ClickUpImport week={week} members={people} currentUserId={currentUserId} onClose={() => setImporting(false)} onMessage={setMessage} />
+        <ClickUpImport week={week} members={people} currentUserId={ownerFree ?? currentUserId} onClose={() => setImporting(false)} onMessage={setMessage} />
       )}
 
       {message && (
@@ -515,32 +546,23 @@ export function TeamAgendaPanel({
         </p>
       )}
 
-      {withItems.length === 0 ? (
+      {notes.length === 0 ? (
         <p className="text-sm text-muted">Todavía nadie agregó su agenda de esta semana.</p>
       ) : (
-        <div className="flex flex-col gap-3">
-          {withItems.map((m) => {
-            const mine = items.filter((i) => i.user_id === m.id);
-            const red = mine.filter((i) => i.status === "off_track").length;
-            return (
-              <div key={m.id}>
-                <h4 className="mb-1 flex items-center gap-2 text-xs font-semibold text-muted">
-                  {m.name}
-                  <span className="font-normal">
-                    · {mine.length} actividad(es){red ? ` · ${red} off track` : ""}
-                  </span>
-                </h4>
-                <ul className="flex flex-col gap-1.5">
-                  {mine.map((i) => (
-                    <AgendaRow key={`${i.id}-${i.status}-${i.title}-${i.user_id}`} item={i} members={people} editable={editable} canRaiseIssues={canRaiseIssues} onMessage={setMessage} />
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
+        <ul className="flex flex-col gap-2">
+          {notes.map((i) => (
+            <AgendaNote
+              key={`${i.id}-${i.updated_at}-${i.status}`}
+              item={i}
+              members={people}
+              editable={editable}
+              canRaiseIssues={canRaiseIssues}
+              onMessage={setMessage}
+            />
+          ))}
+        </ul>
       )}
-      {without.length > 0 && withItems.length > 0 && <p className="text-xs text-muted">Sin agenda todavía: {without.map((m) => m.name).join(", ")}.</p>}
+      {without.length > 0 && notes.length > 0 && <p className="text-xs text-muted">Sin agenda todavía: {without.map((m) => m.name).join(", ")}.</p>}
     </section>
   );
 }

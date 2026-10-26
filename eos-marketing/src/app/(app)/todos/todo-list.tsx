@@ -11,6 +11,7 @@ import { useState, useTransition } from "react";
 import type { Todo, PublicUser } from "@/lib/domain/types";
 import { ClickUpButton } from "@/components/clickup-button";
 import { TeamSendButton } from "@/components/team-send-button";
+import { MultiOwnerSelect } from "@/components/multi-owner-select";
 import {
   completeTodoAction,
   deleteTodoAction,
@@ -43,20 +44,22 @@ function OwnerSelect({ members, defaultValue }: { members: PublicUser[]; default
 
 function AddTodoForm({ members }: { members: PublicUser[] }) {
   const [showDescription, setShowDescription] = useState(false);
+  const [owners, setOwners] = useState<number[]>([]);
   return (
     <form
       action={async (fd) => {
         await createTodoAction(fd);
         setShowDescription(false);
+        setOwners([]);
       }}
       className="card card--default flex flex-col gap-2 p-4"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Input fullWidth name="title" required className="min-w-[200px] flex-1" placeholder="Nuevo to-do" />
-        <OwnerSelect members={members} defaultValue={null} />
+        <MultiOwnerSelect members={members} value={owners} onChange={setOwners} name="ownerId" className="w-48" />
         <Input type="date" name="dueDate" className="w-auto" aria-label="Fecha límite" />
         <SubmitButton variant="primary" pendingLabel="Agregando…">
-          Agregar
+          {owners.length > 1 ? `Agregar ${owners.length}` : "Agregar"}
         </SubmitButton>
       </div>
       {showDescription ? (

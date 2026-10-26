@@ -5,15 +5,16 @@ import { requireModule } from "@/lib/auth/access";
 import { logActivity } from "@/lib/domain/activity";
 import { createIssue } from "@/lib/domain/issues";
 import {
-  addAgendaItems,
+  appendToAgendaNote,
+  createAgendaNote,
   deleteAgendaItem,
   getAgendaItem,
-  importedClickUpIds,
+  getAgendaNote,
   linkAgendaIssue,
   setAgendaStatus,
-  updateAgendaItem,
+  updateAgendaNote,
 } from "@/lib/domain/team-agenda";
-import { isAgendaStatus, type ClickUpWeekTask } from "@/lib/domain/team-agenda-shared";
+import { clickUpLine, isAgendaStatus, type ClickUpWeekTask } from "@/lib/domain/team-agenda-shared";
 import { isUserInTeam } from "@/lib/domain/users";
 import { clickUpAssignedTasks, ClickUpNotConfiguredError } from "@/lib/integrations/clickup";
 import { addDaysISO, shiftWeek } from "@/lib/utils/dates";
@@ -35,31 +36,33 @@ const fail = (e: unknown, fallback: string): Result => {
   return { ok: false, message: fallback };
 };
 
-export async function addAgendaItemAction(week: string, input: { title: string; detail: string; userId: number; dueDate: string | null }): Promise<Result> {
+export async function addAgendaItemAction(week: string, input: { note: string; userId: number; dueDate: string | null }): Promise<Result> {
   try {
     const session = await requireModule("meeting");
     const monday = weekOf(week);
-    const title = clean(input.title, 300);
-    if (!monday || !title) return { ok: false, message: "Escribe en qué se trabajará." };
+    const note = clean(input.note, 5000);
+    if (!monday || !note) return { ok: false, message: "Escribe en qué se trabajará esta semana." };
     const userId = Number(input.userId) || session.userId;
     if (!(await isUserInTeam(userId, session.teamId))) return { ok: false, message: "Esa persona no es del equipo." };
-    await addAgendaItems(session.teamId, monday, session.userId, [{ userId, title, detail: clean(input.detail, 2000), dueDate: dateOrNull(input.dueDate) }]);
-    await logActivity(session, "meeting", "Agregó a la agenda del equipo", title);
+    const created = await createAgendaNote(session.teamId, monday, session.userId, { userId, note, dueDate: dateOrNull(input.dueDate) });
+    if (!created) return { ok: false, message: "Esa persona ya tiene su agenda de esta semana: edítala." };
+    await logActivity(session, "meeting", "Agregó su agenda de la semana", monday);
     refresh();
-    return { ok: true, message: "Agregado." };
+    return { ok: true, message: "Agenda guardada." };
   } catch (e) {
-    return fail(e, "No se pudo agregar.");
+    return fail(e, "No se pudo guardar.");
   }
 }
 
-export async function updateAgendaItemAction(id: number, input: { title: string; detail: string; userId: number; dueDate: string | null }): Promise<Result> {
+export async function updateAgendaItemAction(id: number, input: { note: string; userId: number; dueDate: string | null }): Promise<Result> {
   try {
     const session = await requireModule("meeting");
-    const title = clean(input.title, 300);
-    if (!title) return { ok: false, message: "Escribe en qué se trabajará." };
+    const note = clean(input.note, 5000);
+    if (!note) return { ok: false, message: "La agenda no puede quedar vacía (quítala si ya no aplica)." };
     const userId = Number(input.userId);
     if (!(await isUserInTeam(userId, session.teamId))) return { ok: false, message: "Esa persona no es del equipo." };
-    await updateAgendaItem(session.teamId, id, { title, detail: clean(input.detail, 2000), userId, dueDate: dateOrNull(input.dueDate) });
+    const ok = await updateAgendaNote(session.teamId, id, { note, userId, dueDate: dateOrNull(input.dueDate) });
+    if (!ok) return { ok: false, message: "Esa persona ya tiene su agenda de esta semana." };
     refresh();
     return { ok: true, message: "Guardado." };
   } catch (e) {
@@ -95,27 +98,22 @@ export async function agendaToIssueAction(id: number): Promise<Result> {
   try {
     const session = await requireModule("issues");
     const item = await getAgendaItem(session.teamId, id);
-    if (!item) return { ok: false, message: "No se encontró la actividad." };
-    if (item.issue_id) return { ok: false, message: "Esta actividad ya está en Issues." };
+    if (!item) return { ok: false, message: "No se encontró la agenda." };
+    if (item.issue_id) return { ok: false, message: "Esta agenda ya está en Issues." };
+    const firstLine = item.note.split("\n").map((l) => l.replace(/^[•\-*\s]+/, "").trim()).find(Boolean) ?? "";
     const issue = await createIssue({
       teamId: session.teamId,
-      title: item.title,
-      description: [
-        `Agenda del equipo (${item.user_name}) · ${item.status === "off_track" ? "Off track" : "On track"}.`,
-        item.detail,
-        item.clickup_url ? `ClickUp: ${item.clickup_url}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
+      title: `Agenda de ${item.user_name}${firstLine ? `: ${firstLine.slice(0, 120)}` : ""}`,
+      description: `Agenda del equipo (${item.user_name}) · ${item.status === "off_track" ? "Off track" : "On track"}.\n\n${item.note}`,
       raisedBy: session.userId,
       ownerId: item.user_id,
       term: "short_term",
     });
     await linkAgendaIssue(session.teamId, id, issue.id);
-    await logActivity(session, "issues", "Pasó actividad de la agenda a Issue", item.title);
+    await logActivity(session, "issues", "Pasó una agenda a Issue", item.user_name);
     refresh();
     revalidatePath("/issues");
-    return { ok: true, message: `“${item.title}” se agregó a Issues.` };
+    return { ok: true, message: `La agenda de ${item.user_name} se agregó a Issues.` };
   } catch (e) {
     return fail(e, "No se pudo crear el Issue.");
   }
@@ -139,9 +137,9 @@ export async function clickUpAgendaTasksAction(input: {
     const listIds = (Array.isArray(input.listIds) ? input.listIds : []).map(String).filter((id) => /^\d+$/.test(id)).slice(0, 50);
     const [found, imported] = await Promise.all([
       clickUpAssignedTasks({ assigneeId, listIds, from: monday, to: addDaysISO(monday, 7), includeOverdue: Boolean(input.includeOverdue) }),
-      importedClickUpIds(session.teamId, monday, Number(input.userId) || session.userId),
+      getAgendaNote(session.teamId, monday, Number(input.userId) || session.userId),
     ]);
-    const done = new Set(imported);
+    const noteText = imported?.note ?? "";
     const seen = new Set<string>();
     const tasks: ClickUpWeekTask[] = [];
     for (const [overdue, list] of [
@@ -151,7 +149,7 @@ export async function clickUpAgendaTasksAction(input: {
       for (const t of list) {
         if (seen.has(t.id)) continue;
         seen.add(t.id);
-        tasks.push({ id: t.id, name: t.name, url: t.url, list: t.list, status: t.status, dueDate: t.dueDate, overdue, imported: done.has(t.id) });
+        tasks.push({ id: t.id, name: t.name, url: t.url, list: t.list, status: t.status, dueDate: t.dueDate, overdue, imported: Boolean(t.url && noteText.includes(t.url)) });
       }
     }
     return {
@@ -177,25 +175,30 @@ export async function importClickUpAgendaAction(input: {
     if (!(await isUserInTeam(userId, session.teamId))) return { ok: false, message: "Esa persona no es del equipo." };
     const tasks = (Array.isArray(input.tasks) ? input.tasks : []).slice(0, 200).filter((t) => /^[\w-]+$/.test(String(t?.id ?? "")) && clean(t.name, 300));
     if (tasks.length === 0) return { ok: false, message: "Elige al menos una tarea." };
-    const added = await addAgendaItems(
+    const note = await getAgendaNote(session.teamId, monday, userId);
+    const fresh = tasks.filter((t) => !(note?.note ?? "").includes(String(t.url ?? "")) || !t.url);
+    if (fresh.length === 0) return { ok: true, message: "Esas tareas ya estaban en la agenda." };
+    await appendToAgendaNote(
       session.teamId,
       monday,
       session.userId,
-      tasks.map((t) => ({
-        userId,
-        title: clean(t.name, 300),
-        dueDate: dateOrNull(t.dueDate),
-        // Lo que ya venció en ClickUp entra en rojo.
-        status: t.overdue ? "off_track" : "on_track",
-        clickupTaskId: String(t.id),
-        clickupUrl: /^https:\/\//.test(String(t.url ?? "")) ? String(t.url).slice(0, 500) : null,
-        clickupList: clean(t.list, 200),
-      }))
+      userId,
+      fresh.map((t) =>
+        clickUpLine({
+          name: clean(t.name, 300),
+          url: /^https:\/\//.test(String(t.url ?? "")) ? String(t.url).slice(0, 500) : "",
+          list: clean(t.list, 200),
+          dueDate: dateOrNull(t.dueDate),
+          overdue: Boolean(t.overdue),
+        }).trim()
+      ),
+      // Si se trae algo vencido, la agenda queda en Off track.
+      fresh.some((t) => t.overdue)
     );
-    await logActivity(session, "meeting", "Importó tareas de ClickUp a la agenda", `${added} tarea(s), semana ${monday}`);
+    await logActivity(session, "meeting", "Importó tareas de ClickUp a la agenda", `${fresh.length} tarea(s), semana ${monday}`);
     refresh();
-    const skipped = tasks.length - added;
-    return { ok: true, message: `${added} tarea(s) importada(s)${skipped ? ` (${skipped} ya estaban en la agenda)` : ""}.` };
+    const skipped = tasks.length - fresh.length;
+    return { ok: true, message: `${fresh.length} tarea(s) agregada(s) a la agenda${skipped ? ` (${skipped} ya estaban)` : ""}.` };
   } catch (e) {
     return fail(e, "No se pudieron importar las tareas.");
   }

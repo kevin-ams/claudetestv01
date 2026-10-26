@@ -4,6 +4,7 @@ import { CircleExclamation, ListCheck } from "@gravity-ui/icons";
 import { Segmented } from "@/components/ui/segmented";
 import { Button, Input, Modal, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
+import { MultiOwnerSelect } from "@/components/multi-owner-select";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { PublicUser } from "@/lib/domain/types";
@@ -56,6 +57,7 @@ export function QuickCreateModal({
   const [title, setTitle] = useState(draft.title ?? "");
   const [description, setDescription] = useState(draft.description ?? "");
   const [ownerId, setOwnerId] = useState<string>(draft.ownerId ? String(draft.ownerId) : "none");
+  const [owners, setOwners] = useState<number[]>(draft.ownerId ? [draft.ownerId] : []);
   const [dueDate, setDueDate] = useState("");
   const [term, setTerm] = useState<"short_term" | "long_term">("short_term");
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +72,8 @@ export function QuickCreateModal({
       const input = {
         title,
         description,
-        ownerId: ownerId === "none" ? null : Number(ownerId),
+        ownerId: kind === "todo" ? (owners[0] ?? null) : ownerId === "none" ? null : Number(ownerId),
+        ownerIds: kind === "todo" ? owners : undefined,
         dueDate: dueDate || null,
         term,
       };
@@ -78,7 +81,13 @@ export function QuickCreateModal({
         if (kind === "todo") await createMeetingTodoAction(meetingId, input);
         else await createMeetingIssueAction(meetingId, input);
         router.refresh();
-        onCreated(kind === "todo" ? `To-Do creado: ${title.trim()}` : `Issue agregado a IDS: ${title.trim()}`);
+        onCreated(
+          kind === "todo"
+            ? owners.length > 1
+              ? `${owners.length} To-Dos creados (uno por persona): ${title.trim()}`
+              : `To-Do creado: ${title.trim()}`
+            : `Issue agregado a IDS: ${title.trim()}`
+        );
       } catch (e) {
         setError(e instanceof Error ? e.message : "No se pudo guardar.");
       }
@@ -123,15 +132,19 @@ export function QuickCreateModal({
               onChange={(e) => setDescription(e.target.value)}
               aria-label="Descripción"
             />
-            <div className="flex flex-wrap gap-2">
-              <AppSelect className="w-auto" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} aria-label="Dueño">
-                <option value="none">Sin dueño</option>
-                {members.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </AppSelect>
+            <div className="flex flex-wrap items-start gap-2">
+              {kind === "todo" ? (
+                <MultiOwnerSelect members={members} value={owners} onChange={setOwners} className="w-full sm:w-64" inline />
+              ) : (
+                <AppSelect className="w-auto" value={ownerId} onChange={(e) => setOwnerId(e.target.value)} aria-label="Dueño">
+                  <option value="none">Sin dueño</option>
+                  {members.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </AppSelect>
+              )}
               <Input
                 type="date"
                 className="w-auto"
@@ -150,7 +163,7 @@ export function QuickCreateModal({
             {error && <p className="text-sm text-red">{error}</p>}
             <div className="flex gap-2">
               <Button variant="primary" type="submit" isDisabled={pending}>
-                {pending ? "Guardando..." : kind === "todo" ? "Crear To-Do" : "Agregar Issue"}
+                {pending ? "Guardando..." : kind === "todo" ? (owners.length > 1 ? `Crear ${owners.length} To-Dos` : "Crear To-Do") : "Agregar Issue"}
               </Button>
               <Button variant="outline" type="button" onPress={onClose}>
                 Cancelar
