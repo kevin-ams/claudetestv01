@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ArrowRight, Check, CircleCheck } from "@gravity-ui/icons";
+import { ArrowDownToLine, ArrowLeft, ArrowRight, Check, CircleCheck } from "@gravity-ui/icons";
 import { Segmented } from "@/components/ui/segmented";
 import { Button, Card, Input, TextArea } from "@heroui/react";
 import { buttonVariants } from "@heroui/styles";
@@ -458,6 +458,10 @@ export function MeetingRunner({
   const totalElapsed = useElapsed(meeting.started_at);
   const remaining = segment.minutes * 60 - elapsed;
   const [draft, setDraft] = useState<QuickDraft | null>(null);
+  // Sección más avanzada a la que se llegó: las anteriores quedan marcadas aunque se regrese.
+  const furthest = Math.max(idx, segmentIndex(meeting.furthest_segment ?? null));
+  const [navigating, startNav] = useTransition();
+  const goTo = (key: string) => startNav(() => advanceSegmentAction(meeting.id, key));
   const [toast, setToast] = useState<string | null>(null);
   const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
 
@@ -509,23 +513,29 @@ export function MeetingRunner({
         </p>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2 overflow-x-auto">
+      {/* Barra de secciones: se puede ir a cualquiera (adelante o atrás) con la reunión en curso. */}
+      <nav aria-label="Secciones de la reunión" className="mb-6 flex flex-wrap gap-2 overflow-x-auto">
         {L10_AGENDA.map((s, i) => (
-          <div
+          <button
             key={s.key}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap ${
+            type="button"
+            aria-current={i === idx ? "step" : undefined}
+            disabled={navigating}
+            title={i === idx ? "Sección actual" : `Ir a ${s.label}`}
+            onClick={() => i !== idx && goTo(s.key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-60 ${
               i === idx
                 ? "bg-primary text-primary-foreground"
-                : i < idx
-                ? "bg-green-bg text-green"
-                : "bg-card border border-border text-muted"
+                : i <= furthest
+                ? "bg-green-bg text-green hover:ring-1 hover:ring-green"
+                : "bg-card border border-border text-muted hover:border-primary hover:text-foreground"
             }`}
           >
-            {i < idx && <Check width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden />}
+            {i !== idx && i <= furthest && <Check width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden />}
             {s.label} · {s.minutes}m
-          </div>
+          </button>
         ))}
-      </div>
+      </nav>
 
       <Card className="mb-6 flex flex-row flex-wrap items-center justify-between gap-4 p-5">
         <div>
@@ -540,9 +550,15 @@ export function MeetingRunner({
           >
             {formatClock(remaining)}
           </span>
+          {idx > 0 && (
+            <Button variant="outline" isDisabled={navigating} onPress={() => goTo(L10_AGENDA[idx - 1].key)}>
+              <ArrowLeft aria-hidden /> Anterior
+            </Button>
+          )}
           {upcoming ? (
             <Button variant="primary"
-              onPress={() => advanceSegmentAction(meeting.id, upcoming.key)}
+              isDisabled={navigating}
+              onPress={() => goTo(upcoming.key)}
             >
               Siguiente: {upcoming.label} <ArrowRight aria-hidden />
             </Button>

@@ -1,5 +1,6 @@
 "use server";
 
+import { L10_AGENDA, segmentIndex } from "@/lib/domain/meeting-shared";
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
 import { logActivity } from "@/lib/domain/activity";
@@ -41,9 +42,13 @@ export async function startNewMeetingAction() {
   redirect(`/meeting/${meeting.id}`);
 }
 
+/** Ir a cualquier sección de la L10 en curso (siguiente, anterior o una de la barra). */
 export async function advanceSegmentAction(meetingId: number, segmentKey: string) {
-  await requireModule("meeting");
-  await setSegment(meetingId, segmentKey);
+  const { meeting } = await teamMeeting(meetingId);
+  const target = segmentIndex(segmentKey);
+  if (target < 0 || meeting.status === "completed") return;
+  const reached = Math.max(target, segmentIndex(meeting.furthest_segment ?? meeting.current_segment));
+  await setSegment(meetingId, segmentKey, L10_AGENDA[reached].key);
   revalidatePath(`/meeting/${meetingId}`);
 }
 

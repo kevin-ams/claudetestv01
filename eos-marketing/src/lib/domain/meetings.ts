@@ -45,9 +45,11 @@ export async function startMeeting(id: number) {
   `;
 }
 
-export async function setSegment(id: number, segmentKey: string) {
+export async function setSegment(id: number, segmentKey: string, furthest?: string) {
   await db().sql`
-    UPDATE meetings SET current_segment = ${segmentKey}, segment_started_at = NOW() WHERE id = ${id}
+    UPDATE meetings SET current_segment = ${segmentKey}, segment_started_at = NOW(),
+      furthest_segment = COALESCE(${furthest ?? null}, furthest_segment, ${segmentKey})
+    WHERE id = ${id}
   `;
 }
 

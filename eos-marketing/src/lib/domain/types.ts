@@ -217,6 +217,8 @@ export type Meeting = {
   created_at: string;
   cascade_notes: string;
   leader_id: number | null;
+  /** Sección más avanzada a la que se llegó (se puede regresar a las anteriores). */
+  furthest_segment?: string | null;
 };
 
 export type MeetingHeadline = {

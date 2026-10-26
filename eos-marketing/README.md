@@ -146,6 +146,11 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **L10 en curso: navegación libre** — la barra de secciones es clicable (ir a cualquiera) y hay botón "Anterior". Se
+  guarda la sección más avanzada (`meetings.furthest_segment`) para que las ya vistas sigan marcadas al regresar. El
+  cronómetro de la sección se reinicia al entrar.
+- **L10 › Todas las carreras por persona**: dentro de cada persona, agrupadas por facultad (con subtotales); la tabla
+  tiene su propio scroll y el encabezado queda fijo.
 - **Scorecard › indicadores calculados con fórmula**: "Calcular" asigna variables (A, B, C…) a otros indicadores y una
   fórmula con + − × ÷, números y paréntesis (p. ej. `A + B - C`, `(A + B) / C * 100`). Se evalúa sin `eval`
   (`scorecard-formula.ts`), por dueño y semana (el rollup usa sus propios totales); puede usar otros calculados y se

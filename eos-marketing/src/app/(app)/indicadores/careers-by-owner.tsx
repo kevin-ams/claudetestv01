@@ -2,7 +2,7 @@
 
 import { ArrowRight, ChevronDown, ChevronRight } from "@gravity-ui/icons";
 import { Button, Chip, Input } from "@heroui/react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { PublicUser } from "@/lib/domain/types";
 import {
   budgetTone,
@@ -17,7 +17,14 @@ import {
   type CareerRow,
 } from "@/lib/domain/careers-shared";
 
-/** Todas las carreras con sus indicadores de la semana, agrupadas por responsable. */
+/** Carreras de una persona agrupadas por facultad (programa), en orden alfabético. */
+function byProgram(rows: CareerRow[]): [string, CareerRow[]][] {
+  const map = new Map<string, CareerRow[]>();
+  for (const r of rows) map.set(r.program, [...(map.get(r.program) ?? []), r]);
+  return [...map].sort((a, b) => (a[0] || "~").localeCompare(b[0] || "~", "es"));
+}
+
+/** Todas las carreras con sus indicadores de la semana, agrupadas por responsable y facultad. */
 export function CareersByOwner({
   rows,
   members,
@@ -62,19 +69,20 @@ export function CareersByOwner({
           {filtered.length} carreras · {groups.length} personas
         </span>
       </div>
-      <div className="overflow-x-auto">
+      {/* Área con su propio scroll: el encabezado queda fijo arriba mientras se recorren las carreras. */}
+      <div className="max-h-[75vh] overflow-auto rounded-lg border border-border">
         <table className="w-full min-w-[860px] text-sm">
-          <thead>
-            <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted">
-              <th className="py-2 pr-2">Carrera</th>
-              <th className="px-2 text-right">Leads</th>
-              <th className="px-2 text-right">Meta</th>
-              <th className="px-2 text-right">%</th>
-              <th className="px-2 text-right">Consumo</th>
-              <th className="px-2 text-right">Plan</th>
-              <th className="px-2 text-right">%</th>
-              <th className="px-2 text-right">Costo / lead</th>
-              {onRaiseIssue && <th className="w-20 px-2" />}
+          <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_var(--border)]">
+            <tr className="text-left text-xs uppercase tracking-wide text-muted">
+              <th className="bg-card py-2 pl-2 pr-2">Persona · facultad · carrera</th>
+              <th className="bg-card px-2 text-right">Leads</th>
+              <th className="bg-card px-2 text-right">Meta</th>
+              <th className="bg-card px-2 text-right">%</th>
+              <th className="bg-card px-2 text-right">Consumo</th>
+              <th className="bg-card px-2 text-right">Plan</th>
+              <th className="bg-card px-2 text-right">%</th>
+              <th className="bg-card px-2 text-right">Costo / lead</th>
+              {onRaiseIssue && <th className="w-20 bg-card px-2" />}
             </tr>
           </thead>
           {groups.map((g) => {
@@ -85,7 +93,7 @@ export function CareersByOwner({
             return (
               <tbody key={g.id} className="border-b-2 border-border last:border-0">
                 <tr className="cursor-pointer bg-background/70 font-semibold hover:bg-background" onClick={() => toggle(g.id)}>
-                  <td className="py-2 pr-2">
+                  <td className="py-2 pl-2 pr-2">
                     <span className="inline-flex items-center gap-1">
                       {open ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
                       {g.name}
@@ -112,12 +120,28 @@ export function CareersByOwner({
                   {onRaiseIssue && <td />}
                 </tr>
                 {open &&
-                  g.rows.map((r) => (
+                  byProgram(g.rows).map(([program, rows]) => {
+                    const pt = totalsFor(rows);
+                    const pl = pt.hasLeads ? pt.leads : null;
+                    const ps = pt.hasSpent ? pt.spent : null;
+                    return (
+                      <Fragment key={program}>
+                        <tr className="border-t border-border/60 bg-background/30 text-xs font-semibold text-muted">
+                          <td className="py-1.5 pl-6 pr-2 uppercase tracking-wide">
+                            {program || "Sin facultad"} <span className="font-normal normal-case">· {rows.length}</span>
+                          </td>
+                          <td className="px-2 text-right tabular-nums">{num(pl)}</td>
+                          <td className="px-2 text-right tabular-nums">{num(pt.leadsGoal)}</td>
+                          <td className="px-2 text-right tabular-nums">{pct(pl, pt.leadsGoal)}</td>
+                          <td className="px-2 text-right tabular-nums">{money(ps)}</td>
+                          <td className="px-2 text-right tabular-nums">{money(pt.budgetGoal)}</td>
+                          <td className="px-2 text-right tabular-nums">{pct(ps, pt.budgetGoal)}</td>
+                          <td className="px-2 text-right tabular-nums">{costPerLead(ps, pt.leads)}</td>
+                          {onRaiseIssue && <td />}
+                        </tr>
+                        {rows.map((r) => (
                     <tr key={r.id} className="border-t border-border/60">
-                      <td className="py-1.5 pl-6 pr-2">
-                        {careerLabel(r)}
-                        <span className="ml-1 text-xs text-muted">· {r.program}</span>
-                      </td>
+                      <td className="py-1.5 pl-10 pr-2">{careerLabel(r)}</td>
                       <td className="px-2 text-right tabular-nums">
                         {num(r.leads)}
                         {r.leads_source === "activecampaign" && <span className="ml-1 text-[10px] text-muted">AC</span>}
@@ -146,7 +170,10 @@ export function CareersByOwner({
                         </td>
                       )}
                     </tr>
-                  ))}
+                        ))}
+                      </Fragment>
+                    );
+                  })}
               </tbody>
             );
           })}
