@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
+import { formulaError, parseFormula, usedVars, type MetricFormula } from "./scorecard-formula";
 import type {
   ScorecardOwner,
   ScorecardMetric,
@@ -54,37 +55,98 @@ export async function createMetric(input: {
   direction: Direction;
   format: MetricFormat;
   aggregation: Aggregation;
-  calcNumeratorId?: number | null;
-  calcDenominatorId?: number | null;
 }): Promise<ScorecardMetric> {
   const rows = await db().sql`
     SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM scorecard_metrics WHERE team_id = ${input.teamId}
   `;
   const next = (rows[0] as { next: number }).next;
   const inserted = await db().sql`
-    INSERT INTO scorecard_metrics (team_id, name, predicts, direction, format, aggregation, sort_order, calc_numerator_id, calc_denominator_id)
-    VALUES (${input.teamId}, ${input.name}, ${input.predicts}, ${input.direction}, ${input.format}, ${input.aggregation}, ${next},
-      ${input.calcNumeratorId ?? null}, ${input.calcDenominatorId ?? null})
+    INSERT INTO scorecard_metrics (team_id, name, predicts, direction, format, aggregation, sort_order)
+    VALUES (${input.teamId}, ${input.name}, ${input.predicts}, ${input.direction}, ${input.format}, ${input.aggregation}, ${next})
     RETURNING *
   `;
   return inserted[0] as ScorecardMetric;
 }
 
-/** Vuelve calculado (numerador ÷ denominador) o manual un indicador del equipo. */
-export async function setMetricCalc(teamId: number, metricId: number, numeratorId: number | null, denominatorId: number | null) {
+/**
+ * Vuelve calculado (con fórmula) o manual (`formula` null) un indicador del equipo.
+ * Las variables deben ser indicadores activos del equipo, sin el propio ni ciclos. Devuelve el error o null.
+ */
+export async function setMetricFormula(teamId: number, metricId: number, formula: MetricFormula | null): Promise<string | null> {
   const metrics = await listMetrics(teamId);
-  const ok = (id: number | null) => id === null || metrics.some((m) => m.id === id && m.id !== metricId && m.calc_numerator_id === null);
-  if (!metrics.some((m) => m.id === metricId) || !ok(numeratorId) || !ok(denominatorId)) return false;
-  const both = numeratorId !== null && denominatorId !== null;
+  if (!metrics.some((m) => m.id === metricId)) return "Indicador no encontrado.";
+  if (formula) {
+    const used = usedVars(formula);
+    const vars = Object.fromEntries(used.map((v) => [v, formula.vars[v]]));
+    const clean: MetricFormula = { expr: formula.expr.trim().slice(0, 300), vars };
+    const err = formulaError(clean);
+    if (err) return err;
+    for (const id of Object.values(vars)) {
+      if (id === metricId) return "Un indicador no puede usarse a sí mismo.";
+      if (!metrics.some((m) => m.id === id)) return "Una variable apunta a un indicador que no existe o está archivado.";
+    }
+    // Sin ciclos: ningún indicador usado puede depender (directa o indirectamente) de este.
+    const deps = new Map(metrics.map((m) => [m.id, Object.values(parseFormula(m.calc_formula)?.vars ?? {})]));
+    deps.set(metricId, Object.values(vars));
+    const reaches = (from: number, visited = new Set<number>()): boolean => {
+      if (from === metricId) return true;
+      if (visited.has(from)) return false;
+      visited.add(from);
+      return (deps.get(from) ?? []).some((id) => reaches(id, visited));
+    };
+    if (Object.values(vars).some((id) => reaches(id))) {
+      return "La fórmula crea un ciclo: un indicador usado depende de este.";
+    }
+    await db().sql`
+      UPDATE scorecard_metrics SET calc_formula = ${JSON.stringify(clean)}::jsonb, calc_numerator_id = NULL, calc_denominator_id = NULL
+      WHERE id = ${metricId} AND team_id = ${teamId}
+    `;
+    return null;
+  }
   await db().sql`
-    UPDATE scorecard_metrics SET calc_numerator_id = ${both ? numeratorId : null}, calc_denominator_id = ${both ? denominatorId : null}
+    UPDATE scorecard_metrics SET calc_formula = NULL, calc_numerator_id = NULL, calc_denominator_id = NULL
     WHERE id = ${metricId} AND team_id = ${teamId}
   `;
-  return true;
+  return null;
 }
 
-export async function archiveMetric(metricId: number) {
-  await db().sql`UPDATE scorecard_metrics SET archived = TRUE WHERE id = ${metricId}`;
+/** Archiva un indicador; no se puede si una fórmula activa lo usa (devuelve esos indicadores). */
+export async function archiveMetric(teamId: number, metricId: number): Promise<string[]> {
+  const metrics = await listMetrics(teamId);
+  const users = metrics.filter((m) => m.id !== metricId && Object.values(parseFormula(m.calc_formula)?.vars ?? {}).includes(metricId));
+  if (users.length) return users.map((m) => m.name);
+  await db().sql`UPDATE scorecard_metrics SET archived = TRUE, archived_at = NOW() WHERE id = ${metricId} AND team_id = ${teamId}`;
+  return [];
+}
+
+export async function listArchivedMetrics(teamId: number): Promise<ScorecardMetric[]> {
+  const rows = await db().sql`
+    SELECT * FROM scorecard_metrics WHERE team_id = ${teamId} AND archived = TRUE
+    ORDER BY archived_at DESC NULLS LAST, id DESC
+  `;
+  return rows as ScorecardMetric[];
+}
+
+/** Restaura un indicador archivado al final de la lista (con sus datos y metas). */
+export async function restoreMetric(teamId: number, metricId: number) {
+  await db().sql`
+    UPDATE scorecard_metrics SET archived = FALSE, archived_at = NULL,
+      sort_order = (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM scorecard_metrics WHERE team_id = ${teamId} AND archived = FALSE)
+    WHERE id = ${metricId} AND team_id = ${teamId}
+  `;
+}
+
+/** Sube o baja un indicador una posición. */
+export async function moveMetric(teamId: number, metricId: number, direction: "up" | "down") {
+  const metrics = await listMetrics(teamId);
+  const i = metrics.findIndex((m) => m.id === metricId);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= metrics.length) return;
+  const order = metrics.map((m) => m.id);
+  [order[i], order[j]] = [order[j], order[i]];
+  for (let k = 0; k < order.length; k++) {
+    await db().sql`UPDATE scorecard_metrics SET sort_order = ${k} WHERE id = ${order[k]} AND team_id = ${teamId}`;
+  }
 }
 
 export async function listTargets(teamId: number): Promise<ScorecardTarget[]> {
@@ -198,6 +260,8 @@ export type SharedScorecard = {
   teamId: number;
   teamName: string;
   metrics: ScorecardMetric[];
+  /** Indicadores que usan las fórmulas pero no se comparten: entran al cálculo sin mostrarse. */
+  support: ScorecardMetric[];
   owners: ScorecardOwner[];
   targets: ScorecardTarget[];
   entries: ScorecardEntry[];
@@ -219,12 +283,28 @@ export async function listSharedScorecards(teamId: number, weeks: string[]): Pro
   const byTeam = new Map<number, SharedScorecard>();
   for (const m of metrics) {
     if (!byTeam.has(m.team_id)) {
-      byTeam.set(m.team_id, { teamId: m.team_id, teamName: m.team_name, metrics: [], owners: [], targets: [], entries: [] });
+      byTeam.set(m.team_id, { teamId: m.team_id, teamName: m.team_name, metrics: [], support: [], owners: [], targets: [], entries: [] });
     }
     byTeam.get(m.team_id)!.metrics.push(m);
   }
   for (const sc of byTeam.values()) {
-    const ids = sc.metrics.map((m) => m.id);
+    // Variables de las fórmulas (y las de sus fórmulas) que no están compartidas.
+    const all = await listMetrics(sc.teamId);
+    const need = new Set(sc.metrics.map((m) => m.id));
+    for (let changed = true; changed; ) {
+      changed = false;
+      for (const m of all) {
+        if (!need.has(m.id)) continue;
+        for (const id of Object.values(parseFormula(m.calc_formula)?.vars ?? {})) {
+          if (!need.has(id)) {
+            need.add(id);
+            changed = true;
+          }
+        }
+      }
+    }
+    sc.support = all.filter((m) => need.has(m.id) && !sc.metrics.some((x) => x.id === m.id));
+    const ids = [...need];
     const [owners, targets, entries] = await Promise.all([
       listOwners(sc.teamId),
       db().sql`SELECT metric_id, owner_id, target_value FROM scorecard_targets WHERE metric_id = ANY(${ids}::int[])`,

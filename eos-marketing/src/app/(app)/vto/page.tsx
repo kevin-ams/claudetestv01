@@ -43,7 +43,7 @@ export default async function VTOPage() {
   const vto = await getVTO(session.teamId);
 
   if (!vto) {
-    return <p className="text-sm text-muted">No se encontró el V/TO de tu equipo.</p>;
+    return <p className="text-sm text-muted">No se encontró el V/TO de la organización.</p>;
   }
 
   return (
@@ -51,7 +51,8 @@ export default async function VTOPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Vision/Traction Organizer (V/TO)</h1>
         <p className="text-sm text-muted">
-          El documento de una página que resume hacia dónde va tu empresa y cómo va a llegar.
+          El documento de una página que resume hacia dónde va tu empresa y cómo va a llegar. Es uno solo para toda
+          la organización: todos los equipos ven y editan el mismo.
         </p>
       </div>
 

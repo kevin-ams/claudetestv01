@@ -16,7 +16,7 @@ export function SharedScorecards({ shared, weeks }: { shared: SharedScorecard[];
         <p className="text-sm text-muted">Indicadores que otros equipos hicieron visibles para ustedes. Solo lectura.</p>
       </div>
       {shared.map((sc) => {
-        const grid = buildScorecardGrid(sc.metrics, sc.owners, sc.targets, sc.entries, weeks);
+        const grid = buildScorecardGrid([...sc.metrics, ...sc.support], sc.owners, sc.targets, sc.entries, weeks);
         // Un renglón por dueño con meta o datos; si el indicador aún no tiene, uno vacío.
         const rows = sc.metrics.flatMap((m): { m: ScorecardMetric; o: ScorecardOwner | null }[] => {
           const withData = sc.owners

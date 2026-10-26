@@ -73,6 +73,8 @@ export type Seat = {
   roles: string[];
   sort_order: number;
   created_at: string;
+  /** Personas en el puesto (puede haber varias). */
+  people: number[];
 };
 
 export type RockStatus = "on_track" | "off_track" | "done";
@@ -129,6 +131,9 @@ export type ScorecardMetric = {
   /** Indicador calculado: numerador ÷ denominador (× 100 si es %). */
   calc_numerator_id: number | null;
   calc_denominator_id: number | null;
+  /** Fórmula del indicador calculado (variables → indicadores); null = se captura a mano. */
+  calc_formula: unknown;
+  archived_at?: string | null;
 };
 
 export type ScorecardTarget = {

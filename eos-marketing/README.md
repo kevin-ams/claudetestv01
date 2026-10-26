@@ -146,6 +146,20 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 ## Módulos
 
+- **Scorecard › indicadores calculados con fórmula**: "Calcular" asigna variables (A, B, C…) a otros indicadores y una
+  fórmula con + − × ÷, números y paréntesis (p. ej. `A + B - C`, `(A + B) / C * 100`). Se evalúa sin `eval`
+  (`scorecard-formula.ts`), por dueño y semana (el rollup usa sus propios totales); puede usar otros calculados y se
+  bloquean los ciclos. Los calculados anteriores (numerador ÷ denominador) se migraron a `A / B` o `A / B * 100`.
+  Columna `scorecard_metrics.calc_formula`.
+- **Scorecard › ordenar y archivar**: flechas para subir/bajar; archivar pide confirmación y no se permite si la fórmula de
+  otro indicador lo usa. **Ajustes › Indicadores archivados** los lista y los restaura (al final, con sus datos).
+- **Organigrama y V/TO de toda la organización**: todos los equipos reales ven y editan el mismo (cada demo es su propia
+  organización). El V/TO se guarda en el primer equipo creado; la migración 033 le copió el V/TO con contenido más
+  reciente si estaba vacío. Los puestos aceptan varias personas (`accountability_seat_people`): con más de una se
+  muestra el número y la lista. Diseño de árbol con conectores, filtro de puesto superior, contraer, zoom, menú por
+  puesto (agregar debajo, mover, eliminar) y avisos EOS: unos 5 roles, LMA como primer rol y una sola persona en
+  puestos con otros debajo.
+- **Reportes semanales**: las piezas del calendario editorial llevan su nota y el nombre enlazado a su link.
 - **Metas de carrera › Importar desde Google Sheets** (manual, solo cuando se presiona): se pega el enlace de la hoja
   (compartida como pública o publicada) y se leen las pestañas con "Meta del ciclo" y "Presupuesto del ciclo". Los
   meses (OCT, NOV, DIC, ENE 27…) se cargan como metas mensuales y lo que ya se tenía antes del primer mes (ciclo −

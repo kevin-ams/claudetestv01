@@ -1,9 +1,14 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { VTO } from "./types";
+import { orgAnchorTeam } from "./teams";
+
+// El V/TO es uno para toda la organización: se guarda en el primer equipo y lo ven y editan todos.
 
 export async function getVTO(teamId: number): Promise<VTO | null> {
-  const rows = await db().sql`SELECT * FROM vto WHERE team_id = ${teamId}`;
+  const anchor = await orgAnchorTeam(teamId);
+  await db().sql`INSERT INTO vto (team_id) VALUES (${anchor}) ON CONFLICT (team_id) DO NOTHING`;
+  const rows = await db().sql`SELECT * FROM vto WHERE team_id = ${anchor}`;
   return (rows[0] as VTO) ?? null;
 }
 
@@ -21,6 +26,8 @@ export async function updateVTOField(
   value: unknown,
   userId: number
 ) {
+  teamId = await orgAnchorTeam(teamId);
+  await db().sql`INSERT INTO vto (team_id) VALUES (${teamId}) ON CONFLICT (team_id) DO NOTHING`;
   const json = JSON.stringify(value);
   switch (field) {
     case "core_values":

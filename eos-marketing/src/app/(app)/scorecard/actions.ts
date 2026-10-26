@@ -11,9 +11,11 @@ import {
   deleteOwner,
   setTarget,
   setMetricSharing,
-  setMetricCalc,
-  listMetrics,
+  setMetricFormula,
+  moveMetric,
+  restoreMetric,
 } from "@/lib/domain/scorecard";
+import { describeFormula, type MetricFormula } from "@/lib/domain/scorecard-formula";
 import type { Direction, MetricFormat, Aggregation } from "@/lib/domain/types";
 
 export async function upsertEntryAction(
@@ -31,16 +33,7 @@ export async function upsertEntryAction(
 
 export async function createMetricAction(formData: FormData) {
   const session = await requireModule("scorecard");
-  const valid = new Set((await listMetrics(session.teamId)).filter((m) => m.calc_numerator_id === null).map((m) => m.id));
-  const pick = (k: string) => {
-    const n = Number(formData.get(k));
-    return valid.has(n) ? n : null;
-  };
-  const num = pick("calcNumeratorId");
-  const den = pick("calcDenominatorId");
   await createMetric({
-    calcNumeratorId: num !== null && den !== null ? num : null,
-    calcDenominatorId: num !== null && den !== null ? den : null,
     teamId: session.teamId,
     name: String(formData.get("name") ?? "").trim(),
     predicts: String(formData.get("predicts") ?? "").trim(),
@@ -52,11 +45,32 @@ export async function createMetricAction(formData: FormData) {
   revalidatePath("/scorecard");
 }
 
-export async function archiveMetricAction(metricId: number) {
+export async function archiveMetricAction(metricId: number): Promise<{ ok: boolean; message: string }> {
   const session = await requireModule("scorecard");
   const label = await labelOf("scorecard_metrics", metricId);
-  await archiveMetric(metricId);
+  const usedBy = await archiveMetric(session.teamId, metricId);
+  if (usedBy.length) {
+    return { ok: false, message: `No se puede archivar: lo usa la fórmula de ${usedBy.join(", ")}. Cambia esa fórmula primero.` };
+  }
   await logActivity(session, "scorecard", "Archivó indicador", label);
+  revalidatePath("/scorecard");
+  revalidatePath("/ajustes/scorecard");
+  return { ok: true, message: `“${label}” archivado. Puedes restaurarlo en Ajustes › Indicadores archivados.` };
+}
+
+export async function restoreMetricAction(metricId: number): Promise<{ ok: boolean; message: string }> {
+  const session = await requireModule("scorecard");
+  await restoreMetric(session.teamId, metricId);
+  const label = await labelOf("scorecard_metrics", metricId);
+  await logActivity(session, "scorecard", "Restauró indicador", label);
+  revalidatePath("/scorecard");
+  revalidatePath("/ajustes/scorecard");
+  return { ok: true, message: `“${label}” vuelve al Scorecard (al final de la lista).` };
+}
+
+export async function moveMetricAction(metricId: number, direction: "up" | "down") {
+  const session = await requireModule("scorecard");
+  await moveMetric(session.teamId, metricId, direction === "up" ? "up" : "down");
   revalidatePath("/scorecard");
 }
 
@@ -79,13 +93,31 @@ export async function deleteOwnerAction(ownerId: number) {
   revalidatePath("/scorecard");
 }
 
-export async function setMetricCalcAction(metricId: number, numeratorId: number | null, denominatorId: number | null) {
+/** Vuelve calculado (fórmula con variables) o manual (`formula` null) un indicador. */
+export async function setMetricFormulaAction(metricId: number, formula: MetricFormula | null): Promise<{ ok: boolean; message: string }> {
   const session = await requireModule("scorecard");
-  const ok = await setMetricCalc(session.teamId, metricId, numeratorId, denominatorId);
-  if (ok) {
-    await logActivity(session, "scorecard", "Cambió cálculo de indicador", `${await labelOf("scorecard_metrics", metricId)}: ${numeratorId && denominatorId ? `${await labelOf("scorecard_metrics", numeratorId)} ÷ ${await labelOf("scorecard_metrics", denominatorId)}` : "manual"}`);
+  const clean: MetricFormula | null = formula
+    ? {
+        expr: String(formula.expr ?? ""),
+        vars: Object.fromEntries(
+          Object.entries(formula.vars ?? {})
+            .filter(([k, v]) => /^[A-Z]$/.test(k) && Number(v) > 0)
+            .map(([k, v]) => [k, Number(v)])
+        ),
+      }
+    : null;
+  const error = await setMetricFormula(session.teamId, metricId, clean);
+  if (error) return { ok: false, message: error };
+  const label = await labelOf("scorecard_metrics", metricId);
+  let detail = "manual";
+  if (clean) {
+    const names: Record<number, string> = {};
+    for (const id of Object.values(clean.vars)) names[id] = await labelOf("scorecard_metrics", id);
+    detail = describeFormula(clean, (id) => names[id] ?? "?");
   }
+  await logActivity(session, "scorecard", "Cambió cálculo de indicador", `${label}: ${detail}`);
   revalidatePath("/scorecard");
+  return { ok: true, message: clean ? "Fórmula guardada." : "Ahora se captura a mano." };
 }
 
 /** Solo un administrador cambia metas. */

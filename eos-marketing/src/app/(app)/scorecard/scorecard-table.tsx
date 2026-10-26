@@ -11,6 +11,7 @@ import type {
 } from "@/lib/domain/types";
 import { formatWeekLabel } from "@/lib/utils/dates";
 import { isCalculated } from "@/lib/domain/scorecard-shared";
+import { describeFormula, parseFormula } from "@/lib/domain/scorecard-formula";
 import { upsertEntryAction, setTargetAction } from "./actions";
 
 type Grid = Record<string, number | null>;
@@ -192,9 +193,8 @@ export function ScorecardTable({
                   : null;
               const calc = isCalculated(m);
               const unit = (v: number | null) => (v === null ? "-" : m.format === "percentage" ? `${v}%` : v);
-              const calcLabel = calc
-                ? `${metrics.find((x) => x.id === m.calc_numerator_id)?.name ?? "?"} ÷ ${metrics.find((x) => x.id === m.calc_denominator_id)?.name ?? "?"}`
-                : "";
+              const formula = parseFormula(m.calc_formula);
+              const calcLabel = formula ? describeFormula(formula, (id) => metrics.find((x) => x.id === id)?.name ?? "?") : "";
 
               return (
                 <tr key={m.id} className="border-b border-border last:border-0">

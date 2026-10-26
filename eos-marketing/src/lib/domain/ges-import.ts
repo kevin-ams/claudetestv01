@@ -150,7 +150,7 @@ export async function importComunicacionGes(admin: { userId: number; teamId: num
   const num = metricIds.get("Hygiene producidas / semana");
   const den = metricIds.get("Cadencia: piezas publicadas / semana");
   if (hyg && num && den) {
-    await db().sql`UPDATE scorecard_metrics SET calc_numerator_id = ${num}, calc_denominator_id = ${den} WHERE id = ${hyg}`;
+    await db().sql`UPDATE scorecard_metrics SET calc_formula = ${JSON.stringify({ expr: "A / B * 100", vars: { A: num, B: den } })}::jsonb WHERE id = ${hyg}`;
   }
   const entries = data.entries
     .filter((e) => metricIds.has(e.metric))

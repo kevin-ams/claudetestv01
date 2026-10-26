@@ -6,6 +6,8 @@ import type {
   Direction,
 } from "./types";
 
+import { evaluateFormula, parseFormula, type MetricFormula } from "./scorecard-formula";
+
 export type ScorecardGrid = Map<string, number | null>;
 
 function cellKey(metricId: number, ownerId: number, week: string) {
@@ -49,25 +51,30 @@ export function buildScorecardGrid(
     }
   }
 
-  // Calculados (p. ej. % Hygiene = Hygiene ÷ Cadencia): para cada dueño, incluido el
-  // rollup, se usan sus propios valores, así el total sale de los totales.
-  for (const metric of calculated) {
-    for (const week of weeks) {
-      for (const owner of owners) {
-        const num = grid.get(cellKey(metric.calc_numerator_id!, owner.id, week));
-        const den = grid.get(cellKey(metric.calc_denominator_id!, owner.id, week));
-        const value =
-          num === null || num === undefined || !den ? null : (num / den) * (metric.format === "percentage" ? 100 : 1);
-        grid.set(cellKey(metric.id, owner.id, week), value === null ? null : Math.round(value * 10) / 10);
+  // Calculados por fórmula: para cada dueño, incluido el rollup, se usan sus propios valores
+  // (el total sale de los totales). Un calculado puede usar otros calculados: se resuelven en orden.
+  const pending = new Map(calculated.map((m) => [m.id, parseFormula(m.calc_formula)!]));
+  const ready = (f: MetricFormula) => Object.values(f.vars).every((id) => !pending.has(id));
+  for (let pass = 0; pass < calculated.length && pending.size; pass++) {
+    for (const metric of calculated) {
+      const f = pending.get(metric.id);
+      if (!f || !ready(f)) continue;
+      const decimals = metric.format === "percentage" ? 1 : 2;
+      for (const week of weeks) {
+        for (const owner of owners) {
+          const value = evaluateFormula(f, (id) => grid.get(cellKey(id, owner.id, week)) ?? null);
+          grid.set(cellKey(metric.id, owner.id, week), value === null ? null : Math.round(value * 10 ** decimals) / 10 ** decimals);
+        }
       }
+      pending.delete(metric.id);
     }
   }
 
   return grid;
 }
 
-export function isCalculated(m: Pick<ScorecardMetric, "calc_numerator_id" | "calc_denominator_id">) {
-  return m.calc_numerator_id !== null && m.calc_denominator_id !== null;
+export function isCalculated(m: Pick<ScorecardMetric, "calc_formula">) {
+  return parseFormula(m.calc_formula) !== null;
 }
 
 export function getCell(

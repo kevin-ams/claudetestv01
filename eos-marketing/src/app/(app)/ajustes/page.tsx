@@ -11,9 +11,11 @@ import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { listControlMilestones } from "@/lib/domain/control-milestones";
 import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
 import { getTeam } from "@/lib/domain/teams";
+import { listArchivedMetrics } from "@/lib/domain/scorecard";
 import { getDemoTeamFor } from "@/lib/domain/demo";
 import { THEME_PRESETS } from "@/lib/theme";
 import {
+  Archive,
   ArrowUpFromSquare,
   Comment,
   Cubes3,
@@ -81,6 +83,12 @@ const SECTIONS = [
     description: "Vincula cada carrera a un embudo y etapa de tratos para actualizar sus leads cada semana.",
   },
   {
+    href: "/ajustes/scorecard",
+    Icon: Archive,
+    title: "Indicadores archivados",
+    description: "Ver los indicadores del Scorecard que se archivaron y restaurarlos con sus datos.",
+  },
+  {
     href: "/ajustes/frases",
     Icon: Comment,
     title: "Frases motivacionales",
@@ -141,7 +149,7 @@ export default async function AjustesIndexPage() {
     listQuotes(session.teamId),
   ]);
   const options = await listOptions(session.teamId);
-  const [acLinks, acLast] = await Promise.all([listLinks(session.teamId), lastSync(session.teamId)]);
+  const [acLinks, acLast, archived] = await Promise.all([listLinks(session.teamId), lastSync(session.teamId), listArchivedMetrics(session.teamId)]);
   const backupDays = daysSinceLastBackup(backups);
   const teamCount = userTeams.filter((t) => !t.is_demo).length;
   const activeAds = slots.filter((s) => s.has_image && s.active).length;
@@ -155,6 +163,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/activecampaign": isActiveCampaignConfigured()
       ? `${acLinks.length} carrera(s) vinculadas${acLast.at ? "" : " · sin sincronizar"}`
       : "Sin configurar",
+    "/ajustes/scorecard": archived.length ? `${archived.length} archivado(s)` : "Ninguno archivado",
     "/ajustes/frases": `${quotes.filter((q) => q.active).length} frases activas`,
     "/ajustes/equipos": `${teamCount} equipo(s)`,
     "/ajustes/hitos": `${milestones.length} hitos`,

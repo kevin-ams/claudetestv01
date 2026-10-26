@@ -30,6 +30,12 @@ const e = (v: unknown) => escapeHtml(String(v ?? ""));
 // La tipografía de las celdas va en el <style> del documento y en la tabla.
 const TD = "padding:6px 8px;border-bottom:1px solid #eee";
 
+/** Nombre con su enlace (solo http/https). */
+function linked(text: string, url: string | null | undefined) {
+  const href = String(url ?? "").trim();
+  return /^https?:\/\//i.test(href) ? `<a href="${e(href)}" target="_blank" rel="noopener" style="color:#1d4ed8;text-decoration:underline">${e(text)}</a>` : e(text);
+}
+
 function badge(text: string, tone: Tone) {
   const c = TONE_COLOR[tone];
   return `<span style="font:12px/16px Arial,sans-serif;padding:2px 7px;border-radius:9px;color:${c.fg};background:${c.bg};white-space:nowrap">${e(text)}</span>`;
@@ -108,7 +114,9 @@ async function calendarioSection(c: Ctx) {
   const tone = (s: string): Tone => (/publicad|realizad|listo|aprobad/i.test(s) ? "green" : /cancel|reprogram/i.test(s) ? "red" : "none");
   const row = (p: (typeof pieces)[number]) => [
     p.pub_date ? e(formatShortDate(p.pub_date)) : "—",
-    `${e(p.title)}${p.carrera ? `<br><span style="color:#6b7280;font-size:12px">${e(p.carrera)}</span>` : ""}`,
+    `${linked(p.title, p.link)}${p.carrera ? `<br><span style="color:#6b7280;font-size:12px">${e(p.carrera)}</span>` : ""}${
+      p.note?.trim() ? `<br><span style="color:#4b5563;font-size:12px;font-style:italic">Nota: ${e(p.note.trim())}</span>` : ""
+    }`,
     e(p.pilar || "—"),
     e(c.nameOf(p.assignee_id)),
     badge(p.status || "Sin estado", tone(p.status)),
@@ -139,7 +147,7 @@ async function calendarioSection(c: Ctx) {
       ? sub("Fechas clave") +
         table(
           ["Fecha", "Fecha clave", "Facultad / carrera"],
-          dates.map((d) => [e(formatShortDate(d.date)), e(d.title), e([d.facultad, d.carrera].filter(Boolean).join(" · ") || "—")]),
+          dates.map((d) => [e(formatShortDate(d.date)), `${e(d.title)}${d.note?.trim() ? `<br><span style="color:#4b5563;font-size:12px;font-style:italic">Nota: ${e(d.note.trim())}</span>` : ""}`, e([d.facultad, d.carrera].filter(Boolean).join(" · ") || "—")]),
         )
       : "",
   ].join("");

@@ -237,7 +237,7 @@ export function WeeklyReportBuilder({
         <iframe
             title="Vista previa del reporte semanal"
             srcDoc={html}
-            sandbox=""
+            sandbox="allow-popups allow-popups-to-escape-sandbox"
             className={`h-[75vh] w-full rounded-xl border border-border bg-white transition-opacity ${previewing ? "opacity-60" : ""}`}
           />
         </section>

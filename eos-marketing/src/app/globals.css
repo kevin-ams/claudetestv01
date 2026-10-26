@@ -120,3 +120,70 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Organigrama: líneas que unen cada puesto con los puestos que le reportan
+   (solo los nodos del árbol, no las listas dentro de las tarjetas). */
+.ac-children {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  padding-top: 28px;
+}
+.ac-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 10px 0;
+  list-style: none;
+}
+.ac-node::before,
+.ac-node::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 50%;
+  width: 50%;
+  height: 28px;
+  border-top: 1.5px solid color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.ac-node::after {
+  right: auto;
+  left: 50%;
+  border-left: 1.5px solid color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.ac-node:only-child::before,
+.ac-node:only-child::after {
+  width: 0;
+  border-top: 0;
+}
+.ac-node:first-child::before,
+.ac-node:last-child::after {
+  border: 0 none;
+}
+.ac-node:last-child::before {
+  border-right: 1.5px solid color-mix(in oklab, var(--muted) 55%, transparent);
+  border-radius: 0 8px 0 0;
+}
+.ac-node:first-child::after {
+  border-radius: 8px 0 0 0;
+}
+.ac-children .ac-children::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 28px;
+  border-left: 1.5px solid color-mix(in oklab, var(--muted) 55%, transparent);
+}
+.ac-root {
+  padding-top: 0;
+  gap: 32px;
+}
+.ac-root > .ac-node {
+  padding-top: 0;
+}
+.ac-root > .ac-node::before,
+.ac-root > .ac-node::after {
+  display: none;
+}

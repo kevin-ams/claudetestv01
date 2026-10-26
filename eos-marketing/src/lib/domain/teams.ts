@@ -73,3 +73,20 @@ export async function teamReplyTo(teamId: number, fallback?: string): Promise<st
   const rows = (await db().sql`SELECT reply_to FROM teams WHERE id = ${teamId}`) as { reply_to: string }[];
   return rows[0]?.reply_to || fallback;
 }
+
+// --- Organización: todos los equipos reales (cada demo es su propia organización) ---------------
+
+/** Equipos de la misma organización que `teamId` (incluido él). */
+export async function orgTeamIds(teamId: number): Promise<number[]> {
+  const rows = (await db().sql`
+    SELECT t.id FROM teams t, teams me
+    WHERE me.id = ${teamId} AND t.is_demo = me.is_demo AND (NOT t.is_demo OR t.demo_owner_id = me.demo_owner_id)
+    ORDER BY t.id
+  `) as { id: number }[];
+  return rows.map((r) => r.id);
+}
+
+/** Equipo donde se guarda lo que es de toda la organización (V/TO): el primero creado. */
+export async function orgAnchorTeam(teamId: number): Promise<number> {
+  return (await orgTeamIds(teamId))[0] ?? teamId;
+}

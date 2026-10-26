@@ -18,6 +18,8 @@ export function MultiOwnerSelect({
   emptyLabel = "Sin dueño",
   className = "",
   inline = false,
+  hint = "Elige una o varias personas: se crea un To-Do para cada una.",
+  ariaLabel = "Dueños",
 }: {
   members: Person[];
   value: number[];
@@ -27,6 +29,8 @@ export function MultiOwnerSelect({
   className?: string;
   /** La lista se despliega dentro del flujo (p. ej. en una ventana modal, donde un menú flotante queda tapado). */
   inline?: boolean;
+  hint?: string;
+  ariaLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -57,7 +61,7 @@ export function MultiOwnerSelect({
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={`Dueños: ${label}`}
+        aria-label={`${ariaLabel}: ${label}`}
         onClick={() => setOpen((v) => !v)}
         className="flex h-9 w-full min-w-40 items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 text-left text-sm shadow-xs hover:bg-default"
       >
@@ -66,7 +70,7 @@ export function MultiOwnerSelect({
       </button>
       {open && (
         <div className={`${inline ? "relative w-full" : "absolute left-0 z-30 w-64"} mt-1 flex max-h-64 flex-col gap-1 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-lg`} role="listbox" aria-multiselectable>
-          <p className="px-1 text-[11px] text-muted">Elige una o varias personas: se crea un To-Do para cada una.</p>
+          <p className="px-1 text-[11px] text-muted">{hint}</p>
           {members.map((m) => (
             <AppCheckbox key={m.id} checked={value.includes(m.id)} onChange={(e) => toggle(m.id, e.target.checked)}>
               <span className="text-sm">{m.name}</span>

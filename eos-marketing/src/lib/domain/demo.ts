@@ -383,6 +383,11 @@ async function seedVtoOrg(ctx: DemoContext) {
       VALUES (${teamId}, ${head[0].id}, ${title}, ${person(owner)}, ${JSON.stringify(roles)}::jsonb, ${i})
     `;
   }
+  await db().sql`
+    INSERT INTO accountability_seat_people (seat_id, user_id)
+    SELECT id, user_id FROM accountability_seats WHERE team_id = ${teamId} AND user_id IS NOT NULL
+    ON CONFLICT DO NOTHING
+  `;
 }
 
 async function seedControl(ctx: DemoContext) {
