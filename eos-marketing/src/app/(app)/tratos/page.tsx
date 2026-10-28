@@ -126,7 +126,7 @@ export default async function TratosPage({ searchParams }: PageProps<"/tratos">)
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
           Todavía no hay tratos guardados. Pulsa <b>Sincronizar</b>: la primera vez descarga los tratos de los últimos{" "}
           {settings.historyMonths} meses y lee las notas y el historial de cada uno, así que puede tardar varios minutos (si
-          se interrumpe, retoma donde quedó). Después se actualiza solo cada hora.
+          se interrumpe, retoma donde quedó). Después solo trae lo nuevo o modificado, cada vez que pulses el botón.
         </p>
       )}
       {unlinked > 0 && admin && (

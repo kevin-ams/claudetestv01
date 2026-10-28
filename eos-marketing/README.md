@@ -107,10 +107,11 @@ lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y trat
   el campo de facultad de ActiveCampaign si existe.
 - **Conversión** = trato en una etapa de conversión (por defecto las que dicen "inscri": *Por inscribir*, *Inscrito*)
   o más adelante en su embudo, o marcado como ganado. Se cambia en Ajustes › Dashboard de tratos.
-- **Datos**: copia local en `ac_deals` (migración `035`). "Sincronizar" en el dashboard trae los tratos (la primera vez,
-  los creados en los últimos 6 meses; después solo los modificados) y lee notas, historial de etapas y contacto de cada
-  trato nuevo o modificado (~3 consultas por trato, a ≈5 por segundo). Retoma donde quedó. La función programada
-  `netlify/functions/ac-deals-sync.mts` (minuto 37 de cada hora) llama a `/api/cron/ac-deals` con `CRON_SECRET`.
+- **Datos**: copia local en `ac_deals` (migración `035`). Se actualiza **solo a mano**, con "Sincronizar" en el
+  dashboard (no hay función programada, para no gastar consultas a ActiveCampaign sin necesidad). La primera vez trae
+  los tratos creados en los últimos 6 meses; después, solo los modificados desde la última sincronización, y lee notas,
+  historial de etapas y contacto únicamente de los tratos nuevos o modificados (~3 consultas por trato, a ≈5 por
+  segundo). Si se interrumpe, retoma donde quedó. "Completa" vuelve a leer todo y quita los tratos borrados en AC.
 - Sin `ACTIVECAMPAIGN_API_URL`/`ACTIVECAMPAIGN_API_KEY` (p. ej. en local) muestra datos de ejemplo con las carreras
   reales del equipo.
 - Código: `src/lib/domain/deals*.ts` y `src/app/(app)/tratos`, `src/app/(app)/ajustes/tratos`.

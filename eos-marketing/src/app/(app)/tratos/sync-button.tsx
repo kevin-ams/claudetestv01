@@ -66,7 +66,7 @@ export function DealsSyncButton({ initial, canSync }: { initial: SyncProgress; c
             {p.phase === "enrich" && ` ${pct}% (${p.totalDeals - p.pendingEnrich} de ${p.totalDeals})`}
           </>
         ) : p.lastSyncedAt ? (
-          <>Última sincronización: {WHEN.format(new Date(p.lastSyncedAt))} · {p.totalDeals} tratos · se actualiza cada hora</>
+          <>Última sincronización: {WHEN.format(new Date(p.lastSyncedAt))} · {p.totalDeals} tratos · pulsa Sincronizar para traer lo nuevo</>
         ) : (
           "Aún no se ha sincronizado"
         )}

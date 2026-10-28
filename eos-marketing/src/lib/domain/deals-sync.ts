@@ -15,8 +15,9 @@ import { normKey, type DashMeta, type DealNote, type DealRecord, type DealStatus
 
 /**
  * Sincronización del Dashboard de tratos, en pasos cortos que se retoman donde quedaron
- * (cada llamada trabaja unos segundos). La llaman el botón "Sincronizar" (en bucle desde el
- * navegador) y la función programada de cada hora.
+ * (cada llamada trabaja unos segundos). Solo la lanza el botón "Sincronizar" (en bucle desde
+ * el navegador): no hay actualización automática, para gastar consultas a ActiveCampaign solo
+ * cuando alguien quiere ver datos al día.
  *
  * 1. meta: embudos, etapas, usuarios y campos personalizados.
  * 2. deals: tratos (con sus campos personalizados). La primera vez, los creados en los últimos
