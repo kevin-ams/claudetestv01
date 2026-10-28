@@ -288,7 +288,8 @@ export function DealsDashboard({
         </Section>
         <Section className="lg:col-span-2" title="Tiempo en la etapa actual" subtitle="Tratos abiertos, desde que entraron a su etapa">
           <BarList rows={view.aging} selected={filters.aging ?? []} onToggle={toggle("aging")} />
-          <table className="mt-4 w-full whitespace-nowrap text-xs">
+          <div className="mt-4 overflow-x-auto">
+          <table className="w-full whitespace-nowrap text-xs">
             <thead>
               <tr className="border-b border-border text-left text-muted">
                 <th className="py-1.5 pr-2 font-medium">Etapa</th>
@@ -310,6 +311,7 @@ export function DealsDashboard({
               ))}
             </tbody>
           </table>
+          </div>
         </Section>
       </div>
 

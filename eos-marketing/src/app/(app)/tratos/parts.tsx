@@ -229,7 +229,7 @@ export function FunnelChart({
             )}
             <div
               {...rowProps(isSel, () => onToggle(s.key))}
-              className={`group grid cursor-pointer grid-cols-[minmax(8rem,14rem)_1fr_auto] items-center gap-3 rounded-lg px-2 py-1 outline-none transition-colors focus-visible:bg-primary/10 ${
+              className={`group grid cursor-pointer grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 outline-none transition-colors focus-visible:bg-primary/10 sm:grid-cols-[minmax(8rem,14rem)_1fr_auto] ${
                 isSel ? "bg-primary/10" : "hover:bg-default"
               }`}
             >
@@ -237,15 +237,16 @@ export function FunnelChart({
                 <SelectMark selected={isSel} />
                 {s.name}
               </span>
-              <span className="flex justify-center">
+              {/* En pantallas chicas la barra ocupa su propia línea, debajo del nombre. */}
+              <span className="order-last col-span-2 flex justify-center sm:order-none sm:col-span-1">
                 <span
-                  className="flex h-7 items-center justify-center rounded-md text-xs font-semibold text-white tabular-nums"
+                  className="flex h-7 min-w-10 items-center justify-center rounded-md px-1 text-xs font-semibold text-white tabular-nums"
                   style={{ width: `${width}%`, background: s.conversion ? "var(--green)" : "var(--chart-actual)" }}
                 >
                   {fmtNum(s.reached)}
                 </span>
               </span>
-              <span className="w-28 text-right text-xs text-muted tabular-nums">
+              <span className="text-right text-xs text-muted tabular-nums sm:w-28">
                 {fmtPct(s.reached / top)} del total
                 <br />
                 {fmtNum(s.current)} aquí ahora
