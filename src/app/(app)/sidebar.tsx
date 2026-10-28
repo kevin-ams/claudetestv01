@@ -10,6 +10,7 @@ const NAV = [
   { href: "/accountability", label: "Organigrama", icon: "🗂️" },
   { href: "/rocks", label: "Rocks", icon: "🪨" },
   { href: "/scorecard", label: "Scorecard", icon: "📊" },
+  { href: "/tratos", label: "Tratos (AC)", icon: "💼" },
   { href: "/issues", label: "Issues", icon: "⚠️" },
   { href: "/todos", label: "To-Dos", icon: "✅" },
   { href: "/meeting", label: "Reunión L10", icon: "⏱️" },
