@@ -135,5 +135,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "034_meeting_furthest",
     "sql": "-- La L10 se puede recorrer en cualquier orden: se guarda la sección más avanzada a la que se llegó\n-- (para marcar como vistas las anteriores aunque se regrese).\nALTER TABLE meetings ADD COLUMN furthest_segment TEXT;\nUPDATE meetings SET furthest_segment = current_segment WHERE current_segment IS NOT NULL;\n"
+  },
+  {
+    "name": "035_ac_deals_dashboard",
+    "sql": "-- Dashboard de tratos: copia local de los tratos de ActiveCampaign (con notas, actividad y\n-- datos del contacto) para analizarlos por embudo, etapa, carrera, facultad, asesor y UTM.\nCREATE TABLE ac_dash_meta (\n  key TEXT PRIMARY KEY,                     -- meta | settings | sync_state\n  value JSONB NOT NULL DEFAULT '{}',\n  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\n\nCREATE TABLE ac_deals (\n  id TEXT PRIMARY KEY,\n  pipeline_id TEXT NOT NULL,\n  created_at TIMESTAMPTZ,\n  mdate TEXT,                               -- última modificación en AC (si cambia, se vuelve a leer el detalle)\n  data JSONB NOT NULL DEFAULT '{}',\n  needs_enrich BOOLEAN NOT NULL DEFAULT TRUE,\n  seen_run TEXT,\n  synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_ac_deals_created ON ac_deals(created_at);\nCREATE INDEX idx_ac_deals_enrich ON ac_deals(needs_enrich) WHERE needs_enrich;\n"
   }
 ];

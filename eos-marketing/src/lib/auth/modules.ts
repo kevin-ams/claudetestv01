@@ -11,6 +11,7 @@ export const MODULES = [
   { key: "indicadores", label: "Indicadores de carrera", href: "/indicadores" },
   { key: "metas", label: "Metas de carrera", href: "/metas" },
   { key: "control", label: "Control de carrera", href: "/control" },
+  { key: "tratos", label: "Dashboard de tratos", href: "/tratos" },
   { key: "calendario", label: "Calendario editorial", href: "/calendario" },
   { key: "coberturas", label: "Control de coberturas", href: "/coberturas" },
   { key: "analisis_contenido", label: "Análisis de contenido", href: "/analisis-contenido" },

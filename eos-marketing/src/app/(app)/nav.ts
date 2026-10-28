@@ -8,6 +8,7 @@ import {
   Clock,
   Compass,
   Cube,
+  Funnel,
   Gear,
   GraduationCap,
   House,
@@ -53,6 +54,7 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: "/indicadores", label: "Indicadores de carrera", Icon: GraduationCap },
       { href: "/metas", label: "Metas de carrera", Icon: Target },
       { href: "/control", label: "Control de carrera", Icon: Route },
+      { href: "/tratos", label: "Dashboard de tratos", Icon: Funnel },
     ],
   },
   {

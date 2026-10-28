@@ -22,6 +22,7 @@ import {
   FaceSmile,
   FileText,
   Flask,
+  Funnel,
   Folders,
   MapPin,
   Megaphone,
@@ -81,6 +82,12 @@ const SECTIONS = [
     Icon: PlugConnection,
     title: "Leads desde ActiveCampaign",
     description: "Vincula cada carrera a un embudo y etapa de tratos para actualizar sus leads cada semana.",
+  },
+  {
+    href: "/ajustes/tratos",
+    Icon: Funnel,
+    title: "Dashboard de tratos",
+    description: "Etapas que cuentan como conversión, campos de UTM y clasificación, y facultad de carreras sin vínculo.",
   },
   {
     href: "/ajustes/scorecard",
@@ -163,6 +170,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/activecampaign": isActiveCampaignConfigured()
       ? `${acLinks.length} carrera(s) vinculadas${acLast.at ? "" : " · sin sincronizar"}`
       : "Sin configurar",
+    "/ajustes/tratos": "Solo administradores",
     "/ajustes/scorecard": archived.length ? `${archived.length} archivado(s)` : "Ninguno archivado",
     "/ajustes/frases": `${quotes.filter((q) => q.active).length} frases activas`,
     "/ajustes/equipos": `${teamCount} equipo(s)`,

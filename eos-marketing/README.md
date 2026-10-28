@@ -91,6 +91,30 @@ se sugiere el que coincide con el nombre).
 - **Ajustes › Diagnóstico › Historial de tratos** prueba (solo lectura) que la API entregue el historial.
 - El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
 
+## Dashboard de tratos
+
+**Carreras › Dashboard de tratos** (`/tratos`, módulo `tratos` en Roles y accesos) muestra los tratos de
+ActiveCampaign por embudo, etapa, facultad, carrera, asesor, UTM (source, medium, term, campaign) y clasificación del
+lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y tratos estancados.
+
+- **Interactivo**: clic en una facultad, carrera, etapa del embudo, asesor, UTM o rango de antigüedad filtra todo el
+  tablero (clic de nuevo para quitarlo). Con dos o más carreras o facultades elegidas aparece la comparación (una
+  línea por cada una). Los filtros quedan en la dirección (`?f=…`) para compartir el enlace; solo el periodo vuelve a
+  pedir datos al servidor.
+- **Carrera y facultad**: la carrera sale del campo del trato *Nombre de la Carrera* y de los vínculos de
+  Ajustes › Leads desde ActiveCampaign (si no hay vínculo, por nombre igual); la facultad es el `program` de esa carrera.
+  Las carreras sin vínculo se asignan a una facultad (varias a la vez) en **Ajustes › Dashboard de tratos**, o se toma
+  el campo de facultad de ActiveCampaign si existe.
+- **Conversión** = trato en una etapa de conversión (por defecto las que dicen "inscri": *Por inscribir*, *Inscrito*)
+  o más adelante en su embudo, o marcado como ganado. Se cambia en Ajustes › Dashboard de tratos.
+- **Datos**: copia local en `ac_deals` (migración `035`). "Sincronizar" en el dashboard trae los tratos (la primera vez,
+  los creados en los últimos 6 meses; después solo los modificados) y lee notas, historial de etapas y contacto de cada
+  trato nuevo o modificado (~3 consultas por trato, a ≈5 por segundo). Retoma donde quedó. La función programada
+  `netlify/functions/ac-deals-sync.mts` (minuto 37 de cada hora) llama a `/api/cron/ac-deals` con `CRON_SECRET`.
+- Sin `ACTIVECAMPAIGN_API_URL`/`ACTIVECAMPAIGN_API_KEY` (p. ej. en local) muestra datos de ejemplo con las carreras
+  reales del equipo.
+- Código: `src/lib/domain/deals*.ts` y `src/app/(app)/tratos`, `src/app/(app)/ajustes/tratos`.
+
 ## Correos (Resend)
 
 La app envía correos con [Resend](https://resend.com) por su API HTTP (sin dependencias extra):
