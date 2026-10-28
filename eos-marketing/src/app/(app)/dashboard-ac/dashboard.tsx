@@ -181,7 +181,6 @@ export function DealsDashboard({
         : k === "created"
           ? rangeLabel(v)
           : v;
-  const convNames = stages.filter((st) => st.conversion).map((st) => st.name);
   const careerFaculty = new Map(deals.map((d) => [d.career, d.faculty]));
   const rangeText = RANGE_OPTIONS.find((o) => o.value === range)?.label ?? "";
 
@@ -293,7 +292,7 @@ export function DealsDashboard({
       {/* Indicadores */}
       <div data-section="kpis" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
         <Kpi label="Tratos" value={fmtNum(s.total)} hint={`${fmtNum(s.open)} abiertos`} />
-        <Kpi label="Convertidos" value={fmtNum(s.converted)} tone="green" hint={`llegaron a ${convNames.join(" / ") || "—"}`} />
+        <Kpi label="Convertidos" value={fmtNum(s.converted)} tone="green" hint="llegaron a inscripción" />
         <Kpi label="Conversión" value={fmtPct(s.conversionRate)} hint="convertidos / tratos" />
         <Kpi label="Ganados · Perdidos" value={`${fmtNum(s.won)} · ${fmtNum(s.lost)}`} hint="estado del trato en AC" />
         <Kpi label="Días a conversión" value={fmtDays(s.medianDaysToConversion)} hint="mediana, desde la creación" />
@@ -369,7 +368,7 @@ export function DealsDashboard({
           id="funnel"
           className="lg:col-span-3"
           title="Embudo"
-          subtitle={`Tratos que llegaron a cada etapa y cuánto tardan en avanzar a la siguiente. En verde, las etapas de conversión: ${convNames.join(", ") || "ninguna"}.`}
+          subtitle="Tratos que llegaron a cada etapa y cuánto tardan en avanzar. En verde, conversión."
         >
           <FunnelChart steps={view.funnel} selected={filters.stage ?? []} onToggle={toggle("stage")} />
         </Section>

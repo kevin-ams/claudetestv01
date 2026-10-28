@@ -7,7 +7,8 @@ import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { getDashMeta, getDashSettings, listDealsCreated } from "@/lib/domain/deals";
 import { getSyncProgress } from "@/lib/domain/deals-sync";
 import { demoDeals } from "@/lib/domain/deals-demo";
-import { careerResolver, conversionKeys, resolveDeals } from "@/lib/domain/deals-resolve";
+import { careerResolver, conversionKeys, linkedPipelines, resolveDeals } from "@/lib/domain/deals-resolve";
+import type { Career } from "@/lib/domain/types";
 import { RANGE_OPTIONS } from "@/lib/domain/deals-shared";
 import { DealsDashboard } from "./dashboard";
 import { DealsSyncButton } from "./sync-button";
@@ -81,20 +82,24 @@ export default async function TratosPage({ searchParams }: PageProps<"/dashboard
   let meta;
   let records;
   let progress = null;
+  let baseCareers: Career[] = careers;
+  let baseLinks: { career_id: number; pipeline_id: string; career_value: string }[] = links;
   if (configured) {
     [meta, records, progress] = await Promise.all([getDashMeta(), listDealsCreated(from, to), getSyncProgress()]);
   } else {
-    ({ meta, deals: records } = demoDeals(careers, now));
+    ({ meta, deals: records, careers: baseCareers, links: baseLinks } = demoDeals(careers, now));
   }
 
+  // Embudos, carreras y facultades salen de Ajustes › Leads desde ActiveCampaign.
+  const linked = linkedPipelines(baseLinks);
+  meta = { ...meta, pipelines: meta.pipelines.filter((p) => linked.has(p.id)), stages: meta.stages.filter((s) => linked.has(s.pipelineId)) };
   const deals = resolveDeals(records, {
     meta,
     settings,
-    resolveCareer: careerResolver(careers, links),
+    resolveCareer: careerResolver(baseCareers, baseLinks),
     timeZone: TZ,
     now,
   }).filter((d) => d.createdDay >= from && d.createdDay <= to);
-  const unlinked = deals.filter((d) => !d.linked).length;
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4 print:max-w-none">
@@ -122,23 +127,22 @@ export default async function TratosPage({ searchParams }: PageProps<"/dashboard
           ACTIVECAMPAIGN_API_KEY), así que se muestran tratos inventados con las carreras reales del equipo.
         </p>
       )}
-      {configured && progress?.totalDeals === 0 && (
+      {baseLinks.length === 0 && (
+        <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
+          No hay carreras vinculadas a embudos. Vincúlalas en{" "}
+          <Link href="/ajustes/activecampaign" className="underline">
+            Ajustes › Leads desde ActiveCampaign
+          </Link>
+          : el dashboard usa esos mismos embudos, carreras y facultades.
+        </p>
+      )}
+      {configured && baseLinks.length > 0 && progress?.totalDeals === 0 && (
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
           Todavía no hay tratos guardados. Pulsa <b>Sincronizar</b>: la primera vez descarga los tratos de los últimos{" "}
           {settings.historyMonths} meses y lee las notas y el historial de cada uno, así que puede tardar varios minutos (si
           se interrumpe, retoma donde quedó). Después solo trae lo nuevo o modificado, cada vez que pulses el botón.
         </p>
       )}
-      {unlinked > 0 && admin && (
-        <p className="text-xs text-muted">
-          {unlinked} tratos tienen una carrera que no coincide con las carreras del equipo; su facultad se puede asignar en{" "}
-          <Link href="/ajustes/dashboard-ac" className="text-primary underline">
-            Ajustes del dashboard
-          </Link>
-          .
-        </p>
-      )}
-
       <DealsDashboard
         deals={deals}
         pipelines={meta.pipelines}

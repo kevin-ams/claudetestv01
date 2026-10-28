@@ -48,10 +48,9 @@ export type DealRecord = {
   enriched: boolean;
 };
 
-export const FIELD_KEYS = ["faculty", "utm_source", "utm_medium", "utm_term", "utm_campaign", "lead_classification"] as const;
+export const FIELD_KEYS = ["utm_source", "utm_medium", "utm_term", "utm_campaign", "lead_classification"] as const;
 export type FieldKey = (typeof FIELD_KEYS)[number];
 export const FIELD_LABELS: Record<FieldKey, string> = {
-  faculty: "Facultad (si existe el campo en ActiveCampaign)",
   utm_source: "UTM Source",
   utm_medium: "UTM Medium",
   utm_term: "UTM Term",
@@ -68,8 +67,6 @@ export type DashSettings = {
   conversionStageKeys: string[] | null;
   /** null = elegir los campos automáticamente por nombre. */
   fieldMap: FieldMap | null;
-  /** Facultad asignada a mano a valores de "Nombre de la Carrera" sin carrera vinculada. */
-  facultyByCareer: Record<string, string>;
   /** Primera sincronización: tratos creados en los últimos N meses. */
   historyMonths: number;
 };
@@ -78,7 +75,6 @@ export const DEFAULT_SETTINGS: DashSettings = {
   staleDays: 10,
   conversionStageKeys: null,
   fieldMap: null,
-  facultyByCareer: {},
   historyMonths: 6,
 };
 
@@ -89,6 +85,11 @@ export type SyncState = {
   full: boolean;
   since: string | null;
   offset: number;
+  /** Embudos vinculados en Leads desde ActiveCampaign que se revisan en esta pasada. */
+  pipelines?: string[];
+  pipelineIndex?: number;
+  /** Embudos que ya tuvieron su primera descarga completa (los nuevos se descargan completos). */
+  syncedPipelines?: string[];
   startedAt: string | null;
   lastSyncedAt: string | null;
   error: string | null;
@@ -110,7 +111,8 @@ export function normKey(v: string): string {
   return v.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
 }
 
-export const isConversionStageDefault = (title: string) => /inscri/.test(normKey(title));
+/** Por defecto cuentan como conversión las etapas "Inscrito(s)/Inscrita(s)" y "Por inscribir". */
+export const isConversionStageDefault = (title: string) => /\binscrit[oa]s?\b|\bpor inscribir\b/.test(normKey(title));
 
 /** Trato ya resuelto (carrera, facultad, asesor…) que se manda al navegador. */
 export type DashDeal = {

@@ -101,11 +101,8 @@ lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y trat
   tablero (clic de nuevo para quitarlo). Con dos o más carreras o facultades elegidas aparece la comparación (una
   línea por cada una). Los filtros quedan en la dirección (`?f=…`) para compartir el enlace; solo el periodo vuelve a
   pedir datos al servidor.
-- **Carrera y facultad**: la carrera sale del campo del trato *Nombre de la Carrera* y de los vínculos de
-  Ajustes › Leads desde ActiveCampaign (si no hay vínculo, por nombre igual); la facultad es el `program` de esa carrera.
-  Las carreras sin vínculo se asignan a una facultad (varias a la vez) en **Ajustes › Dashboard AC**, o se toma
-  el campo de facultad de ActiveCampaign si existe.
-- **Conversión** = trato en una etapa de conversión (por defecto las que dicen "inscri": *Por inscribir*, *Inscrito*)
+- **Embudos, carrera y facultad** salen solo de Ajustes › Leads desde ActiveCampaign: se sincronizan únicamente los embudos vinculados y cada trato toma la carrera del vínculo (embudo + *Nombre de la Carrera*) y la facultad (`program`) de esa carrera; los tratos que no coinciden con un vínculo no se cuentan.
+- **Conversión** = trato en una etapa de conversión (por defecto *Inscrito* y *Por inscribir*)
   o más adelante en su embudo, o marcado como ganado. Se cambia en Ajustes › Dashboard AC.
 - **Datos**: copia local en `ac_deals` (migración `035`). Se actualiza **solo a mano**, con "Sincronizar" en el
   dashboard (no hay función programada, para no gastar consultas a ActiveCampaign sin necesidad). La primera vez trae

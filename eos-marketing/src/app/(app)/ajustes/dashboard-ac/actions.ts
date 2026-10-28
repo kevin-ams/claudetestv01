@@ -21,11 +21,6 @@ export async function saveDealsSettingsAction(input: DashSettings): Promise<{ ok
     fieldMap: input.fieldMap
       ? (Object.fromEntries(FIELD_KEYS.map((k) => [k, cleanRef(input.fieldMap?.[k])])) as FieldMap)
       : null,
-    facultyByCareer: Object.fromEntries(
-      Object.entries(input.facultyByCareer ?? {})
-        .filter(([k, v]) => typeof k === "string" && typeof v === "string" && v.trim())
-        .map(([k, v]) => [k, v.trim().slice(0, 120)])
-    ),
   };
   await saveDashSettings(settings);
   revalidatePath("/dashboard-ac");

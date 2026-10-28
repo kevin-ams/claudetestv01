@@ -3,6 +3,8 @@ import { acGet, getCareerFieldId } from "@/lib/integrations/activecampaign";
 import {
   countDeals,
   deleteDealsNotSeenIn,
+  deleteDealsOutside,
+  linkedPipelineIds,
   getDashSettings,
   getSyncState,
   listDealsToEnrich,
@@ -20,8 +22,9 @@ import { normKey, type DashMeta, type DealNote, type StageChange, type DealRecor
  * cuando alguien quiere ver datos al día.
  *
  * 1. meta: embudos, etapas, usuarios y campos personalizados.
- * 2. deals: tratos (con sus campos personalizados). La primera vez, los creados en los últimos
- *    meses de Ajustes; después, solo los modificados desde la última sincronización.
+ * 2. deals: tratos (con sus campos personalizados) de los embudos vinculados en Ajustes › Leads
+ *    desde ActiveCampaign. La primera vez, los creados en los últimos meses de Ajustes; después,
+ *    solo los modificados desde la última sincronización.
  * 3. enrich: por cada trato nuevo o modificado, notas, historial de etapas y datos del contacto.
  */
 
@@ -266,15 +269,29 @@ export async function runSyncStep(mode: "full" | "incremental" | "continue", bud
 
     while (Date.now() < deadline && state.phase !== "done") {
       if (state.phase === "meta") {
+        const pipelines = await linkedPipelineIds();
+        if (!pipelines.length) {
+          throw new Error("No hay carreras vinculadas a embudos. Vincúlalas en Ajustes › Leads desde ActiveCampaign.");
+        }
         await saveDashMeta(await fetchMeta());
-        state = { ...state, phase: "deals", offset: 0 };
+        state = { ...state, phase: "deals", offset: 0, pipelines, pipelineIndex: 0 };
       } else if (state.phase === "deals") {
+        // Solo los embudos vinculados en Ajustes › Leads desde ActiveCampaign, uno por uno.
         careerFieldId ??= await getCareerFieldId().catch(() => null);
-        const filter = state.since
-          ? `filters[updated_after]=${state.since}`
-          : `filters[created_after]=${createdSince}`;
+        const pipelines = state.pipelines ?? [];
+        const index = state.pipelineIndex ?? 0;
+        if (index >= pipelines.length) {
+          await deleteDealsOutside(pipelines);
+          if (state.full) await deleteDealsNotSeenIn(state.runId!, createdSince);
+          state = { ...state, phase: "enrich", syncedPipelines: pipelines };
+          continue;
+        }
+        const pipelineId = pipelines[index];
+        // Un embudo recién vinculado se descarga completo aunque la pasada sea incremental.
+        const known = (state.syncedPipelines ?? []).includes(pipelineId);
+        const filter = state.since && known ? `filters[updated_after]=${state.since}` : `filters[created_after]=${createdSince}`;
         const r = await acGet<{ deals?: RawDeal[]; dealCustomFieldData?: Record<string, unknown>[] }>(
-          `deals?${filter}&orders[cdate]=ASC&limit=${PAGE}&offset=${state.offset}&include=dealCustomFieldData`
+          `deals?filters[group]=${encodeURIComponent(pipelineId)}&${filter}&orders[cdate]=ASC&limit=${PAGE}&offset=${state.offset}&include=dealCustomFieldData`
         );
         const deals = r.deals ?? [];
         const fields = customFieldsByDeal(r.dealCustomFieldData);
@@ -282,11 +299,10 @@ export async function runSyncStep(mode: "full" | "incremental" | "continue", bud
           deals.map((raw) => ({ deal: mapDeal(raw, fields.get(String(raw.id)) ?? {}, careerFieldId), mdate: raw.mdate ?? null })),
           state.runId!
         );
-        state = { ...state, offset: state.offset + deals.length };
-        if (deals.length < PAGE) {
-          if (state.full) await deleteDealsNotSeenIn(state.runId!, createdSince);
-          state = { ...state, phase: "enrich" };
-        }
+        state =
+          deals.length < PAGE
+            ? { ...state, pipelineIndex: index + 1, offset: 0 }
+            : { ...state, offset: state.offset + deals.length };
       } else if (state.phase === "enrich") {
         const batch = await listDealsToEnrich(ENRICH_BATCH);
         if (!batch.length) {

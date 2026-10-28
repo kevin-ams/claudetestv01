@@ -113,6 +113,21 @@ export async function upsertDealsBase(deals: { deal: DealRecord; mdate: string |
   );
 }
 
+/** Embudos vinculados a alguna carrera activa en Ajustes › Leads desde ActiveCampaign (todos los equipos). */
+export async function linkedPipelineIds(): Promise<string[]> {
+  const rows = (await db().sql`
+    SELECT DISTINCT l.pipeline_id FROM career_ac_links l
+    JOIN careers c ON c.id = l.career_id AND c.archived = FALSE
+    ORDER BY l.pipeline_id
+  `) as { pipeline_id: string }[];
+  return rows.map((r) => r.pipeline_id);
+}
+
+/** Quita los tratos de embudos que ya no están vinculados. */
+export async function deleteDealsOutside(pipelineIds: string[]) {
+  await db().sql`DELETE FROM ac_deals WHERE NOT (pipeline_id = ANY(string_to_array(${pipelineIds.join(",")}, ',')))`;
+}
+
 /** Tras una sincronización completa: quita los tratos que ya no existen en ActiveCampaign. */
 export async function deleteDealsNotSeenIn(runId: string, createdSince: string) {
   await db().sql`DELETE FROM ac_deals WHERE seen_run IS DISTINCT FROM ${runId} AND created_at >= ${createdSince}::date`;

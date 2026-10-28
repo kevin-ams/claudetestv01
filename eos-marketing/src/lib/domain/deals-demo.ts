@@ -49,9 +49,19 @@ function weighted<T>(rand: () => number, items: [T, number][]): T {
   return items[0][0];
 }
 
-export function demoDeals(careers: Career[], now: number): { meta: DashMeta; deals: DealRecord[] } {
+export type DemoLink = { career_id: number; pipeline_id: string; career_value: string };
+
+export function demoDeals(
+  careers: Career[],
+  now: number
+): { meta: DashMeta; deals: DealRecord[]; careers: Career[]; links: DemoLink[] } {
   const rand = rng(7);
-  const list = (careers.filter((c) => !c.archived).length ? careers.filter((c) => !c.archived) : FALLBACK).slice(0, 40);
+  const active = careers.filter((c) => !c.archived);
+  const list: Career[] = (
+    active.length
+      ? active
+      : FALLBACK.map((c, i) => ({ ...c, id: -(i + 1), team_id: 0, code: "", level: "Pregrado" as const, owner_id: null, archived: false, sort_order: i, created_at: "" }))
+  ).slice(0, 40);
   const programs = [...new Set(list.map((c) => c.program || "General"))];
 
   const meta: DashMeta = {
@@ -74,7 +84,7 @@ export function demoDeals(careers: Career[], now: number): { meta: DashMeta; dea
     fetchedAt: null,
   };
 
-  const weights = list.map((c, i) => [c, 1 + ((i * 7) % 5)] as [Pick<Career, "name" | "program">, number]);
+  const weights = list.map((c, i) => [c, 1 + ((i * 7) % 5)] as [Career, number]);
   const deals: DealRecord[] = [];
   for (let i = 0; i < 900; i++) {
     const career = weighted(rand, weights);
@@ -135,5 +145,8 @@ export function demoDeals(careers: Career[], now: number): { meta: DashMeta; dea
       enriched: true,
     });
   }
-  return { meta, deals };
+  // Vínculos como los de Ajustes › Leads desde ActiveCampaign: un embudo por facultad y el
+  // "Nombre de la Carrera" de cada carrera.
+  const links = list.map((c) => ({ career_id: c.id, pipeline_id: String(programs.indexOf(c.program || "General") + 1), career_value: c.name }));
+  return { meta, deals, careers: list, links };
 }

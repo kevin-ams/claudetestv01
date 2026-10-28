@@ -3,7 +3,6 @@ import type { Career } from "./types";
 import type { CareerAcLink } from "./ac-sync";
 import {
   FIELD_KEYS,
-  NO_CAREER,
   NO_FACULTY,
   UNKNOWN,
   isConversionStageDefault,
@@ -23,7 +22,6 @@ const HOUR = 3_600_000;
 /** Elige los campos de ActiveCampaign por su nombre cuando no se configuraron a mano. */
 export function guessFieldMap(meta: Pick<DashMeta, "dealFields" | "contactFields">): FieldMap {
   const patterns: Record<FieldKey, RegExp> = {
-    faculty: /facultad|faculty|unidad acad/i,
     utm_source: /utm.?source/i,
     utm_medium: /utm.?medium/i,
     utm_term: /utm.?term/i,
@@ -51,14 +49,15 @@ export function conversionKeys(settings: DashSettings, meta: DashMeta): string[]
 export type CareerResolver = (deal: Pick<DealRecord, "pipelineId" | "careerValue">) => { career: Career | null };
 
 /**
- * Carrera de la app para un trato: primero por el vínculo de Ajustes › Leads desde ActiveCampaign
- * (embudo + "Nombre de la Carrera"), luego por nombre igual.
+ * Carrera de la app para un trato, solo con los vínculos de Ajustes › Leads desde ActiveCampaign:
+ * embudo + "Nombre de la Carrera" (o el embudo completo si el vínculo no pide un valor). Es la
+ * misma regla que cuenta los leads semanales.
  */
-export function careerResolver(careers: Career[], links: CareerAcLink[]): CareerResolver {
+export function careerResolver(careers: Career[], links: Pick<CareerAcLink, "career_id" | "pipeline_id" | "career_value">[]): CareerResolver {
   const byId = new Map(careers.map((c) => [c.id, c]));
-  const byName = new Map(careers.map((c) => [normKey(c.name), c]));
-  const linksByPipeline = new Map<string, CareerAcLink[]>();
+  const linksByPipeline = new Map<string, typeof links>();
   for (const l of links) {
+    if (!byId.get(l.career_id) || byId.get(l.career_id)!.archived) continue;
     const list = linksByPipeline.get(l.pipeline_id) ?? [];
     list.push(l);
     linksByPipeline.set(l.pipeline_id, list);
@@ -69,9 +68,13 @@ export function careerResolver(careers: Career[], links: CareerAcLink[]): Career
     const link =
       (value && candidates.find((l) => l.career_value && normKey(l.career_value) === value)) ||
       candidates.find((l) => !l.career_value);
-    const career = (link && byId.get(link.career_id)) || (value ? byName.get(value) : undefined) || null;
-    return { career };
+    return { career: (link && byId.get(link.career_id)) || null };
   };
+}
+
+/** Embudos de los vínculos (para mostrar solo esos embudos y sus etapas). */
+export function linkedPipelines(links: Pick<CareerAcLink, "pipeline_id">[]): Set<string> {
+  return new Set(links.map((l) => l.pipeline_id));
 }
 
 /**
@@ -126,19 +129,17 @@ export function resolveDeals(
   const keyOf = (id: string) => stageKey.get(id);
   const conv = new Set(conversionKeys(settings, meta));
 
-  return records.map((d) => {
+  // Solo los tratos que coinciden con una carrera vinculada.
+  return records.flatMap((d) => {
     const { career } = resolveCareer(d);
-    const careerName = career?.name ?? (d.careerValue.trim() || NO_CAREER);
-    const faculty =
-      career?.program ||
-      settings.facultyByCareer[normKey(d.careerValue)] ||
-      fieldValue(d, map.faculty) ||
-      NO_FACULTY;
+    if (!career) return [];
+    const careerName = career.name;
+    const faculty = career.program || NO_FACULTY;
     const created = Date.parse(d.createdAt);
     const end = d.status === "open" ? now : Date.parse(d.closedAt ?? d.updatedAt ?? "") || now;
     const entered = Date.parse(d.stageEnteredAt ?? d.createdAt);
     const { stays, daysToConversion } = stageTimeline(d, keyOf, conv);
-    return {
+    return [{
       id: d.id,
       title: d.title,
       contact: [d.contactName, d.contactEmail].filter(Boolean).join(" · "),
@@ -169,6 +170,6 @@ export function resolveDeals(
       utmTerm: dim(d, "utm_term"),
       utmCampaign: dim(d, "utm_campaign"),
       classification: dim(d, "lead_classification"),
-    };
+    }];
   });
 }
