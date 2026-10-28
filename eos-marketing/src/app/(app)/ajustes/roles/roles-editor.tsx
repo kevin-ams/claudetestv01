@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, Chip, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
-import { LEVEL_LABEL, MODULES, levelFor, type AccessLevel, type ModuleKey } from "@/lib/auth/modules";
+import { ADMIN_ONLY_MODULES, LEVEL_LABEL, MODULES, levelFor, type AccessLevel, type ModuleKey } from "@/lib/auth/modules";
 import type { TeamRole } from "@/lib/domain/roles";
 import { createRoleAction, deleteRoleAction, updateRoleAction, type RoleResult } from "./actions";
 
@@ -36,7 +36,11 @@ function PermissionGrid({
       {MODULES.map((m) => (
         <div key={m.key} className="flex items-center justify-between gap-3 border-b border-border py-1.5 text-sm">
           <span className="min-w-0">{m.label}</span>
-          {disabled || !onChange ? (
+          {ADMIN_ONLY_MODULES.includes(m.key) ? (
+            <Chip size="sm" variant="soft">
+              Solo administradores
+            </Chip>
+          ) : disabled || !onChange ? (
             <Chip size="sm" variant="soft" color={LEVEL_COLOR[draft[m.key]]}>
               {LEVEL_LABEL[draft[m.key]]}
             </Chip>

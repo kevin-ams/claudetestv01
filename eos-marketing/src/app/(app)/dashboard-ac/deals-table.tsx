@@ -13,7 +13,22 @@ function csvCell(v: string | number | null) {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function DealsTable({ deals, staleDays, dealUrl, timeZone }: { deals: Deal[]; staleDays: number; dealUrl: string | null; timeZone: string }) {
+const PRINT_MAX = 300;
+
+export function DealsTable({
+  deals,
+  staleDays,
+  dealUrl,
+  timeZone,
+  printing = false,
+}: {
+  deals: Deal[];
+  staleDays: number;
+  dealUrl: string | null;
+  timeZone: string;
+  /** Al exportar a PDF: sin controles y con hasta PRINT_MAX tratos. */
+  printing?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [onlyStale, setOnlyStale] = useState(false);
   const [onlyNoNote, setOnlyNoNote] = useState(false);
@@ -40,7 +55,7 @@ export function DealsTable({ deals, staleDays, dealUrl, timeZone }: { deals: Dea
 
   const pages = Math.max(1, Math.ceil(rows.length / PAGE));
   const current = Math.min(page, pages - 1);
-  const visible = rows.slice(current * PAGE, current * PAGE + PAGE);
+  const visible = printing ? rows.slice(0, PRINT_MAX) : rows.slice(current * PAGE, current * PAGE + PAGE);
   const reset = () => setPage(0);
 
   const sortTh = (key: SortKey, label: string, right = false) => (
@@ -78,7 +93,7 @@ export function DealsTable({ deals, staleDays, dealUrl, timeZone }: { deals: Dea
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3" data-print-hide>
         <input
           className="h-9 w-64 rounded-xl border border-border bg-card px-3 text-sm outline-none focus:border-primary"
           placeholder="Buscar trato, contacto, carrera…"
@@ -172,8 +187,13 @@ export function DealsTable({ deals, staleDays, dealUrl, timeZone }: { deals: Dea
         </table>
       </div>
 
+      {printing && rows.length > PRINT_MAX && (
+        <p className="mt-2 text-xs text-muted">
+          Se incluyen los primeros {PRINT_MAX} de {rows.length} tratos; para la lista completa usa Exportar CSV.
+        </p>
+      )}
       {pages > 1 && (
-        <div className="mt-3 flex items-center justify-end gap-2 text-sm">
+        <div className="mt-3 flex items-center justify-end gap-2 text-sm" data-print-hide>
           <Button size="sm" variant="outline" isDisabled={current === 0} onPress={() => setPage(current - 1)}>
             ←
           </Button>

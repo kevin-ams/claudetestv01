@@ -1,9 +1,9 @@
 "use client";
 
 import { Card } from "@heroui/react";
-import { Check, ChevronDown } from "@gravity-ui/icons";
+import { ChevronDown } from "@gravity-ui/icons";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, Bar, BarChart } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import {
   fmtDays,
@@ -18,13 +18,16 @@ import {
 export const SERIES = Array.from({ length: 8 }, (_, i) => `var(--series-${i + 1})`);
 const AXIS = { tick: { fill: "var(--muted)", fontSize: 11 }, axisLine: false, tickLine: false } as const;
 
+/** Tarjeta de una sección; `id` la identifica para elegirla al exportar el PDF. */
 export function Section({
+  id,
   title,
   subtitle,
   action,
   children,
   className = "",
 }: {
+  id?: string;
   title: string;
   subtitle?: string;
   action?: ReactNode;
@@ -32,16 +35,18 @@ export function Section({
   className?: string;
 }) {
   return (
-    <Card className={`min-w-0 p-4 ${className}`}>
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="font-semibold">{title}</h2>
-          {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+    <div data-section={id} className={`min-w-0 ${className}`}>
+      <Card className="h-full min-w-0 p-4">
+        <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">{title}</h2>
+            {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
+          </div>
+          {action}
         </div>
-        {action}
-      </div>
-      {children}
-    </Card>
+        {children}
+      </Card>
+    </div>
   );
 }
 
@@ -55,8 +60,11 @@ export function Kpi({ label, value, hint, tone }: { label: string; value: string
   );
 }
 
-/** Fila que se puede elegir con clic o con Enter/Espacio. */
-function rowProps(selected: boolean, onToggle: () => void) {
+/**
+ * Fila que se puede elegir con clic o con Enter/Espacio. Como en Power BI: lo elegido se
+ * resalta y, si hay algo elegido, lo demás se atenúa.
+ */
+function rowProps(selected: boolean, onToggle: () => void, anySelected = false) {
   return {
     role: "button" as const,
     tabIndex: 0,
@@ -68,23 +76,10 @@ function rowProps(selected: boolean, onToggle: () => void) {
         onToggle();
       }
     },
-    className: `cursor-pointer border-b border-border last:border-0 outline-none transition-colors focus-visible:bg-primary/10 ${
-      selected ? "bg-primary/10" : "hover:bg-default"
+    className: `cursor-pointer border-b border-border last:border-0 outline-none transition focus-visible:bg-primary/10 ${
+      selected ? "bg-primary/10 font-semibold" : anySelected ? "opacity-45 hover:bg-default hover:opacity-80" : "hover:bg-default"
     }`,
   };
-}
-
-function SelectMark({ selected }: { selected: boolean }) {
-  return (
-    <span
-      className={`mr-2 inline-flex size-4 shrink-0 items-center justify-center rounded border align-[-3px] ${
-        selected ? "border-primary bg-primary text-primary-foreground" : "border-border"
-      }`}
-      aria-hidden
-    >
-      {selected && <Check width={12} height={12} />}
-    </span>
-  );
 }
 
 /** Barra apilada abiertos / convertidos / perdidos, proporcional al máximo de la tabla. */
@@ -174,9 +169,8 @@ export function DimTable({
           {shown.map((r) => {
             const isSel = selected.includes(r.value_key);
             return (
-              <tr key={r.value_key} {...rowProps(isSel, () => onToggle(r.value_key))}>
+              <tr key={r.value_key} {...rowProps(isSel, () => onToggle(r.value_key), selected.length > 0)}>
                 <td className="max-w-64 truncate py-2 pr-3" title={r.label}>
-                  <SelectMark selected={isSel} />
                   {r.label}
                   {extra?.(r)}
                 </td>
@@ -202,7 +196,10 @@ export function DimTable({
   );
 }
 
-/** Embudo: barras centradas por etapa (tratos que llegaron), con el paso de una etapa a la siguiente. */
+/**
+ * Embudo: barras centradas por etapa (tratos que llegaron), y entre etapas el % que avanza y
+ * cuánto tardan en avanzar (mediana de los que ya salieron de la etapa).
+ */
 export function FunnelChart({
   steps,
   selected,
@@ -214,27 +211,32 @@ export function FunnelChart({
 }) {
   if (!steps.length) return <p className="text-sm text-muted">Sin tratos con estos filtros.</p>;
   const top = Math.max(1, steps[0].reached);
+  const any = selected.length > 0;
   return (
-    <ol className="flex flex-col gap-1.5">
+    <ol className="flex flex-col gap-1">
       {steps.map((s, i) => {
         const isSel = selected.includes(s.key);
-        const prev = i > 0 ? steps[i - 1].reached : null;
+        const prev = i > 0 ? steps[i - 1] : null;
         const width = Math.max(4, (s.reached / top) * 100);
         return (
           <li key={s.key}>
-            {prev !== null && (
-              <p className="py-0.5 text-center text-[11px] text-muted">
-                ↓ {fmtPct(prev ? s.reached / prev : null)} pasa a la siguiente etapa
+            {prev && (
+              <p className="flex flex-wrap justify-center gap-x-3 py-0.5 text-center text-[11px] text-muted">
+                <span>↓ {fmtPct(prev.reached ? s.reached / prev.reached : null)} avanza</span>
+                {prev.stayMedian !== null && (
+                  <span title={`Promedio ${fmtDays(prev.stayAvg)} · ${prev.stayCount} tratos que ya avanzaron`}>
+                    · tardan {fmtDays(prev.stayMedian)} en “{prev.name}” (mediana)
+                  </span>
+                )}
               </p>
             )}
             <div
-              {...rowProps(isSel, () => onToggle(s.key))}
-              className={`group grid cursor-pointer grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 outline-none transition-colors focus-visible:bg-primary/10 sm:grid-cols-[minmax(8rem,14rem)_1fr_auto] ${
-                isSel ? "bg-primary/10" : "hover:bg-default"
+              {...rowProps(isSel, () => onToggle(s.key), any)}
+              className={`grid cursor-pointer grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1 rounded-lg px-2 py-1 outline-none transition focus-visible:bg-primary/10 sm:grid-cols-[minmax(8rem,14rem)_1fr_auto] ${
+                isSel ? "bg-primary/10 font-semibold" : any ? "opacity-45 hover:bg-default hover:opacity-80" : "hover:bg-default"
               }`}
             >
               <span className="truncate text-sm" title={s.name}>
-                <SelectMark selected={isSel} />
                 {s.name}
               </span>
               {/* En pantallas chicas la barra ocupa su propia línea, debajo del nombre. */}
@@ -246,7 +248,7 @@ export function FunnelChart({
                   {fmtNum(s.reached)}
                 </span>
               </span>
-              <span className="text-right text-xs text-muted tabular-nums sm:w-28">
+              <span className="text-right text-xs font-normal text-muted tabular-nums sm:w-28">
                 {fmtPct(s.reached / top)} del total
                 <br />
                 {fmtNum(s.current)} aquí ahora
@@ -270,17 +272,21 @@ export function BarList({
   onToggle: (key: string) => void;
 }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
+  const any = selected.length > 0;
   return (
     <ul className="flex flex-col gap-1">
       {rows.map((r) => {
         const isSel = selected.includes(r.key);
         return (
-          <li key={r.key} {...rowProps(isSel, () => onToggle(r.key))} className={`cursor-pointer rounded-md px-2 py-1 outline-none focus-visible:bg-primary/10 ${isSel ? "bg-primary/10" : "hover:bg-default"}`}>
+          <li
+            key={r.key}
+            {...rowProps(isSel, () => onToggle(r.key), any)}
+            className={`cursor-pointer rounded-md px-2 py-1 outline-none transition focus-visible:bg-primary/10 ${
+              isSel ? "bg-primary/10 font-semibold" : any ? "opacity-45 hover:bg-default hover:opacity-80" : "hover:bg-default"
+            }`}
+          >
             <div className="mb-0.5 flex justify-between text-xs">
-              <span>
-                <SelectMark selected={isSel} />
-                {r.label}
-              </span>
+              <span>{r.label}</span>
               <b className="tabular-nums">{fmtNum(r.value)}</b>
             </div>
             <div className="h-2 rounded bg-default">
@@ -305,27 +311,51 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
           <b className="tabular-nums">{fmtNum(p.value)}</b>
         </p>
       ))}
+      <p className="mt-1 text-[11px] text-muted">Clic para filtrar</p>
     </div>
   );
 }
 
-/** Tratos creados en el tiempo; con varias carreras/facultades elegidas, una línea por cada una. */
-export function TimelineChart({ points, series }: { points: TimelinePoint[]; series: string[] }) {
+/**
+ * Tratos creados en el tiempo. Clic en una barra (o punto) filtra ese día, semana o mes;
+ * con varias carreras/facultades elegidas, una línea por cada una.
+ */
+export function TimelineChart({
+  points,
+  series,
+  selected,
+  onToggle,
+}: {
+  points: TimelinePoint[];
+  series: string[];
+  selected: string[];
+  onToggle: (key: string) => void;
+}) {
+  // Claves internas s0, s1…: los nombres de carrera pueden traer puntos, que recharts lee como rutas.
   const data = useMemo(
-    // Claves internas s0, s1…: los nombres de carrera pueden traer puntos, que recharts lee como rutas.
-    () => points.map((p) => ({ label: p.label, Tratos: p.total, ...Object.fromEntries(series.map((s, i) => [`s${i}`, p.series[s] ?? 0])) })),
+    () => points.map((p) => ({ key: p.key, label: p.label, Tratos: p.total, ...Object.fromEntries(series.map((s, i) => [`s${i}`, p.series[s] ?? 0])) })),
     [points, series]
   );
+  const any = selected.length > 0;
+  const onClick = (state: { activeTooltipIndex?: number | string | null } | null) => {
+    const i = Number(state?.activeTooltipIndex);
+    if (Number.isInteger(i) && data[i]) onToggle(data[i].key);
+  };
   return (
-    <div className="h-64 w-full">
+    <div className="h-64 w-full cursor-pointer">
       <ResponsiveContainer>
         {series.length ? (
-          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }} onClick={onClick}>
             <CartesianGrid vertical={false} stroke="var(--chart-grid)" />
             <XAxis dataKey="label" {...AXIS} minTickGap={16} />
             <YAxis allowDecimals={false} {...AXIS} />
             <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--muted)", strokeDasharray: "3 3" }} />
             <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
+            {data
+              .filter((d) => selected.includes(d.key))
+              .map((d) => (
+                <ReferenceArea key={d.key} x1={d.label} x2={d.label} fill="var(--chart-actual)" fillOpacity={0.12} ifOverflow="extendDomain" />
+              ))}
             {series.map((s, i) => (
               <Line key={s} type="linear" dataKey={`s${i}`} name={s} stroke={SERIES[i % SERIES.length]} strokeWidth={2} dot={{ r: 2.5 }} activeDot={{ r: 5 }} isAnimationActive={false} />
             ))}
@@ -336,7 +366,18 @@ export function TimelineChart({ points, series }: { points: TimelinePoint[]; ser
             <XAxis dataKey="label" {...AXIS} minTickGap={16} />
             <YAxis allowDecimals={false} {...AXIS} />
             <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--chart-cursor)" }} />
-            <Bar dataKey="Tratos" fill="var(--chart-actual)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+            {/* El clic va en cada barra: el del gráfico trae el estado del movimiento anterior del mouse. */}
+            <Bar
+              dataKey="Tratos"
+              radius={[4, 4, 0, 0]}
+              isAnimationActive={false}
+              background={{ fill: "transparent" }}
+              onClick={(entry: { payload?: { key?: string } }) => entry?.payload?.key && onToggle(entry.payload.key)}
+            >
+              {data.map((d) => (
+                <Cell key={d.key} fill="var(--chart-actual)" fillOpacity={!any || selected.includes(d.key) ? 1 : 0.3} />
+              ))}
+            </Bar>
           </BarChart>
         )}
       </ResponsiveContainer>

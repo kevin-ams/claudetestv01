@@ -11,7 +11,7 @@ import {
   saveSyncState,
   upsertDealsBase,
 } from "./deals";
-import { normKey, type DashMeta, type DealNote, type DealRecord, type DealStatus, type SyncProgress, type SyncState } from "./deals-shared";
+import { normKey, type DashMeta, type DealNote, type StageChange, type DealRecord, type DealStatus, type SyncProgress, type SyncState } from "./deals-shared";
 
 /**
  * Sincronización del Dashboard de tratos, en pasos cortos que se retoman donde quedaron
@@ -143,7 +143,7 @@ const cleanNote = (html: string) =>
 /** Notas, historial de etapas y datos del contacto de un trato. */
 async function enrichDeal(deal: DealRecord): Promise<DealRecord> {
   type Note = { note?: string; cdate?: string; userid?: string | null };
-  type Activity = { dataType?: string; cdate?: string };
+  type Activity = { dataType?: string; cdate?: string; dataOldval?: unknown; dataAction?: unknown };
   type Contact = {
     contact?: { firstName?: string; lastName?: string; email?: string };
     fieldValues?: { field: string; value: string | null }[];
@@ -181,13 +181,19 @@ async function enrichDeal(deal: DealRecord): Promise<DealRecord> {
   if (activityRes.status === "fulfilled") {
     let entered: string | null = null;
     let closed: string | null = null;
+    const history: StageChange[] = [];
     for (const a of activityRes.value) {
       const at = toIso(a.cdate);
       if (!at) continue;
       if (!last || at > last) last = at;
-      if (a.dataType === "d_stageid" && (!entered || at > entered)) entered = at;
+      if (a.dataType === "d_stageid") {
+        // En los cambios de etapa, dataOldval es la etapa anterior y dataAction la nueva.
+        history.push({ from: String(a.dataOldval ?? ""), to: String(a.dataAction ?? ""), at });
+        if (!entered || at > entered) entered = at;
+      }
       if (a.dataType === "d_status" && (!closed || at > closed)) closed = at;
     }
+    next.stageHistory = history.sort((x, y) => x.at.localeCompare(y.at)).slice(-40);
     next.stageEnteredAt = entered;
     if (deal.status !== "open" && closed) next.closedAt = closed;
   }

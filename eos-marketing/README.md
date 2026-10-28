@@ -91,9 +91,9 @@ se sugiere el que coincide con el nombre).
 - **Ajustes › Diagnóstico › Historial de tratos** prueba (solo lectura) que la API entregue el historial.
 - El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
 
-## Dashboard de tratos
+## Dashboard AC (tratos de ActiveCampaign)
 
-**Carreras › Dashboard de tratos** (`/tratos`, módulo `tratos` en Roles y accesos) muestra los tratos de
+**Reportes › Dashboard AC** (`/dashboard-ac`, módulo `dashboard_ac`, por ahora solo administradores) muestra los tratos de
 ActiveCampaign por embudo, etapa, facultad, carrera, asesor, UTM (source, medium, term, campaign) y clasificación del
 lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y tratos estancados.
 
@@ -103,10 +103,10 @@ lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y trat
   pedir datos al servidor.
 - **Carrera y facultad**: la carrera sale del campo del trato *Nombre de la Carrera* y de los vínculos de
   Ajustes › Leads desde ActiveCampaign (si no hay vínculo, por nombre igual); la facultad es el `program` de esa carrera.
-  Las carreras sin vínculo se asignan a una facultad (varias a la vez) en **Ajustes › Dashboard de tratos**, o se toma
+  Las carreras sin vínculo se asignan a una facultad (varias a la vez) en **Ajustes › Dashboard AC**, o se toma
   el campo de facultad de ActiveCampaign si existe.
 - **Conversión** = trato en una etapa de conversión (por defecto las que dicen "inscri": *Por inscribir*, *Inscrito*)
-  o más adelante en su embudo, o marcado como ganado. Se cambia en Ajustes › Dashboard de tratos.
+  o más adelante en su embudo, o marcado como ganado. Se cambia en Ajustes › Dashboard AC.
 - **Datos**: copia local en `ac_deals` (migración `035`). Se actualiza **solo a mano**, con "Sincronizar" en el
   dashboard (no hay función programada, para no gastar consultas a ActiveCampaign sin necesidad). La primera vez trae
   los tratos creados en los últimos 6 meses; después, solo los modificados desde la última sincronización, y lee notas,
@@ -114,7 +114,13 @@ lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y trat
   segundo). Si se interrumpe, retoma donde quedó. "Completa" vuelve a leer todo y quita los tratos borrados en AC.
 - Sin `ACTIVECAMPAIGN_API_URL`/`ACTIVECAMPAIGN_API_KEY` (p. ej. en local) muestra datos de ejemplo con las carreras
   reales del equipo.
-- Código: `src/lib/domain/deals*.ts` y `src/app/(app)/tratos`, `src/app/(app)/ajustes/tratos`.
+- **Tiempo entre etapas**: del historial de cambios de etapa de cada trato. El embudo muestra cuánto tardan en avanzar
+  (mediana de los que ya salieron de cada etapa) y el indicador "Días a conversión" el tiempo desde la creación hasta la
+  primera etapa de conversión. **Estancado** = abierto 10 días o más en la misma etapa (se cambia en Ajustes).
+- **Tratos creados** por día, semana o mes; clic en una barra filtra ese periodo (se pueden elegir varias).
+- **Exportar PDF**: se eligen las secciones y se usa el diálogo de impresión del navegador (Guardar como PDF), con los
+  filtros actuales.
+- Código: `src/lib/domain/deals*.ts`, `src/app/(app)/dashboard-ac` y `src/app/(app)/ajustes/dashboard-ac`.
 
 ## Correos (Resend)
 

@@ -54,7 +54,6 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
       { href: "/indicadores", label: "Indicadores de carrera", Icon: GraduationCap },
       { href: "/metas", label: "Metas de carrera", Icon: Target },
       { href: "/control", label: "Control de carrera", Icon: Route },
-      { href: "/tratos", label: "Dashboard de tratos", Icon: Funnel },
     ],
   },
   {
@@ -68,6 +67,7 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     label: "Reportes",
     items: [
       { href: "/analisis", label: "Análisis", Icon: ChartLine },
+      { href: "/dashboard-ac", label: "Dashboard AC", Icon: Funnel },
       { href: "/analisis-contenido", label: "Análisis de contenido", Icon: ChartPie },
       { href: "/reportes-semanales", label: "Reportes semanales", Icon: FileText },
     ],

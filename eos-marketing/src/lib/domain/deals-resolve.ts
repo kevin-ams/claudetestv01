@@ -74,6 +74,33 @@ export function careerResolver(careers: Career[], links: CareerAcLink[]): Career
   };
 }
 
+/**
+ * Tiempo en cada etapa ya terminada (del historial de cambios) y días hasta la primera etapa
+ * de conversión. Sin historial, el trato solo ha estado en su etapa actual.
+ */
+function stageTimeline(d: DealRecord, keyOf: (stageId: string) => string | undefined, conv: Set<string>) {
+  const history = d.stageHistory ?? [];
+  const stays: { k: string; d: number }[] = [];
+  const created = Date.parse(d.createdAt);
+  let stage = history[0]?.from || d.stageId;
+  let since = created;
+  let daysToConversion: number | null = null;
+  const checkConv = (stageId: string, at: number) => {
+    const k = keyOf(stageId);
+    if (daysToConversion === null && k && conv.has(k)) daysToConversion = Math.max(0, (at - created) / DAY);
+  };
+  checkConv(stage, created);
+  for (const c of history) {
+    const at = Date.parse(c.at);
+    const k = keyOf(stage);
+    if (k && at >= since) stays.push({ k, d: Math.round(((at - since) / DAY) * 10) / 10 });
+    stage = c.to;
+    since = at;
+    checkConv(stage, at);
+  }
+  return { stays, daysToConversion };
+}
+
 function fieldValue(d: DealRecord, ref: FieldRef): string {
   if (!ref) return "";
   const v = ref.source === "deal" ? d.dealFields?.[ref.id] : d.contactFields?.[ref.id];
@@ -95,6 +122,9 @@ export function resolveDeals(
   const users = new Map(meta.users.map((u) => [u.id, u.name]));
   const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
   const dim = (d: DealRecord, k: FieldKey) => fieldValue(d, map[k]) || UNKNOWN;
+  const stageKey = new Map(meta.stages.map((s) => [s.id, s.key]));
+  const keyOf = (id: string) => stageKey.get(id);
+  const conv = new Set(conversionKeys(settings, meta));
 
   return records.map((d) => {
     const { career } = resolveCareer(d);
@@ -107,6 +137,7 @@ export function resolveDeals(
     const created = Date.parse(d.createdAt);
     const end = d.status === "open" ? now : Date.parse(d.closedAt ?? d.updatedAt ?? "") || now;
     const entered = Date.parse(d.stageEnteredAt ?? d.createdAt);
+    const { stays, daysToConversion } = stageTimeline(d, keyOf, conv);
     return {
       id: d.id,
       title: d.title,
@@ -123,6 +154,8 @@ export function resolveDeals(
       createdDay: dayFmt.format(created),
       daysInStage: Math.max(0, (end - entered) / DAY),
       daysOpen: Math.max(0, (end - created) / DAY),
+      stageStays: stays,
+      daysToConversion,
       hoursToFirstNote: d.firstNote ? Math.max(0, (Date.parse(d.firstNote.at) - created) / HOUR) : null,
       notesCount: d.notesCount,
       enriched: d.enriched,

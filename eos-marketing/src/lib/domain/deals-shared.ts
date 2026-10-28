@@ -17,6 +17,7 @@ export type DashMeta = {
 };
 
 export type DealNote = { text: string; at: string; userId: string | null };
+export type StageChange = { from: string; to: string; at: string };
 
 /** Trato tal como se guarda en ac_deals.data. */
 export type DealRecord = {
@@ -36,6 +37,8 @@ export type DealRecord = {
   dealFields: Record<string, string>;
   // Lo siguiente sale de leer el detalle de cada trato.
   stageEnteredAt: string | null;
+  /** Cambios de etapa (incluye cambios de embudo), del más antiguo al más reciente. */
+  stageHistory?: StageChange[];
   closedAt: string | null;
   lastActivityAt: string | null;
   notesCount: number;
@@ -72,7 +75,7 @@ export type DashSettings = {
 };
 
 export const DEFAULT_SETTINGS: DashSettings = {
-  staleDays: 7,
+  staleDays: 10,
   conversionStageKeys: null,
   fieldMap: null,
   facultyByCareer: {},
@@ -126,6 +129,10 @@ export type DashDeal = {
   createdDay: string; // AAAA-MM-DD en la zona horaria del equipo
   daysInStage: number;
   daysOpen: number;
+  /** Estancias ya terminadas: etapa (por nombre) y días que pasó ahí antes de cambiar. */
+  stageStays: { k: string; d: number }[];
+  /** Días desde la creación hasta entrar por primera vez a una etapa de conversión. */
+  daysToConversion: number | null;
   hoursToFirstNote: number | null;
   notesCount: number;
   enriched: boolean;
@@ -145,6 +152,7 @@ export type DashDeal = {
 // Cálculos del dashboard
 
 export const DIMENSIONS = [
+  "created",
   "faculty",
   "career",
   "pipeline",
@@ -162,6 +170,7 @@ export type DimKey = (typeof DIMENSIONS)[number];
 export type Filters = Partial<Record<DimKey, string[]>>;
 
 export const DIM_LABELS: Record<DimKey, string> = {
+  created: "Creado",
   faculty: "Facultad",
   career: "Carrera",
   pipeline: "Embudo",
@@ -259,6 +268,8 @@ export function prepareDeals(
 
 export function dimValue(d: Deal, key: DimKey): string {
   switch (key) {
+    case "created":
+      return d.createdDay;
     case "faculty":
       return d.faculty;
     case "career":
@@ -290,8 +301,15 @@ export function dimValue(d: Deal, key: DimKey): string {
 export function applyFilters(deals: Deal[], filters: Filters, except?: DimKey): Deal[] {
   const active = (Object.entries(filters) as [DimKey, string[]][]).filter(([k, v]) => k !== except && v?.length);
   if (active.length === 0) return deals;
-  const sets = active.map(([k, v]) => [k, new Set(v)] as const);
-  return deals.filter((d) => sets.every(([k, set]) => set.has(dimValue(d, k))));
+  // "created" guarda rangos "AAAA-MM-DD|AAAA-MM-DD" (día, semana o mes de la gráfica).
+  const ranges = (filters.created ?? []).map((r) => r.split("|"));
+  const sets = active.filter(([k]) => k !== "created").map(([k, v]) => [k, new Set(v)] as const);
+  const byDate = except !== "created" && ranges.length > 0;
+  return deals.filter(
+    (d) =>
+      (!byDate || ranges.some(([a, b]) => d.createdDay >= a && d.createdDay <= (b ?? a))) &&
+      sets.every(([k, set]) => set.has(dimValue(d, k)))
+  );
 }
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
@@ -315,6 +333,7 @@ export type Summary = {
   noNote: number;
   stale: number;
   avgDaysInStage: number | null;
+  medianDaysToConversion: number | null;
   notes: number;
   avgNotesPerDeal: number | null;
   lastActivityAt: string | null;
@@ -337,6 +356,7 @@ export function summarize(deals: Deal[]): Summary {
     noNote: enriched.filter((d) => d.notesCount === 0).length,
     stale: open.filter((d) => d.stale).length,
     avgDaysInStage: avg(open.map((d) => d.daysInStage)),
+    medianDaysToConversion: median(deals.flatMap((d) => (d.daysToConversion === null ? [] : [d.daysToConversion]))),
     notes,
     avgNotesPerDeal: enriched.length ? notes / enriched.length : null,
     lastActivityAt: deals.reduce<string | null>((m, d) => (d.lastActivityAt && (!m || d.lastActivityAt > m) ? d.lastActivityAt : m), null),
@@ -359,7 +379,17 @@ export function groupRows(deals: Deal[], key: DimKey, label: (v: string) => stri
     .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label, "es"));
 }
 
-export type FunnelStep = StageInfo & { reached: number; current: number; stale: number; avgDays: number | null; medianDays: number | null };
+export type FunnelStep = StageInfo & {
+  reached: number;
+  current: number;
+  stale: number;
+  avgDays: number | null;
+  medianDays: number | null;
+  /** Tiempo que se quedaron en la etapa los tratos que ya salieron de ella. */
+  stayMedian: number | null;
+  stayAvg: number | null;
+  stayCount: number;
+};
 
 /** Embudo: cuántos tratos llegaron a cada etapa (están en ella o más adelante) y cuántos están ahí ahora. */
 export function funnel(deals: Deal[], stages: StageInfo[]): FunnelStep[] {
@@ -369,6 +399,7 @@ export function funnel(deals: Deal[], stages: StageInfo[]): FunnelStep[] {
     .map((s) => {
       const here = deals.filter((d) => d.stageKey === s.key && d.status === "open");
       const days = here.map((d) => d.daysInStage);
+      const stays = deals.flatMap((d) => d.stageStays.filter((x) => x.k === s.key).map((x) => x.d));
       return {
         ...s,
         reached: deals.filter((d) => d.reached.includes(s.key)).length,
@@ -376,50 +407,67 @@ export function funnel(deals: Deal[], stages: StageInfo[]): FunnelStep[] {
         stale: here.filter((d) => d.stale).length,
         avgDays: avg(days),
         medianDays: median(days),
+        stayMedian: median(stays),
+        stayAvg: avg(stays),
+        stayCount: stays.length,
       };
     });
 }
 
 export type TimelineUnit = "día" | "semana" | "mes";
-export type TimelinePoint = { bucket: string; label: string; total: number; series: Record<string, number> };
+export type TimelinePoint = { key: string; label: string; total: number; series: Record<string, number> };
 
 const DAY = 86_400_000;
 const isoDay = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+
+/** Unidad sugerida según el largo del periodo. */
+export function autoUnit(from: string, to: string): TimelineUnit {
+  const span = Math.max(1, (Date.parse(to) - Date.parse(from)) / DAY);
+  return span <= 45 ? "día" : span <= 270 ? "semana" : "mes";
+}
+
+/** Inicio del día, semana (lunes) o mes que contiene la fecha. */
+function bucketStart(ms: number, unit: TimelineUnit): number {
+  const d = new Date(ms);
+  if (unit === "día") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  if (unit === "mes") return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+}
+
+function nextBucket(ms: number, unit: TimelineUnit): number {
+  const d = new Date(ms);
+  return unit === "día" ? ms + DAY : unit === "semana" ? ms + 7 * DAY : Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+}
+
+const RANGE_FMT = new Intl.DateTimeFormat("es", { day: "numeric", month: "short", timeZone: "UTC" });
+const MONTH_FMT = new Intl.DateTimeFormat("es", { month: "short", year: "2-digit", timeZone: "UTC" });
+
+/** Texto de un rango "AAAA-MM-DD|AAAA-MM-DD" (p. ej. para las etiquetas de filtro). */
+export function rangeLabel(range: string): string {
+  const [a, b = a] = range.split("|");
+  if (a === b) return RANGE_FMT.format(new Date(a));
+  const start = new Date(a);
+  const end = new Date(b);
+  if (start.getUTCDate() === 1 && nextBucket(Date.parse(a), "mes") - DAY === end.getTime()) return MONTH_FMT.format(start);
+  return `${RANGE_FMT.format(start)} – ${RANGE_FMT.format(end)}`;
+}
 
 export function timeline(
   deals: Deal[],
   from: string,
   to: string,
+  unit: TimelineUnit,
   seriesKey: DimKey | null,
   seriesValues: string[]
-): { unit: TimelineUnit; points: TimelinePoint[] } {
-  const start = Date.parse(from);
+): TimelinePoint[] {
   const end = Date.parse(to);
-  const span = Math.max(1, (end - start) / DAY);
-  const unit: TimelineUnit = span <= 45 ? "día" : span <= 270 ? "semana" : "mes";
-  const bucketOf = (ms: number) => {
-    const d = new Date(ms);
-    if (unit === "día") return isoDay(ms);
-    if (unit === "mes") return isoDay(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
-    const dow = (d.getUTCDay() + 6) % 7;
-    return isoDay(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow));
-  };
-  const buckets: string[] = [];
-  for (let ms = Date.parse(bucketOf(start)); ms <= end && buckets.length < 400; ) {
-    const k = bucketOf(ms);
-    if (buckets.at(-1) !== k) buckets.push(k);
-    const d = new Date(ms);
-    ms = unit === "día" ? ms + DAY : unit === "semana" ? ms + 7 * DAY : Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1);
+  const fmt = unit === "mes" ? MONTH_FMT : RANGE_FMT;
+  const points = new Map<number, TimelinePoint>();
+  for (let ms = bucketStart(Date.parse(from), unit); ms <= end && points.size < 400; ms = nextBucket(ms, unit)) {
+    points.set(ms, { key: `${isoDay(ms)}|${isoDay(nextBucket(ms, unit) - DAY)}`, label: fmt.format(new Date(ms)), total: 0, series: {} });
   }
-  const fmt = new Intl.DateTimeFormat("es", {
-    day: unit === "mes" ? undefined : "numeric",
-    month: "short",
-    year: unit === "mes" ? "2-digit" : undefined,
-    timeZone: "UTC",
-  });
-  const points = new Map(buckets.map((b) => [b, { bucket: b, label: fmt.format(new Date(b)), total: 0, series: {} as Record<string, number> }]));
   for (const d of deals) {
-    const p = points.get(bucketOf(Date.parse(d.createdDay)));
+    const p = points.get(bucketStart(Date.parse(d.createdDay), unit));
     if (!p) continue;
     p.total++;
     if (seriesKey) {
@@ -427,7 +475,7 @@ export function timeline(
       if (seriesValues.includes(v)) p.series[v] = (p.series[v] ?? 0) + 1;
     }
   }
-  return { unit, points: [...points.values()] };
+  return [...points.values()];
 }
 
 // ---------------------------------------------------------------------------------------------

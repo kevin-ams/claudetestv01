@@ -88,6 +88,15 @@ export function demoDeals(careers: Career[], now: number): { meta: DashMeta; dea
     if (stageIdx === 5 && rand() < 0.7) status = "won";
     else if (age > 25 && rand() < 0.3) status = "lost";
     const entered = created + rand() * (now - created) * (stageIdx === 1 ? 0.15 : 0.85);
+    // Historial: avanza una etapa a la vez; el último cambio es la entrada a la etapa actual.
+    const stageHistory = Array.from({ length: stageIdx - 1 }, (_, j) => {
+      const share = stageIdx - 1 === 1 ? 1 : Math.pow((j + 1) / (stageIdx - 1), 0.8 + rand() * 0.4);
+      return {
+        from: `${pipelineId}-${j + 1}`,
+        to: `${pipelineId}-${j + 2}`,
+        at: new Date(j === stageIdx - 2 ? entered : created + (entered - created) * share).toISOString(),
+      };
+    });
     const [source, medium, campaign] = weighted(rand, SOURCES.map(([s, m, c, w]) => [[s, m, c], w] as [string[], number]));
     const notesCount = rand() < 0.1 * (2 - diligence) ? 0 : 1 + Math.floor(rand() * 6 * diligence);
     const firstAt = created + ((rand() < 0.6 ? rand() * 6 : rand() * 72) * 3_600_000) / diligence;
@@ -111,6 +120,7 @@ export function demoDeals(careers: Career[], now: number): { meta: DashMeta; dea
       careerValue,
       dealFields: { "1": careerValue, "2": weighted(rand, CLASSES) },
       stageEnteredAt: new Date(entered).toISOString(),
+      stageHistory,
       closedAt: status === "open" ? null : new Date(entered).toISOString(),
       lastActivityAt: new Date(notesCount ? lastAt : entered).toISOString(),
       notesCount,

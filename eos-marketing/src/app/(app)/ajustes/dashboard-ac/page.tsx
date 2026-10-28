@@ -29,7 +29,7 @@ function demoValues(careers: Career[]) {
 export default async function DealsSettingsPage() {
   const session = await getSession();
   if (!session) return null;
-  await requireAdmin("Solo un administrador puede cambiar los ajustes del Dashboard de tratos.");
+  await requireAdmin("Solo un administrador puede cambiar los ajustes del Dashboard AC.");
 
   const configured = isActiveCampaignConfigured();
   const [careers, links, settings, options] = await Promise.all([
@@ -86,7 +86,7 @@ export default async function DealsSettingsPage() {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-6">
       <SettingsHeader
-        title="Dashboard de tratos"
+        title="Dashboard AC"
         description="Qué cuenta como conversión, de qué campos de ActiveCampaign salen las UTM y la clasificación, y la facultad de las carreras que no coinciden con las del equipo."
       />
       {!configured && (
@@ -96,7 +96,7 @@ export default async function DealsSettingsPage() {
       )}
       {configured && !meta.fetchedAt && (
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
-          Sincroniza primero en el <Link href="/tratos" className="underline">Dashboard de tratos</Link> para leer las etapas y los campos de ActiveCampaign.
+          Sincroniza primero en el <Link href="/dashboard-ac" className="underline">Dashboard AC</Link> para leer las etapas y los campos de ActiveCampaign.
         </p>
       )}
       <p className="text-sm text-muted">

@@ -60,7 +60,7 @@ function dealUrlBase(): string | null {
 // Hora de la solicitud, fuera del componente para que el render sea puro.
 const requestTime = () => Date.now();
 
-export default async function TratosPage({ searchParams }: PageProps<"/tratos">) {
+export default async function TratosPage({ searchParams }: PageProps<"/dashboard-ac">) {
   const session = await getSession();
   if (!session) return null;
 
@@ -74,7 +74,7 @@ export default async function TratosPage({ searchParams }: PageProps<"/tratos">)
     listCareers(session.teamId),
     listLinks(session.teamId),
     getDashSettings(),
-    canEdit("tratos"),
+    canEdit("dashboard_ac"),
     isTeamAdmin(),
   ]);
 
@@ -97,18 +97,18 @@ export default async function TratosPage({ searchParams }: PageProps<"/tratos">)
   const unlinked = deals.filter((d) => !d.linked).length;
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+    <div className="mx-auto flex max-w-7xl flex-col gap-4 print:max-w-none">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Dashboard de tratos</h1>
+          <h1 className="text-2xl font-bold">Dashboard AC</h1>
           <p className="text-sm text-muted">
-            Cuántos tratos se generan por carrera y facultad en ActiveCampaign, y cómo se están gestionando. Periodo por
-            fecha de creación del trato.
+            Tratos de ActiveCampaign por carrera y facultad, y cómo se están gestionando. Periodo por fecha de creación del
+            trato. Solo administradores.
           </p>
         </div>
         <div className="flex items-start gap-2">
           {admin && (
-            <Link href="/ajustes/tratos" className="rounded-xl border border-border px-3 py-2 text-sm hover:bg-default">
+            <Link href="/ajustes/dashboard-ac" className="rounded-xl border border-border px-3 py-2 text-sm hover:bg-default">
               Ajustes del dashboard
             </Link>
           )}
@@ -132,7 +132,7 @@ export default async function TratosPage({ searchParams }: PageProps<"/tratos">)
       {unlinked > 0 && admin && (
         <p className="text-xs text-muted">
           {unlinked} tratos tienen una carrera que no coincide con las carreras del equipo; su facultad se puede asignar en{" "}
-          <Link href="/ajustes/tratos" className="text-primary underline">
+          <Link href="/ajustes/dashboard-ac" className="text-primary underline">
             Ajustes del dashboard
           </Link>
           .

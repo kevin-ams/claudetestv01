@@ -28,7 +28,7 @@ export async function saveDealsSettingsAction(input: DashSettings): Promise<{ ok
     ),
   };
   await saveDashSettings(settings);
-  revalidatePath("/tratos");
-  revalidatePath("/ajustes/tratos");
+  revalidatePath("/dashboard-ac");
+  revalidatePath("/ajustes/dashboard-ac");
   return { ok: true, message: "Guardado. El dashboard ya usa esta configuración." };
 }
