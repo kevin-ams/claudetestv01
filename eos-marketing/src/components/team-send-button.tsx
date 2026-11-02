@@ -10,18 +10,24 @@ import { todoTeamOptionsAction, type TeamOption } from "@/app/(app)/todos/action
 type Result = { ok: boolean; message: string };
 export type TeamSendInput = { teamId: number; ownerId: number | null; dueDate: string | null; notify: boolean; move: boolean };
 
-// Los equipos se piden una vez por visita a la página.
-let optionsPromise: ReturnType<typeof todoTeamOptionsAction> | null = null;
+type Options = { teams: TeamOption[]; emailEnabled: boolean };
+// Los equipos se piden una vez por visita a la página (por tipo: To-Dos o Issues).
+const optionsCache = new Map<() => Promise<Options>, Promise<Options>>();
 
 /** "Enviar a otro equipo": se elige el equipo, su responsable y la fecha límite. */
 export function TeamSendButton({
   ownerEmail,
   dueDate,
   onSend,
+  loadOptions = todoTeamOptionsAction,
+  size = "sm",
 }: {
   ownerEmail?: string | null;
   dueDate: string | null;
   onSend: (input: TeamSendInput) => Promise<Result>;
+  /** Equipos y personas a elegir (por defecto, los de To-Dos). */
+  loadOptions?: () => Promise<Options>;
+  size?: "sm" | "xs";
 }) {
   const [open, setOpen] = useState(false);
   const [teams, setTeams] = useState<TeamOption[] | null>(null);
@@ -40,12 +46,12 @@ export function TeamSendButton({
       setOpen(true);
       setResult(null);
       try {
-        optionsPromise ??= todoTeamOptionsAction();
-        const r = await optionsPromise;
+        if (!optionsCache.has(loadOptions)) optionsCache.set(loadOptions, loadOptions());
+        const r = await optionsCache.get(loadOptions)!;
         setTeams(r.teams);
         setEmailEnabled(r.emailEnabled);
       } catch {
-        optionsPromise = null;
+        optionsCache.delete(loadOptions);
         setResult({ ok: false, message: "No se pudieron leer los equipos. Si se publicó una versión nueva, recarga la página." });
       }
     });
@@ -61,7 +67,7 @@ export function TeamSendButton({
   if (!open) {
     return (
       <>
-        <Button size="sm" variant="outline" onPress={openPanel}>
+        <Button size="sm" variant="outline" className={size === "xs" ? "h-6 px-2 text-[11px]" : ""} onPress={openPanel}>
           <ArrowShapeTurnUpRight aria-hidden /> Enviar a otro equipo
         </Button>
         {result?.ok && <span className="text-xs text-green">{result.message}</span>}

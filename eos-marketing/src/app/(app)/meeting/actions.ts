@@ -17,6 +17,7 @@ import {
   setAttendance,
   setMeetingLeader,
   clearRating,
+  discardMeeting,
 } from "@/lib/domain/meetings";
 import { getAccess } from "@/lib/auth/access";
 import { createTodo } from "@/lib/domain/todos";
@@ -80,6 +81,19 @@ export async function completeMeetingAction(meetingId: number) {
   // Queda en la reunión: la pantalla final ofrece descargar el resumen en PDF.
   revalidatePath(`/meeting/${meetingId}`);
   redirect(`/meeting/${meetingId}`);
+}
+
+/**
+ * Descarta una L10 iniciada por error: se borra sin dejar registro (historial, reportes, resumen).
+ * Lo capturado durante la reunión (To-Dos e Issues) se conserva; los eventos siguen pendientes.
+ */
+export async function discardMeetingAction(meetingId: number): Promise<{ ok: boolean; message: string }> {
+  const { session, meeting } = await teamMeeting(meetingId);
+  if (meeting.status === "completed") return { ok: false, message: "Una reunión terminada no se puede descartar." };
+  await discardMeeting(meetingId, session.teamId);
+  await logActivity(session, "meeting", "Descartó reunión L10", `Reunión #${meetingId} (iniciada por error)`);
+  revalidatePath("/meeting", "layout");
+  redirect("/meeting");
 }
 
 export type QuickItemInput = {

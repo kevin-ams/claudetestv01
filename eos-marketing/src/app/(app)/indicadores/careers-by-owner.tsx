@@ -69,10 +69,10 @@ export function CareersByOwner({
           {filtered.length} carreras · {groups.length} personas
         </span>
       </div>
-      {/* Área con su propio scroll: el encabezado queda fijo arriba mientras se recorren las carreras. */}
-      <div className="max-h-[75vh] overflow-auto rounded-lg border border-border">
+      {/* En pantallas grandes el encabezado se queda fijo bajo la barra superior al bajar por la página; en móvil, dentro de su propio recuadro con scroll. */}
+      <div className="max-h-[75vh] overflow-auto rounded-lg border border-border lg:max-h-none lg:overflow-visible">
         <table className="w-full min-w-[860px] text-sm">
-          <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_var(--border)]">
+          <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_var(--border)] lg:top-16">
             <tr className="text-left text-xs uppercase tracking-wide text-muted">
               <th className="bg-card py-2 pl-2 pr-2">Persona · facultad · carrera</th>
               <th className="bg-card px-2 text-right">Leads</th>

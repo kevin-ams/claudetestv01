@@ -45,7 +45,14 @@ function EditableCell({
 }) {
   const router = useRouter();
   const [local, setLocal] = useState(value === null ? "" : String(value));
+  const [synced, setSynced] = useState(value);
+  const [dirty, setDirty] = useState(false);
   const [, startTransition] = useTransition();
+  // Si el valor cambia desde el servidor, la celda lo muestra (sin pisar lo que se está escribiendo).
+  if (value !== synced && !dirty) {
+    setSynced(value);
+    setLocal(value === null ? "" : String(value));
+  }
 
   return (
     <div className={`rounded ${className}`}>
@@ -53,10 +60,19 @@ function EditableCell({
       aria-label="Valor de la semana"
       className="shadow-none w-14 rounded border border-transparent bg-transparent px-0.5 py-1 text-center text-sm text-inherit outline-none focus:border-primary"
       value={local}
-      onChange={(e) => setLocal(e.target.value)}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        setDirty(true);
+      }}
       onBlur={() => {
-        const parsed = local.trim() === "" ? null : Number(local);
-        if (parsed !== null && Number.isNaN(parsed)) return;
+        // Solo se guarda lo que la persona escribió en esta celda (dueño, indicador y semana de esta celda).
+        if (!dirty) return;
+        setDirty(false);
+        const parsed = local.trim() === "" ? null : Number(local.replace(",", "."));
+        if (parsed !== null && Number.isNaN(parsed)) {
+          setLocal(value === null ? "" : String(value));
+          return;
+        }
         if (parsed === value) return;
         startTransition(async () => {
           await upsertEntryAction(metricId, ownerId, week, parsed);
@@ -81,7 +97,13 @@ function TargetCell({
 }) {
   const router = useRouter();
   const [local, setLocal] = useState(value === null ? "" : String(value));
+  const [synced, setSynced] = useState(value);
+  const [dirty, setDirty] = useState(false);
   const [, startTransition] = useTransition();
+  if (value !== synced && !dirty) {
+    setSynced(value);
+    setLocal(value === null ? "" : String(value));
+  }
 
   if (!editable) {
     return (
@@ -95,10 +117,15 @@ function TargetCell({
       aria-label="Meta"
       className="shadow-none w-14 rounded border border-border bg-card px-1 py-1 text-center text-sm font-semibold outline-none focus:border-primary"
       value={local}
-      onChange={(e) => setLocal(e.target.value)}
+      onChange={(e) => {
+        setLocal(e.target.value);
+        setDirty(true);
+      }}
       onBlur={() => {
-        const parsed = Number(local);
-        if (Number.isNaN(parsed) || parsed === value) return;
+        if (!dirty) return;
+        setDirty(false);
+        const parsed = Number(local.replace(",", "."));
+        if (local.trim() === "" || Number.isNaN(parsed) || parsed === value) return;
         startTransition(async () => {
           await setTargetAction(metricId, ownerId, parsed);
           router.refresh();
@@ -216,7 +243,7 @@ export function ScorecardTable({
                     )}
                   </td>
                   <td className="px-2 py-2 text-center">
-                    <TargetCell metricId={m.id} ownerId={activeOwner.id} value={target} editable={canEditTargets} />
+                    <TargetCell key={`${activeOwner.id}:${m.id}`} metricId={m.id} ownerId={activeOwner.id} value={target} editable={canEditTargets} />
                   </td>
                   {weeks.map((w, i) => (
                     <td key={w} className="px-0.5 py-1 text-center">
@@ -229,6 +256,7 @@ export function ScorecardTable({
                         </div>
                       ) : (
                         <EditableCell
+                          key={`${activeOwner.id}:${m.id}:${w}`}
                           metricId={m.id}
                           ownerId={activeOwner.id}
                           week={w}

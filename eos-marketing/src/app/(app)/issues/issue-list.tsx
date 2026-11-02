@@ -2,12 +2,13 @@
 
 import { ChevronDown, ChevronUp, Pencil, Star, StarFill, Xmark } from "@gravity-ui/icons";
 import { groupByOwner, OwnerFilterBar, type OwnerView } from "@/components/owner-filter";
-import { Button, Input, TextArea } from "@heroui/react";
+import { Button, Chip, Input, TextArea } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Issue, PublicUser } from "@/lib/domain/types";
 import { ClickUpButton } from "@/components/clickup-button";
+import { TeamSendButton } from "@/components/team-send-button";
 import {
   moveIssueAction,
   solveIssueAction,
@@ -17,6 +18,8 @@ import {
   sendIssueToClickUpAction,
   toggleIssueTopAction,
   updateIssueAction,
+  issueTeamOptionsAction,
+  sendIssueToTeamAction,
 } from "./actions";
 
 function ResolveRow({ issue }: { issue: Issue }) {
@@ -162,6 +165,21 @@ function IssueRow({
       )}
       <div className="min-w-[180px] flex-1">
         <p className="font-medium">{issue.title}</p>
+        {(issue.from_team_name || (issue.sent_to?.length ?? 0) > 0) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {issue.from_team_name && (
+              <Chip size="sm" variant="soft" color="accent">
+                De: {issue.from_team_name}
+                {issue.sent_by_name ? ` · ${issue.sent_by_name}` : ""}
+              </Chip>
+            )}
+            {issue.sent_to?.map((t) => (
+              <Chip key={t.team_id} size="sm" variant="soft" color={t.done ? "success" : "default"}>
+                Enviado a {t.team_name} · {t.done ? "resuelto" : "abierto"}
+              </Chip>
+            ))}
+          </div>
+        )}
         {issue.description && <p className="whitespace-pre-line text-xs text-muted">{issue.description}</p>}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
           <span>
@@ -189,6 +207,13 @@ function IssueRow({
             configured={clickupConfigured}
             ownerEmail={members.find((m) => m.id === issue.owner_id)?.email ?? null}
             onSend={(target) => sendIssueToClickUpAction(issue.id, target)}
+          />
+          <TeamSendButton
+            size="xs"
+            ownerEmail={members.find((m) => m.id === issue.owner_id)?.email ?? null}
+            dueDate={issue.due_date}
+            loadOptions={issueTeamOptionsAction}
+            onSend={(input) => sendIssueToTeamAction(issue.id, input)}
           />
         </div>
         {message && <p className="mt-1 text-xs text-red">{message}</p>}

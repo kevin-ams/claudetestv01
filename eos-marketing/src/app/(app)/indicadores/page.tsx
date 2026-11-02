@@ -1,10 +1,10 @@
 import { Card } from "@heroui/react";
 import { getSession } from "@/lib/auth/session";
-import { listAliases, listCareers, listRecentImports, listWeekly, weeklyGoals } from "@/lib/domain/careers";
+import { listAliases, listCareers, listMonthly, listRecentImports, listWeekly, monthGoals, weeklyGoals } from "@/lib/domain/careers";
 import { mergeWeekly, money, num } from "@/lib/domain/careers-shared";
 import { listTeamMembers } from "@/lib/domain/users";
 import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
-import { formatWeekRange, lastClosedWeek, shiftWeek, weekStartISO } from "@/lib/utils/dates";
+import { formatMonth, formatWeekRange, isMonthISO, lastClosedWeek, monthISO, shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import { CareerBoard } from "./career-board";
 import Link from "next/link";
 import { lastSync, pendingSyncSince } from "@/lib/domain/ac-sync";
@@ -21,18 +21,20 @@ import { LoadCatalogButton } from "./load-catalog-button";
 export default async function IndicadoresPage({
   searchParams,
 }: {
-  searchParams: Promise<{ semana?: string }>;
+  searchParams: Promise<{ semana?: string; mes?: string }>;
 }) {
   const session = await getSession();
   if (!session) return null;
 
   const sp = await searchParams;
   const week = sp.semana && /^\d{4}-\d{2}-\d{2}$/.test(sp.semana) ? shiftWeek(sp.semana, 0) : lastClosedWeek();
+  // Vista mensual: ?mes=2026-09 (suma de las semanas cuyo lunes cae en el mes, contra la meta del mes).
+  const month = isMonthISO(sp.mes) ? sp.mes : null;
 
   const [careers, weekly, goals, members, aliases, imports] = await Promise.all([
     listCareers(session.teamId),
-    listWeekly(session.teamId, week),
-    weeklyGoals(session.teamId, week),
+    month ? listMonthly(session.teamId, month) : listWeekly(session.teamId, week),
+    month ? monthGoals(session.teamId, month) : weeklyGoals(session.teamId, week),
     listTeamMembers(session.teamId),
     listAliases(session.teamId),
     listRecentImports(session.teamId),
@@ -47,7 +49,7 @@ export default async function IndicadoresPage({
         <div>
           <h1 className="text-2xl font-bold">Indicadores de carrera</h1>
           <p className="text-sm text-muted">
-            Leads recibidos y consumo de presupuesto por carrera, contra la meta semanal.
+            Leads recibidos y consumo de presupuesto por carrera, contra la meta {month ? "del mes" : "semanal"}.
           </p>
         </div>
         <ExportButton kind="indicadores" defaultFrom={shiftWeek(week, -11)} defaultTo={week} />
@@ -56,6 +58,9 @@ export default async function IndicadoresPage({
       <Toolbar
         week={week}
         weekLabel={`Semana ${formatWeekRange(week)}`}
+        month={month}
+        monthLabel={month ? formatMonth(month) : ""}
+        defaultMonth={monthISO(new Date(`${lastClosedWeek()}T12:00:00`))}
         defaultWeek={lastClosedWeek()}
         currentWeek={weekStartISO()}
         careers={careers.map((c) => ({ id: c.id, code: c.code, name: c.name }))}
@@ -84,7 +89,7 @@ export default async function IndicadoresPage({
           <LoadCatalogButton />
         </Card>
       ) : (
-        <CareerBoard rows={rows} members={members} week={week} />
+        <CareerBoard rows={rows} members={members} week={week} month={month} />
       )}
 
       {imports.length > 0 && (

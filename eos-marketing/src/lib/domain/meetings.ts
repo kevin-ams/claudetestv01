@@ -165,3 +165,8 @@ export async function setMeetingLeader(meetingId: number, teamId: number, userId
 export async function clearRating(meetingId: number, userId: number) {
   await db().sql`DELETE FROM meeting_ratings WHERE meeting_id = ${meetingId} AND user_id = ${userId}`;
 }
+
+/** Borra una reunión no terminada (iniciada por error). Asistencia, calificaciones y noticias se borran con ella. */
+export async function discardMeeting(id: number, teamId: number) {
+  await db().sql`DELETE FROM meetings WHERE id = ${id} AND team_id = ${teamId} AND status <> 'completed'`;
+}

@@ -135,5 +135,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "034_meeting_furthest",
     "sql": "-- La L10 se puede recorrer en cualquier orden: se guarda la sección más avanzada a la que se llegó\n-- (para marcar como vistas las anteriores aunque se regrese).\nALTER TABLE meetings ADD COLUMN furthest_segment TEXT;\nUPDATE meetings SET furthest_segment = current_segment WHERE current_segment IS NOT NULL;\n"
+  },
+  {
+    "name": "035_issue_send",
+    "sql": "-- Issues enviados a otros equipos: la copia guarda de qué equipo e Issue viene.\nALTER TABLE issues ADD COLUMN from_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL;\nALTER TABLE issues ADD COLUMN origin_issue_id INTEGER REFERENCES issues(id) ON DELETE SET NULL;\nALTER TABLE issues ADD COLUMN sent_by INTEGER REFERENCES users(id) ON DELETE SET NULL;\nCREATE INDEX issues_origin_idx ON issues (origin_issue_id);\n"
   }
 ];

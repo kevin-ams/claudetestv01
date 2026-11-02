@@ -148,7 +148,10 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 
 - **L10 en curso: navegación libre** — la barra de secciones es clicable (ir a cualquiera) y hay botón "Anterior". Se
   guarda la sección más avanzada (`meetings.furthest_segment`) para que las ya vistas sigan marcadas al regresar. El
-  cronómetro de la sección se reinicia al entrar.
+  cronómetro de la sección se reinicia al entrar y se detiene al finalizar la reunión.
+- **Iniciar / descartar la L10**: "Iniciar reunión" pide confirmación. Al final de la página de una L10 en curso está
+  "Descartar reunión (no guardar)": borra la reunión sin dejar historial, resumen ni registro en reportes (para inicios
+  por error). Los To-Dos/Issues capturados se conservan y los eventos vuelven a quedar pendientes.
 - **L10 › Todas las carreras por persona**: dentro de cada persona, agrupadas por facultad (con subtotales); la tabla
   tiene su propio scroll y el encabezado queda fijo.
 - **Scorecard › indicadores calculados con fórmula**: "Calcular" asigna variables (A, B, C…) a otros indicadores y una
@@ -192,6 +195,11 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   responsable y se puede mover (quitarlo del equipo propio). La copia muestra "De: equipo · persona" y el original
   "Enviado a … · pendiente/hecho". No se envía dos veces mientras la copia siga pendiente. Columnas
   `todos.from_team_id`, `origin_todo_id`, `sent_by`.
+- **Issues a otros equipos**: igual que los To-Dos ("Enviar a otro equipo" en cada Issue; la copia queda al final de la
+  lista del otro equipo con "De: …" y el original muestra "Enviado a … · abierto/resuelto"). Columnas
+  `issues.from_team_id`, `origin_issue_id`, `sent_by` (migración 035).
+- **Indicadores de carrera › Mensual**: el selector Semanal/Mensual muestra el mes (`?mes=2026-10`) sumando las semanas
+  cuyo lunes cae en el mes, contra la meta completa del mes. Es de solo lectura (los datos se capturan por semana).
 - **Reportes semanales: dos tipos** (`?tipo=planificacion|cierre`). *Planificación*: igual que abajo, pero el Scorecard
   y los Indicadores de carrera muestran los resultados de la semana anterior (la semana en curso aún no tiene datos). *Fin de semana*: evolución de lo trabajado — piezas publicadas contra
   planificadas (pendientes, reprogramadas), coberturas realizadas y horas reales contra estimadas, Scorecard de la

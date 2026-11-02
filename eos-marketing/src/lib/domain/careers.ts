@@ -16,7 +16,7 @@ import {
   type CareerRow,
   type WeeklyGoal,
 } from "./careers-shared";
-import { shiftWeek } from "@/lib/utils/dates";
+import { mondaysOfMonth, shiftWeek } from "@/lib/utils/dates";
 
 export async function listCareers(teamId: number): Promise<Career[]> {
   const rows = await db().sql`
@@ -295,4 +295,42 @@ export async function careerHistory(teamId: number, from: string, to: string): P
     );
   }
   return { weeks, careers, byWeek };
+}
+
+// --- Vista mensual -----------------------------------------------------------
+
+/**
+ * Leads y consumo de un mes por carrera: suma de las semanas cuyo lunes cae en el mes
+ * (la misma regla que usa el resto de la app). Mes en formato "2026-09".
+ */
+export async function listMonthly(teamId: number, month: string): Promise<CareerWeekly[]> {
+  const weeks = mondaysOfMonth(month);
+  if (weeks.length === 0) return [];
+  const rows = (await db().sql`
+    SELECT cw.career_id,
+      SUM(cw.leads) AS leads, SUM(cw.budget_spent) AS budget_spent,
+      MAX(cw.updated_at) AS updated_at
+    FROM career_weekly cw
+    JOIN careers c ON c.id = cw.career_id
+    WHERE c.team_id = ${teamId} AND cw.week_start = ANY(${weeks}::date[])
+    GROUP BY cw.career_id
+  `) as { career_id: number; leads: number | string | null; budget_spent: number | string | null; updated_at: string }[];
+  return rows.map((r) => ({
+    career_id: r.career_id,
+    week_start: weeks[0],
+    leads: r.leads === null ? null : Number(r.leads),
+    leads_source: null,
+    budget_spent: r.budget_spent === null ? null : Number(r.budget_spent),
+    budget_source: null,
+    updated_by: null,
+    updated_at: r.updated_at,
+  }));
+}
+
+/** Metas completas del mes por carrera (sin prorratear). */
+export async function monthGoals(teamId: number, month: string): Promise<Record<number, WeeklyGoal>> {
+  const goals = await listMonthlyGoals(teamId, [`${month}-01`]);
+  const out: Record<number, WeeklyGoal> = {};
+  for (const g of goals) out[g.career_id] = { leads: Number(g.leads_goal ?? 0), budget: Number(g.budget_goal ?? 0) };
+  return out;
 }

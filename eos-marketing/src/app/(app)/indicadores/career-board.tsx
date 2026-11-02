@@ -173,10 +173,13 @@ export function CareerBoard({
   rows,
   members,
   week,
+  month = null,
 }: {
   rows: CareerRow[];
   members: PublicUser[];
   week: string;
+  /** Vista mensual (solo lectura: los datos se capturan por semana). */
+  month?: string | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -287,7 +290,7 @@ export function CareerBoard({
             {filtered.length} de {rows.length} carreras
           </span>
           {anyFilter && (
-            <Button size="sm" variant="ghost" className="text-primary" onPress={() => router.replace(`${pathname}?semana=${week}`, { scroll: false })}>
+            <Button size="sm" variant="ghost" className="text-primary" onPress={() => router.replace(month ? `${pathname}?mes=${month}` : `${pathname}?semana=${week}`, { scroll: false })}>
               Limpiar filtros
             </Button>
           )}
@@ -372,12 +375,18 @@ export function CareerBoard({
                     </td>
                     <td className="px-2 text-right">
                       <span className="inline-flex items-center">
-                        <NumberCell value={r.leads} title="Leads recibidos en la semana" onSave={(v) => setLeadsAction(r.id, week, v)} />
+                        {month ? (
+                          <span className="px-1 text-sm tabular-nums" title="Leads del mes (suma de sus semanas)">
+                            {r.leads === null ? "—" : num(r.leads)}
+                          </span>
+                        ) : (
+                          <NumberCell value={r.leads} title="Leads recibidos en la semana" onSave={(v) => setLeadsAction(r.id, week, v)} />
+                        )}
                         <SourceTag source={r.leads_source} />
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <span className="px-1 text-sm font-semibold tabular-nums text-muted" title="Meta de la semana (desde Metas de carrera)">
+                      <span className="px-1 text-sm font-semibold tabular-nums text-muted" title={month ? "Meta del mes (Metas de carrera)" : "Meta de la semana (desde Metas de carrera)"}>
                         {num(r.leads_goal)}
                       </span>
                     </td>
@@ -386,16 +395,18 @@ export function CareerBoard({
                     </td>
                     <td className="px-2 text-right">
                       <span className="inline-flex items-center">
-                        <NumberCell
-                          value={r.budget_spent}
-                          title="Consumo de la semana"
-                          onSave={(v) => setBudgetAction(r.id, week, v)}
-                        />
+                        {month ? (
+                          <span className="px-1 text-sm tabular-nums" title="Consumo del mes (suma de sus semanas)">
+                            {r.budget_spent === null ? "—" : num(r.budget_spent)}
+                          </span>
+                        ) : (
+                          <NumberCell value={r.budget_spent} title="Consumo de la semana" onSave={(v) => setBudgetAction(r.id, week, v)} />
+                        )}
                         <SourceTag source={r.budget_source} />
                       </span>
                     </td>
                     <td className="px-2 text-right">
-                      <span className="px-1 text-sm font-semibold tabular-nums text-muted" title="Presupuesto de la semana (desde Metas de carrera)">
+                      <span className="px-1 text-sm font-semibold tabular-nums text-muted" title={month ? "Presupuesto del mes (Metas de carrera)" : "Presupuesto de la semana (desde Metas de carrera)"}>
                         {num(r.budget_goal)}
                       </span>
                     </td>

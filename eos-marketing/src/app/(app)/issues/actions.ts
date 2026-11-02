@@ -15,7 +15,13 @@ import {
   updateIssue,
   setIssueTop,
   moveIssueTop,
+  sendIssueToTeam,
 } from "@/lib/domain/issues";
+import { listShareableTeams } from "@/lib/domain/scorecard";
+import { getTeam, teamReplyTo } from "@/lib/domain/teams";
+import { listTeamMembers } from "@/lib/domain/users";
+import { appUrl, emailConfigured, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import type { TeamOption } from "@/app/(app)/todos/actions";
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 import { createTodo } from "@/lib/domain/todos";
 import type { IssueTerm } from "@/lib/domain/types";
@@ -155,4 +161,62 @@ export async function deleteIssueAction(issueId: number) {
   await deleteIssue(issueId);
   await logActivity(session, "issues", "Eliminó Issue", label);
   revalidatePath("/issues");
+}
+
+// --- Enviar Issues a otros equipos -------------------------------------------------
+
+/** Equipos a los que se puede enviar un Issue, con sus personas (para elegir responsable). */
+export async function issueTeamOptionsAction(): Promise<{ teams: TeamOption[]; emailEnabled: boolean }> {
+  const session = await requireModule("issues");
+  const teams = await listShareableTeams(session.teamId);
+  const withMembers = await Promise.all(
+    teams.map(async (t) => ({ ...t, members: (await listTeamMembers(t.id)).map((m) => ({ id: m.id, name: m.name, email: m.email })) }))
+  );
+  return { teams: withMembers, emailEnabled: emailConfigured() };
+}
+
+export async function sendIssueToTeamAction(
+  issueId: number,
+  input: { teamId: number; ownerId: number | null; dueDate: string | null; notify: boolean; move: boolean }
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    const session = await requireModule("issues");
+    const issue = await getIssue(issueId);
+    if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
+    const teamId = Number(input?.teamId);
+    const target = (await listShareableTeams(session.teamId)).find((t) => t.id === teamId);
+    if (!target) return { ok: false, message: "Elige un equipo válido." };
+    const owner = (await listTeamMembers(teamId)).find((m) => m.id === Number(input.ownerId)) ?? null;
+    const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(String(input.dueDate ?? "")) ? String(input.dueDate) : (issue.due_date?.slice(0, 10) ?? null);
+
+    const copy = await sendIssueToTeam({ issue, toTeamId: teamId, ownerId: owner?.id ?? null, dueDate, userId: session.userId });
+    if (!copy) return { ok: false, message: `${target.name} ya tiene este Issue abierto.` };
+    await logActivity(session, "issues", input.move ? "Movió Issue a otro equipo" : "Envió Issue a otro equipo", `${issue.title} → ${target.name}`);
+
+    let note = "";
+    if (input.notify && owner && !owner.email.endsWith(".local") && emailConfigured()) {
+      const from = await getTeam(session.teamId);
+      const mail = await sendEmail({
+        to: [owner.email],
+        replyTo: await teamReplyTo(session.teamId, session.email),
+        subject: `Nuevo Issue de ${from?.name ?? "otro equipo"}: ${issue.title}`,
+        html: emailLayout({
+          title: "Te enviaron un Issue",
+          intro: `${escapeHtml(session.name)} (${escapeHtml(from?.name ?? "otro equipo")}) envió un Issue a <b>${escapeHtml(target.name)}</b> con tu nombre como responsable:`,
+          body: `<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;color:#111827;font-weight:bold;margin:16px 0 4px">${escapeHtml(issue.title)}</p>${
+            issue.description ? `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#374151;white-space:pre-line;margin:0">${escapeHtml(issue.description)}</p>` : ""
+          }${dueDate ? `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#374151;margin:8px 0 0">Fecha: <b>${escapeHtml(dueDate)}</b></p>` : ""}`,
+          cta: { label: "Ver Issues", url: `${await appUrl()}/issues` },
+        }),
+      });
+      note = mail.ok ? ` Se avisó por correo a ${owner.name}.` : ` (No se pudo avisar por correo: ${mail.message})`;
+    }
+    if (input.move) await deleteIssue(issue.id);
+    revalidatePath("/issues");
+    revalidatePath("/meeting", "layout");
+    return { ok: true, message: `${input.move ? "Movido" : "Enviado"} a ${target.name}${owner ? ` (responsable: ${owner.name})` : ""}.${note}` };
+  } catch (e) {
+    console.error("[issues] enviar a equipo", e);
+    return { ok: false, message: e instanceof Error && e.name === "AccessDeniedError" ? e.message : "No se pudo enviar el Issue." };
+  }
 }

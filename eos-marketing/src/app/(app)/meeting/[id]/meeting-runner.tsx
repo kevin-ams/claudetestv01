@@ -36,6 +36,7 @@ import {
   addHeadlineAction,
   rateMeetingAction,
   completeMeetingAction,
+  discardMeetingAction,
   saveCascadeNotesAction,
   setAttendanceAction,
   setMeetingLeaderAction,
@@ -47,16 +48,20 @@ import { AppSelect } from "@/components/ui/select";
 import type { L10Event } from "@/lib/domain/l10-events";
 import { EventsPanel } from "../events-panel";
 import { TeamAgendaPanel } from "../team-agenda";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { AgendaItem } from "@/lib/domain/team-agenda-shared";
 
-function useElapsed(since: string | null) {
+/** Segundos desde `since`; con `until` (reunión terminada) el reloj queda detenido en esa hora. */
+function useElapsed(since: string | null, until: string | null = null) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    if (until) return;
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [until]);
   if (!since) return 0;
-  return Math.floor((now - new Date(since).getTime()) / 1000);
+  const end = until ? new Date(until).getTime() : now;
+  return Math.max(0, Math.floor((end - new Date(since).getTime()) / 1000));
 }
 
 function formatClock(totalSeconds: number) {
@@ -454,13 +459,16 @@ export function MeetingRunner({
   const idx = segmentIndex(meeting.current_segment);
   const segment = idx >= 0 ? L10_AGENDA[idx] : L10_AGENDA[0];
   const upcoming = nextSegment(meeting.current_segment);
-  const elapsed = useElapsed(meeting.segment_started_at);
-  const totalElapsed = useElapsed(meeting.started_at);
+  const stoppedAt = meeting.status === "completed" ? (meeting.ended_at ?? meeting.segment_started_at) : null;
+  const elapsed = useElapsed(meeting.segment_started_at, stoppedAt);
+  const totalElapsed = useElapsed(meeting.started_at, stoppedAt);
   const remaining = segment.minutes * 60 - elapsed;
   const [draft, setDraft] = useState<QuickDraft | null>(null);
   // Sección más avanzada a la que se llegó: las anteriores quedan marcadas aunque se regrese.
   const furthest = Math.max(idx, segmentIndex(meeting.furthest_segment ?? null));
   const [navigating, startNav] = useTransition();
+  const [discarding, setDiscarding] = useState(false);
+  const [discardPending, startDiscard] = useTransition();
   const goTo = (key: string) => startNav(() => advanceSegmentAction(meeting.id, key));
   const [toast, setToast] = useState<string | null>(null);
   const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
@@ -754,6 +762,26 @@ export function MeetingRunner({
           </div>
         )}
       </div>
+      {/* Al final: descartar una L10 iniciada por error (no deja registro). */}
+      <div className="mb-8 flex flex-col items-center gap-1 border-t border-border pt-6 text-center">
+        <Button size="sm" variant="ghost" className="text-red" onPress={() => setDiscarding(true)}>
+          Descartar reunión (no guardar)
+        </Button>
+        <p className="text-xs text-muted">Por si se inició por error: se borra sin quedar en el historial ni en los reportes.</p>
+      </div>
+      {discarding && (
+        <ConfirmDialog
+          title="¿Descartar esta reunión?"
+          confirmLabel="Sí, descartar"
+          danger
+          pending={discardPending}
+          onConfirm={() => startDiscard(async () => void (await discardMeetingAction(meeting.id)))}
+          onClose={() => setDiscarding(false)}
+        >
+          La reunión #{meeting.id} se borra: no queda en el historial, en el resumen ni en los reportes semanales. Los To-Dos e
+          Issues que se capturaron se conservan y los eventos siguen pendientes para la próxima L10.
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

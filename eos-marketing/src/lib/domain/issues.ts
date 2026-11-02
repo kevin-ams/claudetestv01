@@ -6,12 +6,37 @@ export async function listIssues(
   teamId: number,
   status: IssueStatus = "open"
 ): Promise<Issue[]> {
-  const rows = await db().sql`
-    SELECT * FROM issues
-    WHERE team_id = ${teamId} AND status = ${status}
-    ORDER BY top_rank ASC NULLS LAST, sort_order ASC, id ASC
-  `;
-  return rows as Issue[];
+  const rows = (await db().sql`
+    SELECT i.*, ft.name AS from_team_name, su.name AS sent_by_name,
+      COALESCE((
+        SELECT json_agg(json_build_object('team_id', c.team_id, 'team_name', ct.name, 'done', c.status <> 'open') ORDER BY ct.name)
+        FROM issues c JOIN teams ct ON ct.id = c.team_id WHERE c.origin_issue_id = i.id
+      ), '[]'::json) AS sent_to
+    FROM issues i
+    LEFT JOIN teams ft ON ft.id = i.from_team_id
+    LEFT JOIN users su ON su.id = i.sent_by
+    WHERE i.team_id = ${teamId} AND i.status = ${status}
+    ORDER BY i.top_rank ASC NULLS LAST, i.sort_order ASC, i.id ASC
+  `) as Issue[];
+  return rows.map((r) => ({ ...r, sent_to: typeof r.sent_to === "string" ? JSON.parse(r.sent_to) : r.sent_to }));
+}
+
+/**
+ * Envía una copia del Issue a otro equipo (al final de su lista, con su responsable allá).
+ * Devuelve la copia, o null si ese equipo ya tiene abierta una copia de este Issue.
+ */
+export async function sendIssueToTeam(input: { issue: Issue; toTeamId: number; ownerId: number | null; dueDate: string | null; userId: number }): Promise<Issue | null> {
+  const rows = (await db().sql`
+    INSERT INTO issues (team_id, title, description, raised_by, owner_id, term, due_date, sort_order, from_team_id, origin_issue_id, sent_by)
+    SELECT ${input.toTeamId}, ${input.issue.title}, ${input.issue.description}, ${input.userId}, ${input.ownerId}, ${input.issue.term}, ${input.dueDate},
+      (SELECT COALESCE(MAX(sort_order), -1) + 1 FROM issues WHERE team_id = ${input.toTeamId} AND status = 'open'),
+      ${input.issue.team_id}, ${input.issue.id}, ${input.userId}
+    WHERE NOT EXISTS (
+      SELECT 1 FROM issues WHERE origin_issue_id = ${input.issue.id} AND team_id = ${input.toTeamId} AND status = 'open'
+    )
+    RETURNING *
+  `) as Issue[];
+  return rows[0] ?? null;
 }
 
 export async function createIssue(input: {

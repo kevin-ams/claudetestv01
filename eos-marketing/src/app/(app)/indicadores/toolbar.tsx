@@ -8,7 +8,8 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Career, PublicUser } from "@/lib/domain/types";
 import { CAREER_LEVELS } from "@/lib/domain/careers-shared";
-import { shiftWeek } from "@/lib/utils/dates";
+import { shiftMonth, shiftWeek } from "@/lib/utils/dates";
+import { Segmented } from "@/components/ui/segmented";
 import { createCareerAction } from "./actions";
 import { AcSyncButton } from "@/components/ac-sync-button";
 import { BudgetImporter } from "./budget-importer";
@@ -18,6 +19,9 @@ type Panel = "import" | "add" | null;
 export function Toolbar({
   week,
   weekLabel,
+  month = null,
+  monthLabel = "",
+  defaultMonth,
   defaultWeek,
   currentWeek,
   careers,
@@ -29,6 +33,10 @@ export function Toolbar({
 }: {
   week: string;
   weekLabel: string;
+  /** Vista mensual ("2026-09"); null = semanal. */
+  month?: string | null;
+  monthLabel?: string;
+  defaultMonth: string;
   defaultWeek: string;
   currentWeek: string;
   careers: Pick<Career, "id" | "code" | "name">[];
@@ -44,23 +52,52 @@ export function Toolbar({
 
   function weekHref(target: string) {
     const next = new URLSearchParams(params.toString());
+    next.delete("mes");
     next.set("semana", target);
+    return `/indicadores?${next.toString()}`;
+  }
+  function monthHref(target: string) {
+    const next = new URLSearchParams(params.toString());
+    next.delete("semana");
+    next.set("mes", target);
     return `/indicadores?${next.toString()}`;
   }
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-          <Link href={weekHref(shiftWeek(week, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana anterior">
-            <ArrowLeft aria-hidden />
-          </Link>
-          <span className="px-2 text-sm font-semibold">{weekLabel}</span>
-          <Link href={weekHref(shiftWeek(week, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana siguiente">
-            <ArrowRight aria-hidden />
-          </Link>
-        </div>
-        {week !== defaultWeek && (
+        <Segmented
+          aria-label="Periodo"
+          options={[
+            { id: "week" as const, label: "Semanal" },
+            { id: "month" as const, label: "Mensual" },
+          ]}
+          value={month ? "month" : "week"}
+          onChange={(v) => router.push(v === "month" ? monthHref(month ?? defaultMonth) : weekHref(week))}
+        />
+        {month ? (
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+            <Link href={monthHref(shiftMonth(month, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Mes anterior">
+              <ArrowLeft aria-hidden />
+            </Link>
+            <span className="px-2 text-sm font-semibold capitalize">{monthLabel}</span>
+            <Link href={monthHref(shiftMonth(month, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Mes siguiente">
+              <ArrowRight aria-hidden />
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+            <Link href={weekHref(shiftWeek(week, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana anterior">
+              <ArrowLeft aria-hidden />
+            </Link>
+            <span className="px-2 text-sm font-semibold">{weekLabel}</span>
+            <Link href={weekHref(shiftWeek(week, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana siguiente">
+              <ArrowRight aria-hidden />
+            </Link>
+          </div>
+        )}
+        {month && <span className="text-xs text-muted">Suma de las semanas que empiezan en el mes · meta completa del mes</span>}
+        {!month && week !== defaultWeek && (
           <Link href={weekHref(defaultWeek)} className="text-sm text-primary underline">
             Ir a la última semana cerrada
           </Link>
@@ -69,7 +106,7 @@ export function Toolbar({
         <div className="ml-auto flex flex-wrap gap-2">
           {!acConfigured ? (
             <Chip size="sm" color="warning" variant="soft">ActiveCampaign sin configurar</Chip>
-          ) : week === currentWeek ? (
+          ) : month ? null : week === currentWeek ? (
             <AcSyncButton pendingSince={acPendingSince} />
           ) : (
             // Los leads de ActiveCampaign solo se guardan en la semana en curso.
@@ -77,9 +114,11 @@ export function Toolbar({
               Ir a la semana en curso para actualizar leads
             </Link>
           )}
-          <Button variant="outline" onPress={() => setPanel(panel === "import" ? null : "import")}>
-            <ArrowUpFromLine aria-hidden /> Importar consumo (CSV)
-          </Button>
+          {!month && (
+            <Button variant="outline" onPress={() => setPanel(panel === "import" ? null : "import")}>
+              <ArrowUpFromLine aria-hidden /> Importar consumo (CSV)
+            </Button>
+          )}
           <Button variant="primary" onPress={() => setPanel(panel === "add" ? null : "add")}>
             + Carrera
           </Button>
