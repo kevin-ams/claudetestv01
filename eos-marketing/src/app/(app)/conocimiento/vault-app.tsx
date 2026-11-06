@@ -40,6 +40,7 @@ import { MarkdownEditor, type LinkOption } from "./markdown-editor";
 import { NotePreview } from "./note-preview";
 import { NewNoteDialog, PdfImportDialog } from "./vault-dialogs";
 import { SearchDialog } from "./search-dialog";
+import { GraphPanel, LocalGraph, type GraphActions } from "./graph-panel";
 import { disableSemantic, embedPassages, enableSemantic, semanticEnabled, useEmbedder } from "./embedder";
 
 type Status = "saved" | "dirty" | "saving" | "error" | "conflict";
@@ -115,6 +116,7 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
   const [message, setMessage] = useState<string | null>(null);
   const [conflict, setConflict] = useState<{ content: string; title: string; by: string | null; version: number } | null>(null);
   const [mode, setMode] = useState<"edit" | "preview">(canEdit ? "edit" : "preview");
+  const [view, setView] = useState<"notes" | "graph">(() => (params.get("vista") === "grafo" ? "graph" : "notes"));
   const [filter, setFilter] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
@@ -341,6 +343,19 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
     openTarget(decodeURIComponent(rest));
   };
 
+  const graphActions: GraphActions = {
+    onOpen: (id) => {
+      setView("notes");
+      openNote(id);
+    },
+    onCreate: (title) => (canEdit ? setDialog({ kind: "new", title }) : setMessage(`La nota “${title}” todavía no existe.`)),
+    onEntity: (href) => router.push(href),
+    onTag: (t) => {
+      setView("notes");
+      setTag(t);
+    },
+  };
+
   const visible = useMemo(() => {
     const k = normalizeKey(filter);
     return notes.filter((n) => (!tag || n.tags.includes(tag)) && (!k || normalizeKey(`${n.title} ${n.path}`).includes(k)));
@@ -411,6 +426,16 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
           )}
         </span>
         <div className="ml-auto flex flex-wrap gap-2">
+          <Segmented
+            aria-label="Vista del vault"
+            size="md"
+            options={[
+              { id: "notes" as const, label: "Notas" },
+              { id: "graph" as const, label: "Grafo" },
+            ]}
+            value={view}
+            onChange={setView}
+          />
           <Button variant="outline" onPress={() => setDialog({ kind: "switch" })}>
             <Magnifier aria-hidden /> Buscar <kbd className="ml-1 hidden rounded border border-border px-1 text-[10px] text-muted sm:inline">Ctrl K</kbd>
           </Button>
@@ -427,6 +452,9 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
         </div>
       </div>
 
+      {view === "graph" ? (
+        <GraphPanel notes={notes} entities={entities} actions={graphActions} />
+      ) : (
       <div className="grid gap-3 lg:grid-cols-[260px_minmax(0,1fr)_280px]">
         {/* Izquierda: carpetas y notas */}
         <aside className="card card--default flex max-h-[80vh] flex-col gap-2 overflow-hidden p-3 lg:sticky lg:top-20">
@@ -602,6 +630,7 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
                   </button>
                 ))}
               </section>
+              <LocalGraph notes={notes} entities={entities} noteId={current.note.id} actions={graphActions} />
               <section className="card card--default flex flex-col gap-1 p-3">
                 <h2 className="text-xs font-bold uppercase tracking-wide text-muted">Notas relacionadas (significado)</h2>
                 {related === null ? (
@@ -684,6 +713,8 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
           )}
         </aside>
       </div>
+
+      )}
 
       {viewing && current && (
         <ConfirmDialog

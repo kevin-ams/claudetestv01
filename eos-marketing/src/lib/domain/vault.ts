@@ -55,7 +55,9 @@ export async function getVault(teamId: number): Promise<Vault> {
 
 const SUMMARY = `
   SELECT n.id, n.path, n.title, n.tags, n.updated_at, uu.name AS updated_by_name,
-    COALESCE((SELECT array_agg(DISTINCT l.target) FROM vault_links l WHERE l.from_note_id = n.id AND l.kind = 'note'), '{}') AS links
+    COALESCE((SELECT array_agg(DISTINCT COALESCE(l.label, l.target)) FROM vault_links l WHERE l.from_note_id = n.id AND l.kind = 'note'), '{}') AS links,
+    COALESCE((SELECT array_agg(DISTINCT l.kind || ':' || l.entity_id) FROM vault_links l
+      WHERE l.from_note_id = n.id AND l.kind <> 'note' AND l.entity_id IS NOT NULL), '{}') AS eos
   FROM vault_notes n
   LEFT JOIN users uu ON uu.id = n.updated_by`;
 
@@ -74,6 +76,7 @@ function toSummary(r: Record<string, unknown>): NoteSummary {
     updated_at: String(r.updated_at),
     updated_by_name: (r.updated_by_name as string) ?? null,
     links: arr(r.links),
+    eos: arr(r.eos),
   };
 }
 
@@ -172,8 +175,8 @@ async function writeLinks(vaultId: number, noteId: number, content: string, enti
     seen.add(target);
     const entity = l.kind === "note" ? null : resolveEntity(entities, l.kind, l.ref);
     await db().sql`
-      INSERT INTO vault_links (from_note_id, vault_id, kind, target, entity_id)
-      VALUES (${noteId}, ${vaultId}, ${l.kind}, ${target}, ${entity?.id ?? null})
+      INSERT INTO vault_links (from_note_id, vault_id, kind, target, label, entity_id)
+      VALUES (${noteId}, ${vaultId}, ${l.kind}, ${target}, ${l.target}, ${entity?.id ?? null})
     `;
   }
 }
@@ -502,4 +505,38 @@ export async function relatedByMeaning(vaultId: number, noteId: number, limit = 
     LIMIT ${limit}
   `) as { id: number; title: string; score: number }[];
   return rows.map((r) => ({ id: Number(r.id), title: r.title, score: Number(r.score) }));
+}
+
+/**
+ * Relaciones por significado para el grafo: pares de notas con similitud >= umbral, como máximo
+ * `perNote` por nota (las más fuertes). Se calcula en el servidor con los vectores promedio.
+ */
+export async function semanticEdges(vaultId: number, threshold = 0.8, perNote = 3): Promise<{ a: number; b: number; score: number }[]> {
+  const rows = (await db().sql`
+    SELECT id, embedding FROM vault_notes
+    WHERE vault_id = ${vaultId} AND embedding IS NOT NULL AND path NOT LIKE ${`${TEMPLATE_FOLDER}/%`}
+    LIMIT 3000
+  `) as { id: number; embedding: unknown }[];
+  const ids = rows.map((r) => Number(r.id));
+  const vecs = rows.map((r) => Float32Array.from((Array.isArray(r.embedding) ? r.embedding : String(r.embedding).replace(/[{}]/g, "").split(",")).map(Number)));
+  const best: { j: number; s: number }[][] = ids.map(() => []);
+  for (let i = 0; i < vecs.length; i++) {
+    for (let j = i + 1; j < vecs.length; j++) {
+      let s = 0;
+      const a = vecs[i], b = vecs[j];
+      for (let k = 0; k < a.length; k++) s += a[k] * b[k];
+      if (s < threshold) continue;
+      best[i].push({ j, s });
+      best[j].push({ j: i, s });
+    }
+  }
+  const out = new Map<string, { a: number; b: number; score: number }>();
+  best.forEach((list, i) => {
+    list.sort((x, y) => y.s - x.s);
+    for (const { j, s } of list.slice(0, perNote)) {
+      const [a, b] = i < j ? [ids[i], ids[j]] : [ids[j], ids[i]];
+      out.set(`${a}-${b}`, { a, b, score: Math.round(s * 1000) / 1000 });
+    }
+  });
+  return [...out.values()];
 }

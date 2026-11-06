@@ -13,8 +13,10 @@ export type NoteSummary = {
   tags: string[];
   updated_at: string;
   updated_by_name: string | null;
-  /** Destinos normalizados de sus [[enlaces]] a otras notas. */
+  /** Destinos de sus [[enlaces]] a otras notas (como se escribieron; se comparan con normalizeKey). */
   links: string[];
+  /** Entidades EOS enlazadas ("rock:12", "issue:3", "kpi:5"). */
+  eos: string[];
 };
 
 export type Note = NoteSummary & {
@@ -117,7 +119,7 @@ export function parseFrontmatter(content: string): { data: Record<string, unknow
   const m = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/.exec(content);
   if (!m) return { data: {}, body: content };
   try {
-    const data = parseYaml(m[1]);
+    const data = parseYaml(m[1], { logLevel: "error" });
     return { data: data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>) : {}, body: content.slice(m[0].length) };
   } catch {
     return { data: {}, body: content.slice(m[0].length) };
@@ -226,7 +228,7 @@ Enlaza los indicadores del Scorecard con \`[[kpi:Nombre]]\`.
     title: "Acta L10",
     content: `---
 tipo: acta
-fecha: {{fecha}}
+fecha: "{{fecha}}"
 tags: [l10]
 ---
 # {{titulo}}
@@ -247,7 +249,7 @@ Enlaza cada Issue con \`[[issue:Título]]\`.
     title: "Lección aprendida",
     content: `---
 tipo: leccion
-fecha: {{fecha}}
+fecha: "{{fecha}}"
 tags: [leccion-aprendida]
 ---
 # {{titulo}}

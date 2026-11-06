@@ -32,6 +32,8 @@ CREATE TABLE vault_links (
   vault_id INTEGER NOT NULL REFERENCES vaults(id) ON DELETE CASCADE,
   kind TEXT NOT NULL,
   target TEXT NOT NULL,
+  -- Texto del enlace tal como se escribió (para mostrar notas por crear).
+  label TEXT,
   -- Entidad EOS resuelta (id del rock, issue o indicador).
   entity_id INTEGER
 );

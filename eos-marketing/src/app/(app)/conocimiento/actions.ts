@@ -22,6 +22,7 @@ import {
   resetEmbeddings,
   storeChunks,
   textSearch,
+  semanticEdges,
   type ChunkPlan,
   type NoteVersion,
   type SaveResult,
@@ -191,4 +192,10 @@ export async function resetEmbeddingsAction(): Promise<{ ok: boolean; message: s
   } catch (e) {
     return { ok: false, message: fail(e, "No se pudo reindexar.") };
   }
+}
+
+export async function semanticEdgesAction(threshold: number): Promise<{ a: number; b: number; score: number }[]> {
+  const session = await requireModule("conocimiento", "view");
+  const t = Math.min(0.99, Math.max(0.5, Number(threshold) || 0.8));
+  return semanticEdges((await getVault(session.teamId)).id, t);
 }

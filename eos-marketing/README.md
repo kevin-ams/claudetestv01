@@ -195,6 +195,13 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   fragmentos de ~500–800 caracteres; solo se recalculan los fragmentos cuyo hash cambió (`vault_chunks`, `REAL[]`), y
   la nota guarda el vector promedio. La comparación (coseno) la hace Postgres sin extensiones. "Notas relacionadas"
   (5 más parecidas) en el panel derecho y botón "Reindexar vault". Sin APIs de pago. Migración 038.
+- **Conocimiento › Grafo** — pestaña "Grafo" (`?vista=grafo`) con sigma.js 3 (WebGL) + graphology; layout
+  ForceAtlas2 en un Web Worker y posiciones en caché del navegador (`localStorage`) para que abra al instante.
+  Nodos = notas (tamaño por enlaces entrantes, color por carpeta raíz), aristas = `[[enlaces]]`. Capas opcionales: notas
+  por crear (gris; clic para crearla), tags, rocks/issues/KPIs y relaciones por significado (líneas amarillas, umbral
+  configurable, máx. 3 por nota, calculadas en el servidor con los vectores de cada nota). Hover resalta vecinos con
+  tooltip, clic abre, arrastrar mueve, "Centrar", filtros por carpeta, tag y fecha, búsqueda que resalta y contador de
+  notas huérfanas. Grafo local (1–2 saltos) en el panel derecho de cada nota. Con 2 000 notas abre en ~0,6 s.
 - **Rol Administrador Premium y módulos premium** — cada equipo tiene el rol de sistema "Administrador Premium"
   (todo lo de Administrador + módulos premium; hoy: Conocimiento / Vault en `/conocimiento`). Los demás roles, incluido
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el
