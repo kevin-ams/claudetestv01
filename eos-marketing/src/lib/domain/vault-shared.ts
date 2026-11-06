@@ -287,3 +287,117 @@ tags: [guia]
 export function applyTemplate(content: string, title: string, today: string): string {
   return content.replaceAll("{{titulo}}", title).replaceAll("{{fecha}}", today);
 }
+
+// --- Búsqueda ---------------------------------------------------------------------------
+
+/** Modelo de embeddings (en el navegador). Si cambia, todos los fragmentos se recalculan. */
+export const EMBED_MODEL = "Xenova/multilingual-e5-small";
+export const EMBED_DIM = 384;
+
+/**
+ * Minúsculas y sin acentos, carácter por carácter (misma longitud que el original), para poder
+ * ubicar en el texto original lo que se encontró en el texto plegado.
+ */
+export function foldText(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    const code = c.charCodeAt(0);
+    if (code < 128) {
+      out += c.toLowerCase();
+      continue;
+    }
+    if (code >= 0xd800 && code <= 0xdfff) {
+      out += c;
+      continue;
+    }
+    const f = c.normalize("NFD").charAt(0).toLowerCase();
+    out += f.length === 1 ? f : c;
+  }
+  return out;
+}
+
+/** Palabras de una búsqueda (plegadas). */
+export function queryTerms(q: string): string[] {
+  return [...new Set(foldText(q).split(/[^\p{L}\p{N}]+/u).filter((t) => t.length > 0))].slice(0, 12);
+}
+
+// Palabras vacías del español (ya sin acentos): no sirven para buscar por palabras.
+const STOPWORDS = new Set(
+  "a al algo como con cual cuales cuando de del donde el ella ellos en entre era es esa ese eso esta este esto estos estas fue ha hay la las le les lo los mas me mi mis muy no nos o para pero por porque que quien se ser si sin sobre son su sus te tu tus un una unas uno unos y ya yo".split(" "),
+);
+
+/** Palabras útiles para buscar (sin palabras vacías; si solo hay vacías, se usan todas). */
+export function searchTerms(q: string): string[] {
+  const all = queryTerms(q);
+  const useful = all.filter((t) => !STOPWORDS.has(t));
+  return useful.length ? useful : all;
+}
+
+/** Fragmento del texto original alrededor de la primera coincidencia. */
+export function snippetAround(original: string, folded: string, terms: string[], size = 180): string {
+  let at = -1;
+  for (const t of terms) {
+    const i = folded.indexOf(t);
+    if (i >= 0 && (at < 0 || i < at)) at = i;
+  }
+  const start = Math.max(0, at < 0 ? 0 : at - Math.floor(size / 3));
+  const text = original.slice(start, start + size).replace(/\s+/g, " ").trim();
+  return `${start > 0 ? "…" : ""}${text}${start + size < original.length ? "…" : ""}`;
+}
+
+/**
+ * Divide una nota en fragmentos de ~500–800 caracteres, cortando por encabezados y párrafos.
+ * Cada fragmento lleva el título (y su encabezado) para que tenga contexto.
+ */
+export function chunkNote(title: string, content: string, max = 800): string[] {
+  const { body } = parseFrontmatter(content);
+  const blocks = body.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  const chunks: string[] = [];
+  let heading = "";
+  let cur = "";
+  const prefix = () => `${title}${heading ? ` › ${heading}` : ""}\n`;
+  const push = () => {
+    if (cur.trim()) chunks.push(prefix() + cur.trim());
+    cur = "";
+  };
+  for (const block of blocks) {
+    const h = /^(#{1,6})\s+(.+)$/m.exec(block);
+    if (h && block.startsWith("#")) {
+      push();
+      heading = h[2].trim();
+      const rest = block.slice(h[0].length).trim();
+      if (rest) cur = rest;
+      continue;
+    }
+    if (block.length > max) {
+      push();
+      // Bloque largo: se corta por oraciones.
+      let piece = "";
+      for (const s of block.split(/(?<=[.!?])\s+/)) {
+        if ((piece + " " + s).length > max && piece) {
+          chunks.push(prefix() + piece.trim());
+          piece = "";
+        }
+        piece += ` ${s}`;
+      }
+      cur = piece.trim();
+      continue;
+    }
+    if ((cur + "\n\n" + block).length > max && cur.length >= 300) push();
+    cur = cur ? `${cur}\n\n${block}` : block;
+  }
+  push();
+  if (chunks.length === 0) chunks.push(title);
+  return chunks.slice(0, 200);
+}
+
+/** Reciprocal Rank Fusion: combina rankings (listas de ids) en un solo puntaje. */
+export function reciprocalRankFusion(lists: number[][], k = 60): Map<number, number> {
+  const score = new Map<number, number>();
+  for (const list of lists) list.forEach((id, i) => score.set(id, (score.get(id) ?? 0) + 1 / (k + i + 1)));
+  return score;
+}
+
+export type TextHit = { id: number; title: string; path: string; snippet: string; rank: number };
+export type MeaningHit = { id: number; title: string; path: string; snippet: string; score: number };

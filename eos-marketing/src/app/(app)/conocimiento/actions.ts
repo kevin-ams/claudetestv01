@@ -14,10 +14,19 @@ import {
   listNotes,
   listVersions,
   saveNote,
+  chunkPlan,
+  embedStats,
+  meaningSearch,
+  pendingEmbeds,
+  relatedByMeaning,
+  resetEmbeddings,
+  storeChunks,
+  textSearch,
+  type ChunkPlan,
   type NoteVersion,
   type SaveResult,
 } from "@/lib/domain/vault";
-import { applyTemplate, cleanFolder, type Note, type NoteSummary } from "@/lib/domain/vault-shared";
+import { applyTemplate, cleanFolder, type MeaningHit, type Note, type NoteSummary, type TextHit } from "@/lib/domain/vault-shared";
 
 const MAX_CONTENT = 400_000;
 const fail = (e: unknown, fallback: string) => {
@@ -134,4 +143,52 @@ export async function listVersionsAction(noteId: number): Promise<NoteVersion[]>
 export async function versionContentAction(noteId: number, versionId: number): Promise<string | null> {
   const session = await requireModule("conocimiento", "view");
   return getVersionContent((await getVault(session.teamId)).id, Number(noteId), Number(versionId));
+}
+
+// --- Búsqueda ----------------------------------------------------------------------------
+
+export async function textSearchAction(q: string): Promise<TextHit[]> {
+  const session = await requireModule("conocimiento", "view");
+  return textSearch((await getVault(session.teamId)).id, String(q ?? "").slice(0, 200));
+}
+
+/** El vector de la pregunta se calcula en el navegador; aquí solo se compara con los del vault. */
+export async function meaningSearchAction(vector: number[]): Promise<MeaningHit[]> {
+  const session = await requireModule("conocimiento", "view");
+  return meaningSearch((await getVault(session.teamId)).id, vector);
+}
+
+export async function relatedByMeaningAction(noteId: number): Promise<{ id: number; title: string; score: number }[]> {
+  const session = await requireModule("conocimiento", "view");
+  return relatedByMeaning((await getVault(session.teamId)).id, Number(noteId));
+}
+
+export async function indexStatusAction(): Promise<{ pending: number[]; notes: number; indexed: number; chunks: number }> {
+  const session = await requireModule("conocimiento", "view");
+  const vault = await getVault(session.teamId);
+  const [pending, stats] = await Promise.all([pendingEmbeds(vault.id), embedStats(vault.id)]);
+  return { pending, ...stats };
+}
+
+export async function chunkPlanAction(noteId: number): Promise<ChunkPlan | null> {
+  const session = await requireModule("conocimiento");
+  return chunkPlan((await getVault(session.teamId)).id, Number(noteId));
+}
+
+export async function storeChunksAction(noteId: number, version: number, items: { index: number; embedding: number[] }[]): Promise<boolean> {
+  const session = await requireModule("conocimiento");
+  if (!Array.isArray(items) || items.length > 200) return false;
+  const clean = items.map((i) => ({ index: Number(i?.index), embedding: Array.isArray(i?.embedding) ? i.embedding.map(Number) : [] }));
+  return storeChunks((await getVault(session.teamId)).id, Number(noteId), Number(version), clean);
+}
+
+export async function resetEmbeddingsAction(): Promise<{ ok: boolean; message: string }> {
+  try {
+    const session = await requireModule("conocimiento");
+    await resetEmbeddings((await getVault(session.teamId)).id);
+    await logActivity(session, "conocimiento", "Reindexó el vault", "Búsqueda por significado");
+    return { ok: true, message: "Se recalcularán los vectores de todas las notas." };
+  } catch (e) {
+    return { ok: false, message: fail(e, "No se pudo reindexar.") };
+  }
 }

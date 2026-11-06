@@ -186,6 +186,15 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   nombre) con "Notas relacionadas" en Rocks, Issues y Scorecard. **PDF a nota**: pdf.js extrae el texto en el
   navegador y lo convierte en Markdown (títulos por tamaño de letra, listas, sin encabezados/pies repetidos) para
   revisarlo antes de crear la nota; el worker se copia a `public/` en `predev`/`prebuild`. Migración 037.
+- **Conocimiento › Búsqueda** — Ctrl/Cmd+K busca por **título** (al instante, tolera errores de dedo), **palabras**
+  (texto completo en Postgres: `search_*` plegados sin acentos + `search_vec` tsvector 'simple' con pesos título > tags >
+  contenido, por prefijo y sin palabras vacías) y **significado**, y combina los tres con Reciprocal Rank Fusion.
+  Significado: modelo `Xenova/multilingual-e5-small` (384 dimensiones, q8) con transformers.js en un Web Worker; se
+  activa por navegador y la primera vez descarga ~135 MB que quedan en caché. Elegido porque es multilingüe, pequeño y
+  está entrenado para pregunta→documento (prefijos `query: ` / `passage: `). Al guardar, las notas se dividen en
+  fragmentos de ~500–800 caracteres; solo se recalculan los fragmentos cuyo hash cambió (`vault_chunks`, `REAL[]`), y
+  la nota guarda el vector promedio. La comparación (coseno) la hace Postgres sin extensiones. "Notas relacionadas"
+  (5 más parecidas) en el panel derecho y botón "Reindexar vault". Sin APIs de pago. Migración 038.
 - **Rol Administrador Premium y módulos premium** — cada equipo tiene el rol de sistema "Administrador Premium"
   (todo lo de Administrador + módulos premium; hoy: Conocimiento / Vault en `/conocimiento`). Los demás roles, incluido
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el

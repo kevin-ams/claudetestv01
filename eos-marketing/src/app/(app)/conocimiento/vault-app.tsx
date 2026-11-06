@@ -26,6 +26,11 @@ import {
   deleteNoteAction,
   listNotesAction,
   listVersionsAction,
+  chunkPlanAction,
+  indexStatusAction,
+  relatedByMeaningAction,
+  resetEmbeddingsAction,
+  storeChunksAction,
   openNoteAction,
   saveNoteAction,
   versionContentAction,
@@ -33,7 +38,9 @@ import {
 } from "./actions";
 import { MarkdownEditor, type LinkOption } from "./markdown-editor";
 import { NotePreview } from "./note-preview";
-import { NewNoteDialog, PdfImportDialog, QuickSwitcher } from "./vault-dialogs";
+import { NewNoteDialog, PdfImportDialog } from "./vault-dialogs";
+import { SearchDialog } from "./search-dialog";
+import { disableSemantic, embedPassages, enableSemantic, semanticEnabled, useEmbedder } from "./embedder";
 
 type Status = "saved" | "dirty" | "saving" | "error" | "conflict";
 type Draft = { title: string; folder: string; content: string };
@@ -116,6 +123,12 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
   const [viewing, setViewing] = useState<{ v: NoteVersion; content: string } | null>(null);
   const [loading, startLoad] = useTransition();
   const saving = useRef(false);
+  const embedder = useEmbedder();
+  const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
+  const [indexTick, setIndexTick] = useState(0);
+  const [related, setRelated] = useState<{ id: number; title: string; score: number }[] | null>(null);
+  const indexingRef = useRef(false);
+  const rerunRef = useRef(false);
 
   const activeId = current?.note.id ?? null;
   const folders = useMemo(() => [...new Set(notes.map((n) => folderOf(n.path)).filter(Boolean))].sort(), [notes]);
@@ -196,8 +209,9 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
         if (r.path !== current.note.path || draft.title !== current.note.title) {
           setCurrent((c) => (c ? { ...c, note: { ...c.note, path: r.path, title: draft.title, version: r.version } } : c));
         }
-        // La lista (tags, enlaces, títulos) se actualiza después de cada guardado.
+        // La lista (tags, enlaces, títulos) se actualiza después de cada guardado; luego se reindexa.
         refreshList();
+        setIndexTick((t) => t + 1);
         if (r.renamed) setMessage(`Se actualizaron los enlaces en ${r.renamed} nota(s).`);
       } else if (r.conflict) {
         setStatus("conflict");
@@ -209,6 +223,60 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
     },
     [current, draft, version, canEdit, refreshList],
   );
+
+  // Búsqueda por significado: si ya se activó en este navegador, el modelo se carga (desde la caché).
+  useEffect(() => {
+    if (semanticEnabled()) enableSemantic();
+  }, []);
+
+  // Indexador en segundo plano: calcula los vectores de las notas nuevas o editadas.
+  useEffect(() => {
+    if (embedder.status !== "ready" || !canEdit) return;
+    if (indexingRef.current) {
+      rerunRef.current = true; // se guardó algo mientras se indexaba: otra vuelta al terminar
+      return;
+    }
+    indexingRef.current = true;
+    (async () => {
+      try {
+        const st = await indexStatusAction();
+        const ids = st.pending;
+        for (let i = 0; i < ids.length; i++) {
+          setIndexing({ done: i, total: ids.length });
+          const plan = await chunkPlanAction(ids[i]);
+          if (!plan) continue;
+          const need = plan.chunks.filter((c) => c.need);
+          const vectors = need.length ? await embedPassages(need.map((c) => c.text)) : [];
+          await storeChunksAction(
+            ids[i],
+            plan.version,
+            need.map((c, j) => ({ index: c.index, embedding: vectors[j] })),
+          );
+        }
+      } catch (e) {
+        console.error("[vault] indexar", e);
+      } finally {
+        setIndexing(null);
+        indexingRef.current = false;
+        if (rerunRef.current) {
+          rerunRef.current = false;
+          setIndexTick((t) => t + 1);
+        }
+      }
+    })();
+  }, [embedder.status, canEdit, indexTick]);
+
+  // Notas relacionadas por significado (con los vectores ya guardados; no necesita el modelo).
+  useEffect(() => {
+    if (!activeId) return;
+    let alive = true;
+    relatedByMeaningAction(activeId)
+      .then((r) => alive && setRelated(r))
+      .catch(() => alive && setRelated([]));
+    return () => {
+      alive = false;
+    };
+  }, [activeId, indexing]);
 
   // Autoguardado ~1.5 s después de dejar de escribir.
   useEffect(() => {
@@ -252,6 +320,7 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
     setDialog(null);
     await refreshList();
     openNote(r.id);
+    setIndexTick((t) => t + 1);
     return null;
   };
 
@@ -300,6 +369,47 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
         <Chip size="sm" variant="soft" color="warning">
           Premium
         </Chip>
+        <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted" role="status" aria-label="Búsqueda por significado">
+          {embedder.status === "off" && (
+            <Button size="sm" variant="ghost" className="text-primary" onPress={() => enableSemantic()}>
+              Activar búsqueda por significado
+            </Button>
+          )}
+          {embedder.status === "loading" && <span>Descargando modelo de significado… {embedder.percent}% (solo la primera vez, ~135 MB)</span>}
+          {embedder.status === "error" && (
+            <>
+              <span className="text-red">No se pudo cargar el modelo de significado.</span>
+              <Button size="sm" variant="ghost" className="text-primary" onPress={() => enableSemantic()}>
+                Reintentar
+              </Button>
+            </>
+          )}
+          {embedder.status === "ready" && (
+            <>
+              <Chip size="sm" variant="soft" color="success">
+                Significado activo
+              </Chip>
+              {indexing && <span>Indexando {indexing.done + 1} de {indexing.total}…</span>}
+              {canEdit && !indexing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-xs text-primary"
+                  onPress={async () => {
+                    const r = await resetEmbeddingsAction().catch(() => ({ ok: false, message: STALE }));
+                    setMessage(r.message);
+                    setIndexTick((t) => t + 1);
+                  }}
+                >
+                  Reindexar vault
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" className="h-6 px-2 text-xs text-muted" onPress={() => disableSemantic()}>
+                Desactivar
+              </Button>
+            </>
+          )}
+        </span>
         <div className="ml-auto flex flex-wrap gap-2">
           <Button variant="outline" onPress={() => setDialog({ kind: "switch" })}>
             <Magnifier aria-hidden /> Buscar <kbd className="ml-1 hidden rounded border border-border px-1 text-[10px] text-muted sm:inline">Ctrl K</kbd>
@@ -492,6 +602,23 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
                   </button>
                 ))}
               </section>
+              <section className="card card--default flex flex-col gap-1 p-3">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-muted">Notas relacionadas (significado)</h2>
+                {related === null ? (
+                  <p className="text-xs text-muted">Calculando…</p>
+                ) : related.length === 0 ? (
+                  <p className="text-xs text-muted">
+                    {embedder.status === "ready" ? "Todavía no hay notas parecidas (o esta nota aún no se indexa)." : "Activa la búsqueda por significado para calcularlas."}
+                  </p>
+                ) : (
+                  related.map((r) => (
+                    <button key={r.id} type="button" className="flex justify-between gap-2 text-left text-sm hover:underline" onClick={() => openNote(r.id)}>
+                      <span className="truncate text-primary">{r.title}</span>
+                      <span className="shrink-0 text-xs text-muted">{Math.round(r.score * 100)}%</span>
+                    </button>
+                  ))
+                )}
+              </section>
               {eosLinks.length > 0 && (
                 <section className="card card--default flex flex-col gap-1 p-3">
                   <h2 className="text-xs font-bold uppercase tracking-wide text-muted">EOS vinculado</h2>
@@ -588,13 +715,14 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
       )}
       {dialog?.kind === "pdf" && <PdfImportDialog folders={folders} defaultFolder={draft?.folder ?? ""} onCreate={create} onClose={() => setDialog(null)} />}
       {dialog?.kind === "switch" && (
-        <QuickSwitcher
+        <SearchDialog
           notes={notes}
           onOpen={(id) => {
             setDialog(null);
             openNote(id);
           }}
-          onCreate={(title) => setDialog(canEdit ? { kind: "new", title } : null)}
+          onCreate={canEdit ? (title) => setDialog({ kind: "new", title }) : null}
+          onEnableSemantic={() => enableSemantic()}
           onClose={() => setDialog(null)}
         />
       )}

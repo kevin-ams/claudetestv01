@@ -1,9 +1,9 @@
 "use client";
 
 import { Button, Input, Modal, TextArea } from "@heroui/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { AppSelect } from "@/components/ui/select";
-import { TEMPLATE_FOLDER, normalizeKey, type NoteSummary } from "@/lib/domain/vault-shared";
+import { TEMPLATE_FOLDER, type NoteSummary } from "@/lib/domain/vault-shared";
 import { pdfToMarkdown, type PdfResult } from "./pdf-to-markdown";
 
 function Dialog({ title, onClose, children, wide = false }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
@@ -80,91 +80,6 @@ export function NewNoteDialog({
           </Button>
         </div>
       </form>
-    </Dialog>
-  );
-}
-
-/** Buscador rápido de notas (Ctrl/Cmd+K): por título, ruta o tag. */
-export function QuickSwitcher({
-  notes,
-  onOpen,
-  onCreate,
-  onClose,
-}: {
-  notes: NoteSummary[];
-  onOpen: (id: number) => void;
-  onCreate: (title: string) => void;
-  onClose: () => void;
-}) {
-  const [q, setQ] = useState("");
-  const [sel, setSel] = useState(0);
-  const list = useMemo(() => {
-    const k = normalizeKey(q);
-    const scored = notes
-      .map((n) => {
-        const t = normalizeKey(n.title);
-        const score = !k ? 1 : t.startsWith(k) ? 3 : t.includes(k) ? 2 : normalizeKey(n.path).includes(k) || n.tags.some((g) => g.includes(k)) ? 1 : 0;
-        return { n, score };
-      })
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score || a.n.title.localeCompare(b.n.title, "es"));
-    return scored.slice(0, 30).map((x) => x.n);
-  }, [notes, q]);
-  const box = useRef<HTMLUListElement>(null);
-  useEffect(() => {
-    box.current?.querySelector("[aria-selected=true]")?.scrollIntoView({ block: "nearest" });
-  }, [sel]);
-
-  return (
-    <Dialog title="Buscar nota" onClose={onClose}>
-      <Input
-        aria-label="Buscar nota"
-        placeholder="Escribe el título, carpeta o #tag…"
-        value={q}
-        autoFocus
-        onChange={(e) => {
-          setQ(e.target.value);
-          setSel(0);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            setSel((s) => Math.min(s + 1, list.length - 1));
-          }
-          if (e.key === "ArrowUp") {
-            e.preventDefault();
-            setSel((s) => Math.max(s - 1, 0));
-          }
-          if (e.key === "Enter") {
-            e.preventDefault();
-            if (list[sel]) onOpen(list[sel].id);
-            else if (q.trim()) onCreate(q.trim());
-          }
-        }}
-      />
-      <ul ref={box} role="listbox" aria-label="Notas" className="flex max-h-80 flex-col gap-0.5 overflow-y-auto">
-        {list.map((n, i) => (
-          <li
-            key={n.id}
-            role="option"
-            aria-selected={i === sel}
-            className={`cursor-pointer rounded-lg px-2 py-1.5 text-sm ${i === sel ? "bg-primary text-primary-foreground" : "hover:bg-default"}`}
-            onMouseEnter={() => setSel(i)}
-            onClick={() => onOpen(n.id)}
-          >
-            <span className="font-medium">{n.title}</span>
-            <span className={`ml-2 text-xs ${i === sel ? "opacity-80" : "text-muted"}`}>{n.path}</span>
-          </li>
-        ))}
-        {list.length === 0 && q.trim() && (
-          <li>
-            <Button size="sm" variant="ghost" className="text-primary" onPress={() => onCreate(q.trim())}>
-              + Crear la nota “{q.trim()}”
-            </Button>
-          </li>
-        )}
-      </ul>
-      <p className="text-xs text-muted">↑ ↓ para moverte · Enter para abrir · Esc para cerrar</p>
     </Dialog>
   );
 }

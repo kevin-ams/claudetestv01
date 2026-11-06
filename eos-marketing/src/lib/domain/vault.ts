@@ -2,7 +2,16 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getAccess } from "@/lib/auth/access";
 import { orgAnchorTeam, orgTeamIds } from "./teams";
+import { createHash } from "node:crypto";
 import {
+  EMBED_DIM,
+  EMBED_MODEL,
+  chunkNote,
+  foldText,
+  searchTerms,
+  snippetAround,
+  type MeaningHit,
+  type TextHit,
   DEFAULT_TEMPLATES,
   TEMPLATE_FOLDER,
   extractTags,
@@ -191,6 +200,7 @@ export async function createNote(input: { vaultId: number; teamId: number; folde
   `) as { id: number }[];
   const id = Number(rows[0].id);
   await writeLinks(input.vaultId, id, input.content, await listEosEntities(input.teamId));
+  await indexText(id);
   await snapshot(id, input.userId, true);
   return id;
 }
@@ -259,6 +269,7 @@ export async function saveNote(input: {
   }
   const entities = await listEosEntities(input.teamId);
   await writeLinks(input.vaultId, input.id, input.content, entities);
+  await indexText(input.id);
   await snapshot(input.id, input.userId);
 
   // Renombrar: actualizar los enlaces de las notas que apuntaban al título o ruta anterior.
@@ -281,6 +292,7 @@ export async function saveNote(input: {
           WHERE id = ${n.id}
         `;
         await writeLinks(input.vaultId, Number(n.id), next, entities);
+        await indexText(Number(n.id));
         renamed++;
       }
     }
@@ -320,3 +332,174 @@ export async function findNoteByKey(vaultId: number, key: string): Promise<numbe
 }
 
 export { slugify };
+
+// --- Búsqueda de texto completo --------------------------------------------------------
+
+/** Actualiza el texto plegado (sin acentos) que usa el índice de búsqueda. */
+export async function indexText(noteId: number) {
+  const rows = (await db().sql`SELECT title, path, tags, content FROM vault_notes WHERE id = ${noteId}`) as { title: string; path: string; tags: unknown; content: string }[];
+  const n = rows[0];
+  if (!n) return;
+  const tags = (Array.isArray(n.tags) ? n.tags : String(n.tags ?? "").replace(/[{}"]/g, "").split(",")).join(" ");
+  await db().sql`
+    UPDATE vault_notes SET search_title = ${foldText(`${n.title} ${n.path.replace(/[/.-]/g, " ")}`)},
+      search_tags = ${foldText(tags)}, search_body = ${foldText(n.content)}
+    WHERE id = ${noteId}
+  `;
+}
+
+/** Notas sin texto indexado (creadas antes de la búsqueda): se indexan la primera vez. */
+async function ensureSearchIndex(vaultId: number) {
+  const missing = (await db().sql`SELECT id FROM vault_notes WHERE vault_id = ${vaultId} AND search_title IS NULL LIMIT 500`) as { id: number }[];
+  for (const m of missing) await indexText(Number(m.id));
+}
+
+/** Búsqueda por palabras (sin acentos, por prefijo); si no hay resultados con todas, con cualquiera. */
+export async function textSearch(vaultId: number, q: string, limit = 20): Promise<TextHit[]> {
+  const terms = searchTerms(q);
+  if (terms.length === 0) return [];
+  await ensureSearchIndex(vaultId);
+  const run = async (op: "&" | "|") => {
+    const tsq = terms.map((t) => `${t}:*`).join(` ${op} `);
+    return (await db().sql`
+      SELECT id, title, path, content, search_body, ts_rank(search_vec, to_tsquery('simple', ${tsq})) AS rank
+      FROM vault_notes
+      WHERE vault_id = ${vaultId} AND search_vec @@ to_tsquery('simple', ${tsq})
+      ORDER BY rank DESC, updated_at DESC
+      LIMIT ${limit}
+    `) as { id: number; title: string; path: string; content: string; search_body: string | null; rank: number }[];
+  };
+  let rows = await run("&");
+  if (rows.length === 0 && terms.length > 1) rows = await run("|");
+  return rows.map((r) => ({
+    id: Number(r.id),
+    title: r.title,
+    path: r.path,
+    rank: Number(r.rank),
+    snippet: snippetAround(r.content, r.search_body ?? foldText(r.content), terms),
+  }));
+}
+
+// --- Búsqueda por significado (vectores calculados en el navegador) ----------------------
+
+const hashChunk = (text: string) => createHash("sha1").update(`${EMBED_MODEL}\n${text}`).digest("hex");
+
+export type ChunkPlan = { version: number; chunks: { index: number; text: string; hash: string; need: boolean }[] };
+
+/** Fragmentos de la nota y cuáles necesitan vector (los que cambiaron). */
+export async function chunkPlan(vaultId: number, noteId: number): Promise<ChunkPlan | null> {
+  const rows = (await db().sql`SELECT title, content, version FROM vault_notes WHERE id = ${noteId} AND vault_id = ${vaultId}`) as {
+    title: string;
+    content: string;
+    version: number;
+  }[];
+  const n = rows[0];
+  if (!n) return null;
+  const have = (await db().sql`SELECT chunk_index, content_hash FROM vault_chunks WHERE note_id = ${noteId}`) as { chunk_index: number; content_hash: string }[];
+  const byIndex = new Map(have.map((h) => [Number(h.chunk_index), h.content_hash]));
+  return {
+    version: Number(n.version),
+    chunks: chunkNote(n.title, n.content).map((text, index) => {
+      const hash = hashChunk(text);
+      return { index, text, hash, need: byIndex.get(index) !== hash };
+    }),
+  };
+}
+
+function normalize(v: number[]): number[] {
+  const len = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+  return v.map((x) => x / len);
+}
+
+/**
+ * Guarda los vectores de los fragmentos que cambiaron y el vector promedio de la nota. Si la nota cambió
+ * mientras tanto (otra versión), no se guarda nada: se volverá a indexar.
+ */
+export async function storeChunks(vaultId: number, noteId: number, version: number, items: { index: number; embedding: number[] }[]): Promise<boolean> {
+  const plan = await chunkPlan(vaultId, noteId);
+  if (!plan || plan.version !== version) return false;
+  for (const it of items) {
+    const c = plan.chunks[it.index];
+    if (!c || it.embedding.length !== EMBED_DIM || !it.embedding.every(Number.isFinite)) continue;
+    await db().sql`
+      INSERT INTO vault_chunks (note_id, vault_id, chunk_index, text, content_hash, embedding)
+      VALUES (${noteId}, ${vaultId}, ${c.index}, ${c.text}, ${c.hash}, ${it.embedding}::real[])
+      ON CONFLICT (note_id, chunk_index) DO UPDATE SET text = EXCLUDED.text, content_hash = EXCLUDED.content_hash,
+        embedding = EXCLUDED.embedding, updated_at = NOW()
+    `;
+  }
+  await db().sql`DELETE FROM vault_chunks WHERE note_id = ${noteId} AND chunk_index >= ${plan.chunks.length}`;
+  const all = (await db().sql`SELECT content_hash, embedding FROM vault_chunks WHERE note_id = ${noteId}`) as { content_hash: string; embedding: unknown }[];
+  const valid = all.filter((r) => plan.chunks.some((c) => c.hash === r.content_hash));
+  if (valid.length < plan.chunks.length) return false; // faltan fragmentos
+  const vecs = valid.map((r) => (Array.isArray(r.embedding) ? r.embedding : String(r.embedding).replace(/[{}]/g, "").split(",")).map(Number));
+  const mean = normalize(Array.from({ length: EMBED_DIM }, (_, i) => vecs.reduce((s, v) => s + (v[i] ?? 0), 0) / vecs.length));
+  await db().sql`UPDATE vault_notes SET embedding = ${mean}::real[], embedded_version = ${version} WHERE id = ${noteId} AND version = ${version}`;
+  return true;
+}
+
+/** Notas cuyo vector no corresponde a su versión actual (nuevas o editadas). */
+export async function pendingEmbeds(vaultId: number): Promise<number[]> {
+  const rows = (await db().sql`
+    SELECT id FROM vault_notes WHERE vault_id = ${vaultId} AND (embedded_version IS NULL OR embedded_version <> version)
+      AND path NOT LIKE ${`${TEMPLATE_FOLDER}/%`}
+    ORDER BY updated_at DESC
+  `) as { id: number }[];
+  return rows.map((r) => Number(r.id));
+}
+
+export async function embedStats(vaultId: number): Promise<{ notes: number; indexed: number; chunks: number }> {
+  const rows = (await db().sql`
+    SELECT COUNT(*)::int AS notes, COUNT(*) FILTER (WHERE embedded_version = version)::int AS indexed,
+      (SELECT COUNT(*)::int FROM vault_chunks WHERE vault_id = ${vaultId}) AS chunks
+    FROM vault_notes WHERE vault_id = ${vaultId} AND path NOT LIKE ${`${TEMPLATE_FOLDER}/%`}
+  `) as { notes: number; indexed: number; chunks: number }[];
+  return rows[0] ?? { notes: 0, indexed: 0, chunks: 0 };
+}
+
+/** "Reindexar vault": borra todos los vectores para recalcularlos (p. ej. al cambiar de modelo). */
+export async function resetEmbeddings(vaultId: number) {
+  await db().sql`DELETE FROM vault_chunks WHERE vault_id = ${vaultId}`;
+  await db().sql`UPDATE vault_notes SET embedding = NULL, embedded_version = NULL WHERE vault_id = ${vaultId}`;
+}
+
+function validVector(v: unknown): number[] | null {
+  return Array.isArray(v) && v.length === EMBED_DIM && v.every((x) => typeof x === "number" && Number.isFinite(x)) ? (v as number[]) : null;
+}
+
+/** Fragmentos más parecidos a la pregunta (similitud coseno; los vectores vienen normalizados). */
+export async function meaningSearch(vaultId: number, query: unknown, limit = 15): Promise<MeaningHit[]> {
+  const q = validVector(query);
+  if (!q) return [];
+  const rows = (await db().sql`
+    SELECT c.note_id, c.text, n.title, n.path,
+      (SELECT SUM(a * b) FROM unnest(c.embedding, ${q}::real[]) AS t(a, b)) AS score
+    FROM vault_chunks c JOIN vault_notes n ON n.id = c.note_id
+    WHERE c.vault_id = ${vaultId} AND n.path NOT LIKE ${`${TEMPLATE_FOLDER}/%`}
+    ORDER BY score DESC
+    LIMIT ${limit * 4}
+  `) as { note_id: number; text: string; title: string; path: string; score: number }[];
+  // e5 da similitudes altas a casi todo (~0,75–0,9): se dejan solo las cercanas a la mejor.
+  const top = rows.length ? Number(rows[0].score) : 0;
+  const best = new Map<number, MeaningHit>();
+  for (const r of rows) {
+    const id = Number(r.note_id);
+    if (best.has(id) || Number(r.score) < Math.max(0.78, top - 0.06)) continue;
+    const body = r.text.includes("\n") ? r.text.slice(r.text.indexOf("\n") + 1) : r.text;
+    best.set(id, { id, title: r.title, path: r.path, score: Number(r.score), snippet: body.length > 220 ? `${body.slice(0, 220)}…` : body });
+  }
+  return [...best.values()].slice(0, limit);
+}
+
+/** Las notas más parecidas a esta (por el vector promedio de cada nota). */
+export async function relatedByMeaning(vaultId: number, noteId: number, limit = 5): Promise<{ id: number; title: string; score: number }[]> {
+  const rows = (await db().sql`
+    SELECT n.id, n.title, (SELECT SUM(a * b) FROM unnest(n.embedding, me.embedding) AS t(a, b)) AS score
+    FROM vault_notes n, (SELECT embedding FROM vault_notes WHERE id = ${noteId} AND vault_id = ${vaultId}) me
+    WHERE n.vault_id = ${vaultId} AND n.id <> ${noteId} AND n.embedding IS NOT NULL AND me.embedding IS NOT NULL
+      AND n.path NOT LIKE ${`${TEMPLATE_FOLDER}/%`}
+    ORDER BY score DESC
+    LIMIT ${limit}
+  `) as { id: number; title: string; score: number }[];
+  return rows.map((r) => ({ id: Number(r.id), title: r.title, score: Number(r.score) }));
+}
