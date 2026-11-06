@@ -44,8 +44,16 @@ export async function startNewMeetingAction() {
 }
 
 /** Ir a cualquier sección de la L10 en curso (siguiente, anterior o una de la barra). */
+/** La sección (la vista de todos) solo la cambia quien dirige; si nadie dirige, cualquiera. */
+function assertDrives(meeting: { leader_id: number | null }, userId: number) {
+  if (meeting.leader_id !== null && meeting.leader_id !== userId) {
+    throw new Error("Solo quien dirige la reunión puede cambiar de sección o finalizarla");
+  }
+}
+
 export async function advanceSegmentAction(meetingId: number, segmentKey: string) {
-  const { meeting } = await teamMeeting(meetingId);
+  const { session, meeting } = await teamMeeting(meetingId);
+  assertDrives(meeting, session.userId);
   const target = segmentIndex(segmentKey);
   if (target < 0 || meeting.status === "completed") return;
   const reached = Math.max(target, segmentIndex(meeting.furthest_segment ?? meeting.current_segment));
@@ -71,7 +79,8 @@ export async function rateMeetingAction(meetingId: number, rating: number) {
 }
 
 export async function completeMeetingAction(meetingId: number) {
-  const session = await requireModule("meeting");
+  const { session, meeting } = await teamMeeting(meetingId);
+  assertDrives(meeting, session.userId);
   await completeMeeting(meetingId);
   // Los eventos pendientes quedan como leídos en esta reunión.
   const finished = await getMeeting(meetingId);
@@ -90,6 +99,9 @@ export async function completeMeetingAction(meetingId: number) {
 export async function discardMeetingAction(meetingId: number): Promise<{ ok: boolean; message: string }> {
   const { session, meeting } = await teamMeeting(meetingId);
   if (meeting.status === "completed") return { ok: false, message: "Una reunión terminada no se puede descartar." };
+  if (meeting.leader_id !== null && meeting.leader_id !== session.userId && !(await getAccess())?.isAdmin) {
+    return { ok: false, message: "Solo quien dirige la reunión o un administrador puede descartarla." };
+  }
   await discardMeeting(meetingId, session.teamId);
   await logActivity(session, "meeting", "Descartó reunión L10", `Reunión #${meetingId} (iniciada por error)`);
   revalidatePath("/meeting", "layout");

@@ -177,6 +177,13 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 - **L10 en curso: navegación libre** — la barra de secciones es clicable (ir a cualquiera) y hay botón "Anterior". Se
   guarda la sección más avanzada (`meetings.furthest_segment`) para que las ya vistas sigan marcadas al regresar. El
   cronómetro de la sección se reinicia al entrar y se detiene al finalizar la reunión.
+- **L10: quien dirige controla la vista** — solo quien dirige (o cualquiera si nadie dirige) cambia de sección, regresa o
+  finaliza; los demás ven la barra deshabilitada con el aviso "Dirige X" y se actualizan cada ~5 s. Un administrador
+  puede cambiar quién dirige y descartar la reunión. El servidor también lo valida.
+- **Reportes semanales › Agenda del equipo** — sección opcional en Planificación y Fin de semana: la nota de cada
+  persona de esa semana (con enlaces clicables), su semáforo, fecha e Issue ligado.
+- **Análisis › Exportar PDF** — se eligen las secciones y se guarda en A4 horizontal (mismo exportador que el
+  Dashboard AC, en `src/components/export-pdf.tsx`).
 - **Iniciar / descartar la L10**: "Iniciar reunión" pide confirmación. Al final de la página de una L10 en curso está
   "Descartar reunión (no guardar)": borra la reunión sin dejar historial, resumen ni registro en reportes (para inicios
   por error). Los To-Dos/Issues capturados se conservan y los eventos vuelven a quedar pendientes.

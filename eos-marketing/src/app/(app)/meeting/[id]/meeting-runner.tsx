@@ -469,14 +469,18 @@ export function MeetingRunner({
   const [navigating, startNav] = useTransition();
   const [discarding, setDiscarding] = useState(false);
   const [discardPending, startDiscard] = useTransition();
-  const goTo = (key: string) => startNav(() => advanceSegmentAction(meeting.id, key));
+  // Solo quien dirige cambia la sección de todos; los demás siguen su vista.
+  const drives = meeting.leader_id === null || meeting.leader_id === session.userId;
+  const leaderName = members.find((m) => m.id === meeting.leader_id)?.name ?? "quien dirige";
+  const goTo = (key: string) => drives && startNav(() => advanceSegmentAction(meeting.id, key));
   const [toast, setToast] = useState<string | null>(null);
   const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
 
   useEffect(() => {
-    const t = setInterval(() => router.refresh(), 15000);
+    // Quien sigue la reunión se actualiza más seguido para ver el cambio de sección casi al instante.
+    const t = setInterval(() => router.refresh(), drives ? 15000 : 5000);
     return () => clearInterval(t);
-  }, [router]);
+  }, [router, drives]);
 
   const totalMinutes = useMemo(
     () => L10_AGENDA.reduce((a, s) => a + s.minutes, 0),
@@ -521,22 +525,29 @@ export function MeetingRunner({
         </p>
       </div>
 
-      {/* Barra de secciones: se puede ir a cualquiera (adelante o atrás) con la reunión en curso. */}
+      {/* Barra de secciones: quien dirige puede ir a cualquiera (adelante o atrás); los demás la ven. */}
+      {!drives && (
+        <p className="mb-2 text-xs text-muted" role="status">
+          Dirige {leaderName}: la sección cambia para todos cuando {leaderName} avanza.
+        </p>
+      )}
       <nav aria-label="Secciones de la reunión" className="mb-6 flex flex-wrap gap-2 overflow-x-auto">
         {L10_AGENDA.map((s, i) => (
           <button
             key={s.key}
             type="button"
             aria-current={i === idx ? "step" : undefined}
-            disabled={navigating}
-            title={i === idx ? "Sección actual" : `Ir a ${s.label}`}
+            disabled={navigating || !drives}
+            title={i === idx ? "Sección actual" : drives ? `Ir a ${s.label}` : `Solo ${leaderName} cambia de sección`}
             onClick={() => i !== idx && goTo(s.key)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-60 ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+              drives ? "disabled:opacity-60" : "cursor-default"
+            } ${
               i === idx
                 ? "bg-primary text-primary-foreground"
                 : i <= furthest
-                ? "bg-green-bg text-green hover:ring-1 hover:ring-green"
-                : "bg-card border border-border text-muted hover:border-primary hover:text-foreground"
+                ? `bg-green-bg text-green ${drives ? "hover:ring-1 hover:ring-green" : ""}`
+                : `bg-card border border-border text-muted ${drives ? "hover:border-primary hover:text-foreground" : ""}`
             }`}
           >
             {i !== idx && i <= furthest && <Check width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden />}
@@ -558,12 +569,12 @@ export function MeetingRunner({
           >
             {formatClock(remaining)}
           </span>
-          {idx > 0 && (
+          {drives && idx > 0 && (
             <Button variant="outline" isDisabled={navigating} onPress={() => goTo(L10_AGENDA[idx - 1].key)}>
               <ArrowLeft aria-hidden /> Anterior
             </Button>
           )}
-          {upcoming ? (
+          {!drives ? null : upcoming ? (
             <Button variant="primary"
               isDisabled={navigating}
               onPress={() => goTo(upcoming.key)}
@@ -763,12 +774,14 @@ export function MeetingRunner({
         )}
       </div>
       {/* Al final: descartar una L10 iniciada por error (no deja registro). */}
-      <div className="mb-8 flex flex-col items-center gap-1 border-t border-border pt-6 text-center">
-        <Button size="sm" variant="ghost" className="text-red" onPress={() => setDiscarding(true)}>
-          Descartar reunión (no guardar)
-        </Button>
-        <p className="text-xs text-muted">Por si se inició por error: se borra sin quedar en el historial ni en los reportes.</p>
-      </div>
+      {canLead && (
+        <div className="mb-8 flex flex-col items-center gap-1 border-t border-border pt-6 text-center">
+          <Button size="sm" variant="ghost" className="text-red" onPress={() => setDiscarding(true)}>
+            Descartar reunión (no guardar)
+          </Button>
+          <p className="text-xs text-muted">Por si se inició por error: se borra sin quedar en el historial ni en los reportes.</p>
+        </div>
+      )}
       {discarding && (
         <ConfirmDialog
           title="¿Descartar esta reunión?"

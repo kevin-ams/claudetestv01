@@ -1,6 +1,7 @@
 "use client";
 
 import { Segmented } from "@/components/ui/segmented";
+import { ExportPdf, type PrintSection } from "@/components/export-pdf";
 import { Button, Card, Input } from "@heroui/react";
 import { AppSelect } from "@/components/ui/select";
 import { useState, type ReactNode } from "react";
@@ -90,21 +91,24 @@ function ChartCard({
   subtitle,
   table,
   children,
+  section,
 }: {
   title: string;
   subtitle?: string;
   table: { columns: string[]; rows: (string | number)[][] };
   children: ReactNode;
+  /** Id de la sección para elegirla al exportar el PDF. */
+  section: string;
 }) {
   const [asTable, setAsTable] = useState(false);
   return (
-    <section className="card card--default flex flex-col gap-2 p-4">
+    <section data-section={section} className="card card--default flex flex-col gap-2 p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="font-semibold">{title}</h2>
           {subtitle && <p className="text-xs text-muted">{subtitle}</p>}
         </div>
-        <Button size="sm" variant="ghost" className="text-xs text-primary" onPress={() => setAsTable((v) => !v)}>
+        <Button size="sm" variant="ghost" className="text-xs text-primary" data-print-hide onPress={() => setAsTable((v) => !v)}>
           {asTable ? "Ver gráfica" : "Ver tabla"}
         </Button>
       </div>
@@ -158,6 +162,18 @@ const PRESETS = [
   { weeks: 52, label: "1 año" },
 ];
 
+const PRINT_ROOT = "analisis-print";
+const PRINT_SECTIONS: PrintSection[] = [
+  { id: "kpis", label: "Resumen del período" },
+  { id: "leads", label: "Leads por semana" },
+  { id: "consumo", label: "Consumo de presupuesto" },
+  { id: "cpl", label: "Costo por lead" },
+  { id: "responsable", label: "Leads por responsable" },
+  { id: "programa", label: "Leads por programa" },
+  { id: "scorecard", label: "Scorecard: tendencia" },
+  { id: "brecha", label: "Carreras más lejos de su meta" },
+];
+
 export function AnalysisBoard({
   from,
   to,
@@ -172,6 +188,7 @@ export function AnalysisBoard({
   scorecard: Scorecard;
 }) {
   const router = useRouter();
+  const [printing, setPrinting] = useState(false);
   const [program, setProgram] = useState("");
   const [owner, setOwner] = useState("");
   const [level, setLevel] = useState("");
@@ -251,10 +268,32 @@ export function AnalysisBoard({
     rows: weekly.map((d) => [d.week, num(d.leads), num(d.leadsGoal)]),
   };
 
+  const filtersText =
+    [
+      program && `Programa: ${program}`,
+      owner && `Responsable: ${ownerName(Number(owner))}`,
+      level && `Nivel: ${level}`,
+      career && `Carrera: ${careerLabel(history.careers.find((c) => String(c.id) === career)!)}`,
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Sin filtros";
+
   return (
-    <div className="flex flex-col gap-4">
+    <div
+      id={PRINT_ROOT}
+      className="flex flex-col gap-4"
+      // Al imprimir, el tablero toma el ancho de una hoja A4 horizontal para que las gráficas quepan.
+      style={printing ? { width: 1040 } : undefined}
+    >
+      {/* Encabezado que solo aparece en el PDF */}
+      <div data-print-only className="hidden">
+        <h1 className="text-xl font-bold">Análisis</h1>
+        <p className="text-sm text-muted">
+          {formatWeekLabel(history.weeks[0] ?? from)} a {formatWeekLabel(history.weeks.at(-1) ?? to)} ({history.weeks.length} semanas) · {filtersText}
+        </p>
+      </div>
       {/* Filtros: una sola fila arriba de las gráficas */}
-      <Card className="flex flex-row flex-wrap items-center gap-2 p-3">
+      <Card className="flex flex-row flex-wrap items-center gap-2 p-3" data-print-hide>
         <Segmented
           aria-label="Periodo"
           className="max-w-full overflow-x-auto"
@@ -310,9 +349,12 @@ export function AnalysisBoard({
               </option>
             ))}
         </AppSelect>
+        <div className="ml-auto">
+          <ExportPdf rootId={PRINT_ROOT} sections={PRINT_SECTIONS} onPrintingChange={setPrinting} />
+        </div>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div data-section="kpis" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Leads del período" value={num(total.leads)} detail={`Meta ${num(Math.round(total.leadsGoal))} · ${pct(total.leads, total.leadsGoal)}`} />
         <Stat label="Consumo del período" value={money(total.spent)} detail={`Plan ${money(total.budgetGoal)} · ${pct(total.spent, total.budgetGoal)}`} />
         <Stat label="Costo por lead" value={total.leads ? money(total.spent / total.leads) : "—"} />
@@ -322,8 +364,8 @@ export function AnalysisBoard({
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartCard title="Leads por semana" subtitle="Leads recibidos contra la meta de cada semana" table={leadsTable}>
+      <div className={`grid gap-4 ${printing ? "grid-cols-2" : "lg:grid-cols-2"}`}>
+        <ChartCard section="leads" title="Leads por semana" subtitle="Leads recibidos contra la meta de cada semana" table={leadsTable}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={weekly} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid vertical={false} stroke={C.grid} />
@@ -338,7 +380,7 @@ export function AnalysisBoard({
         </ChartCard>
 
         <ChartCard
-          title="Consumo de presupuesto por semana"
+          section="consumo" title="Consumo de presupuesto por semana"
           subtitle="Importe gastado contra el presupuesto de cada semana (US$)"
           table={{ columns: ["Semana", "Consumo", "Presupuesto"], rows: weekly.map((d) => [d.week, money(d.spent), money(d.budget)]) }}
         >
@@ -356,7 +398,7 @@ export function AnalysisBoard({
         </ChartCard>
 
         <ChartCard
-          title="Costo por lead"
+          section="cpl" title="Costo por lead"
           subtitle="Consumo de la semana entre leads recibidos (US$)"
           table={{ columns: ["Semana", "Costo por lead"], rows: weekly.map((d) => [d.week, money(d.cpl)]) }}
         >
@@ -372,7 +414,7 @@ export function AnalysisBoard({
         </ChartCard>
 
         <ChartCard
-          title="Leads por responsable"
+          section="responsable" title="Leads por responsable"
           subtitle="Total del período contra la meta acumulada"
           table={{ columns: ["Responsable", "Leads", "Meta"], rows: byOwner.map((d) => [d.name, num(d.leads), num(d.leadsGoal)]) }}
         >
@@ -390,7 +432,7 @@ export function AnalysisBoard({
         </ChartCard>
 
         <ChartCard
-          title="Leads por programa"
+          section="programa" title="Leads por programa"
           subtitle="Total del período, los 10 con más leads (la tabla trae todos)"
           table={{ columns: ["Programa", "Leads"], rows: programTotals.map((d) => [d.name, num(d.leads)]) }}
         >
@@ -406,7 +448,7 @@ export function AnalysisBoard({
         </ChartCard>
 
         <ChartCard
-          title="Scorecard: tendencia de un indicador"
+          section="scorecard" title="Scorecard: tendencia de un indicador"
           subtitle={metric ? `${metric.name}${scTarget !== null ? ` · meta ${scTarget}` : ""}` : "Sin indicadores configurados"}
           table={{ columns: ["Semana", "Valor"], rows: scSeries.map((d) => [d.week, d.value ?? "—"]) }}
         >
@@ -451,7 +493,7 @@ export function AnalysisBoard({
         </ChartCard>
       </div>
 
-      <section className="card card--default block gap-0 p-4">
+      <section data-section="brecha" className="card card--default block gap-0 p-4">
         <h2 className="font-semibold">Carreras más lejos de su meta de leads</h2>
         <p className="mb-2 text-xs text-muted">Acumulado del período, solo carreras con meta.</p>
         {gaps.length === 0 ? (

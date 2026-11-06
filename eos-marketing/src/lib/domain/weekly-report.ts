@@ -322,6 +322,45 @@ async function l10Section(c: Ctx) {
   ].join("");
 }
 
+/** Texto con saltos de línea y enlaces (http/https) clicables. */
+function richText(text: string) {
+  return e(text)
+    .replace(/https?:\/\/[^\s<]+/g, (url) => `<a href="${url}" style="color:#2563eb">${url.length > 60 ? `${url.slice(0, 57)}…` : url}</a>`)
+    .replace(/\n/g, "<br>");
+}
+
+async function agendaSection(c: Ctx) {
+  const rows = (await db().sql`
+    SELECT u.name AS user_name, a.detail AS note, a.status, to_char(a.due_date, 'YYYY-MM-DD') AS due_date, i.title AS issue_title
+    FROM team_agenda a
+    JOIN users u ON u.id = a.user_id
+    LEFT JOIN issues i ON i.id = a.issue_id
+    WHERE a.team_id = ${c.teamId} AND a.week_start = ${c.week}::date
+    ORDER BY u.name ASC
+  `) as { user_name: string; note: string; status: string; due_date: string | null; issue_title: string | null }[];
+  if (rows.length === 0) return note("Nadie llenó su agenda para esta semana.");
+  const off = rows.filter((r) => r.status === "off_track").length;
+  return (
+    stats([
+      ["Notas", String(rows.length)],
+      ["En camino", String(rows.length - off)],
+      ["Fuera de camino", String(off)],
+    ]) +
+    table(
+      ["Persona", "Agenda de la semana", "Estado"],
+      rows.map((r) => {
+        const text = r.note.length > 1500 ? `${r.note.slice(0, 1500)}…` : r.note;
+        const extra = [r.due_date ? `Fecha: ${e(formatShortDate(r.due_date))}` : "", r.issue_title ? `Issue: ${e(r.issue_title)}` : ""].filter(Boolean).join(" · ");
+        return [
+          `<b>${e(r.user_name)}</b>`,
+          `${text.trim() ? richText(text) : '<span style="color:#9ca3af">Sin nota</span>'}${extra ? `<br><span style="color:#4b5563;font-size:12px">${extra}</span>` : ""}`,
+          r.status === "off_track" ? badge("Fuera de camino", "red") : badge("En camino", "green"),
+        ];
+      }),
+    )
+  );
+}
+
 async function eventosSection(c: Ctx) {
   const rows = (await db().sql`
     SELECT e.title, e.detail, to_char(e.event_date, 'YYYY-MM-DD') AS event_date,
@@ -522,6 +561,7 @@ const BUILDERS: Record<ReportSection, (c: Ctx) => Promise<string>> = {
   coberturas: coberturasSection,
   scorecard: scorecardSection,
   l10: l10Section,
+  agenda: agendaSection,
   eventos: eventosSection,
   indicadores: indicadoresSection,
   rocks: rocksSection,

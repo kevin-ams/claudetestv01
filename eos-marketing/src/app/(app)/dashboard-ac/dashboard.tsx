@@ -34,7 +34,7 @@ import {
   type TimelineUnit,
 } from "@/lib/domain/deals-shared";
 import { DealsTable } from "./deals-table";
-import { ExportPdf, type PrintSection } from "./export-pdf";
+import { ExportPdf, type PrintSection } from "@/components/export-pdf";
 import { BarList, COL, DimTable, FunnelChart, Kpi, MultiFilter, SERIES, Section, StackLegend, TimelineChart, type Column } from "./parts";
 
 const ROOT_ID = "dashboard-ac";

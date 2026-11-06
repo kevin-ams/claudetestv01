@@ -53,6 +53,13 @@ export const REPORT_SECTIONS = [
     module: "meeting",
   },
   {
+    key: "agenda",
+    label: "Agenda del equipo",
+    hint: "La nota de cada persona para la semana, con su semáforo",
+    hintCierre: "La nota de cada persona de la semana y cómo terminó (semáforo)",
+    module: "meeting",
+  },
+  {
     key: "eventos",
     label: "Eventos próximos",
     hint: "Eventos pendientes y con fecha desde esa semana",
