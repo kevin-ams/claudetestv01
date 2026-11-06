@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { lastClosedWeek, shiftWeek, currentQuarter } from "@/lib/utils/dates";
 import { addTeamMember } from "./users";
 import { ADMIN_ROLE } from "./roles";
-import { seedNewTeam } from "./teams";
+import { demoOrganizationId, seedNewTeam } from "./teams";
 import { seedMarketingTeam } from "./marketing-seed";
 import { listCareers } from "./careers";
 import { prorateWeeklyGoals } from "./careers-shared";
@@ -52,6 +52,7 @@ export async function deleteDemoFor(userId: number) {
     await removeTeamImages(t.id);
     await db().sql`DELETE FROM teams WHERE id = ${t.id}`;
   }
+  await db().sql`DELETE FROM organizations WHERE is_demo AND demo_owner_id = ${userId}`;
   // Usuarios ficticios que ya no pertenecen a ningún equipo.
   await db().sql`
     DELETE FROM users
@@ -63,9 +64,10 @@ export async function deleteDemoFor(userId: number) {
 /** Paso 1 de la demo: el equipo, sus personas y las carreras. Devuelve el id del equipo. */
 export async function createDemoTeam(userId: number, realTeamName: string): Promise<number> {
   await deleteDemoFor(userId);
+  const org = await demoOrganizationId(userId);
   const rows = (await db().sql`
-    INSERT INTO teams (name, is_demo, demo_owner_id)
-    VALUES (${`${realTeamName} · DEMO`}, TRUE, ${userId})
+    INSERT INTO teams (name, is_demo, demo_owner_id, organization_id)
+    VALUES (${`${realTeamName} · DEMO`}, TRUE, ${userId}, ${org})
     RETURNING id
   `) as { id: number }[];
   const teamId = rows[0].id;

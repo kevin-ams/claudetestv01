@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "prebuild": "node scripts/gen-migrations.mjs && node scripts/copy-pdf-worker.mjs",
+    "prebuild": "node scripts/gen-migrations.mjs && node scripts/copy-pdf-worker.mjs && node scripts/migrate.mjs",
+    "migrate": "node scripts/migrate.mjs",
     "predev": "node scripts/copy-pdf-worker.mjs",
     "test": "vitest run"
   },

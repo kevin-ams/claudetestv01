@@ -1,10 +1,15 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { Todo, TodoStatus } from "./types";
+import { asJson } from "@/lib/db-values";
+
+/** Cuántos To-Dos completados se cargan como máximo (los más recientes): la lista crece sin fin. */
+export const DONE_TODOS_LIMIT = 150;
 
 export async function listTodos(
   teamId: number,
-  status?: TodoStatus
+  status?: TodoStatus,
+  doneLimit = DONE_TODOS_LIMIT
 ): Promise<Todo[]> {
   const rows = (await db().sql`
     SELECT t.*, ft.name AS from_team_name, su.name AS sent_by_name,
@@ -16,9 +21,13 @@ export async function listTodos(
     LEFT JOIN teams ft ON ft.id = t.from_team_id
     LEFT JOIN users su ON su.id = t.sent_by
     WHERE t.team_id = ${teamId} AND (${status ?? null}::text IS NULL OR t.status = ${status ?? null})
+      AND (t.status <> 'done' OR t.id IN (
+        SELECT d.id FROM todos d WHERE d.team_id = ${teamId} AND d.status = 'done'
+        ORDER BY d.done_at DESC NULLS LAST, d.id DESC LIMIT ${doneLimit}
+      ))
     ORDER BY t.status ASC, t.due_date ASC NULLS LAST, t.id DESC
   `) as Todo[];
-  return rows.map((r) => ({ ...r, sent_to: typeof r.sent_to === "string" ? JSON.parse(r.sent_to) : r.sent_to }));
+  return rows.map((r) => ({ ...r, sent_to: asJson<Todo["sent_to"]>(r.sent_to, undefined) }));
 }
 
 /**

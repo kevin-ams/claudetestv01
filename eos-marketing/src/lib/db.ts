@@ -13,8 +13,18 @@ import type { PGlite } from "@electric-sql/pglite";
 
 type Row = Record<string, unknown>;
 type Statement = { text: string; params?: unknown[] };
+/** Consultas dentro de una transacción abierta con `db().transaction`. */
+export type Tx = {
+  sql: (strings: TemplateStringsArray, ...params: unknown[]) => Promise<Row[]>;
+  query: (text: string, params: unknown[]) => Promise<Row[]>;
+};
 type Db = {
   sql: (strings: TemplateStringsArray, ...params: unknown[]) => Promise<Row[]>;
+  /**
+   * Varios pasos que dependen entre sí, todo o nada: si `fn` lanza un error se deshace todo.
+   * Úsalo solo para operaciones de varias escrituras (en la nube abre una conexión aparte).
+   */
+  transaction: <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
   /** Consulta con texto y parámetros ($1, $2…), para inserciones en lote. */
   query: (text: string, params: unknown[]) => Promise<Row[]>;
   /** Varias sentencias en una sola transacción: o se aplican todas o ninguna. */
@@ -23,6 +33,7 @@ type Db = {
 type Backend = {
   query: (text: string, params: unknown[]) => Promise<Row[]>;
   batch: (statements: Statement[]) => Promise<void>;
+  transaction: <T>(fn: (query: (text: string, params: unknown[]) => Promise<Row[]>) => Promise<T>) => Promise<T>;
 };
 
 export const CLOUD_SCHEMA = "eos_marketing";
@@ -65,33 +76,18 @@ async function openCloud(connectionString: string): Promise<Backend> {
   };
   const http = neon(connectionString);
 
-  // Migraciones: una sola vez por arranque, con candado para que dos
-  // funciones que arrancan a la vez no las apliquen doble.
+  // Migraciones: normalmente ya las aplicó el deploy (scripts/migrate.mjs). Al arrancar solo se
+  // verifica la versión con una consulta ligera; si falta alguna (o no existe la tabla), se aplican
+  // aquí como respaldo, con candado para que dos funciones que arrancan a la vez no lo hagan doble.
   const { MIGRATIONS } = await import("./db-migrations.generated");
-  const pool = new Pool({ connectionString });
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query("SELECT pg_advisory_xact_lock(84210517)");
-    await client.query(`CREATE SCHEMA IF NOT EXISTS ${CLOUD_SCHEMA}`);
-    await client.query(`SET LOCAL search_path TO ${CLOUD_SCHEMA}`);
-    await client.query(
-      `CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`
-    );
-    const applied = new Set((await client.query<{ name: string }>(`SELECT name FROM _migrations`)).rows.map((r) => r.name));
-    for (const m of MIGRATIONS) {
-      if (applied.has(m.name)) continue;
-      await client.query(m.sql);
-      await client.query(`INSERT INTO _migrations (name) VALUES ($1)`, [m.name]);
-    }
-    await client.query("COMMIT");
-  } catch (e) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw e;
-  } finally {
-    client.release();
-    await pool.end().catch(() => {});
-  }
+  const upToDate = await http
+    .query(`SELECT name FROM ${CLOUD_SCHEMA}._migrations`)
+    .then((rows) => {
+      const applied = new Set((rows as { name: string }[]).map((r) => r.name));
+      return MIGRATIONS.every((m) => applied.has(m.name));
+    })
+    .catch(() => false);
+  if (!upToDate) await migrateCloud(connectionString, MIGRATIONS, Pool);
 
   return {
     async query(text, params) {
@@ -110,7 +106,59 @@ async function openCloud(connectionString: string): Promise<Backend> {
         ...statements.map((st) => http.query(st.text, st.params ?? [], { types: typeConfig })),
       ]);
     },
+    async transaction(fn) {
+      // Transacción interactiva: el driver HTTP no las permite, así que va por WebSocket (Pool).
+      const pool = new Pool({ connectionString });
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query(`SET LOCAL search_path TO ${CLOUD_SCHEMA}`);
+        const result = await fn(async (text, params) =>
+          (await client.query({ text, values: params as unknown[], types: typeConfig })).rows as Row[]
+        );
+        await client.query("COMMIT");
+        return result;
+      } catch (e) {
+        await client.query("ROLLBACK").catch(() => {});
+        throw e;
+      } finally {
+        client.release();
+        await pool.end().catch(() => {});
+      }
+    },
   };
+}
+
+
+async function migrateCloud(
+  connectionString: string,
+  migrations: { name: string; sql: string }[],
+  Pool: typeof import("@neondatabase/serverless").Pool
+) {
+  const pool = new Pool({ connectionString });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(84210517)");
+    await client.query(`CREATE SCHEMA IF NOT EXISTS ${CLOUD_SCHEMA}`);
+    await client.query(`SET LOCAL search_path TO ${CLOUD_SCHEMA}`);
+    await client.query(
+      `CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())`
+    );
+    const applied = new Set((await client.query<{ name: string }>(`SELECT name FROM _migrations`)).rows.map((r) => r.name));
+    for (const m of migrations) {
+      if (applied.has(m.name)) continue;
+      await client.query(m.sql);
+      await client.query(`INSERT INTO _migrations (name) VALUES ($1)`, [m.name]);
+    }
+    await client.query("COMMIT");
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+    await pool.end().catch(() => {});
+  }
 }
 
 // ---------------- PGlite (local) ----------------
@@ -168,6 +216,9 @@ async function openLocal(): Promise<Backend> {
         for (const st of statements) await tx.query(st.text, st.params ?? []);
       });
     },
+    async transaction(fn) {
+      return pg.transaction((tx) => fn(async (text, params) => (await tx.query<Row>(text, params)).rows));
+    },
   };
 }
 
@@ -202,6 +253,14 @@ const database: Db = {
   },
   async batch(statements) {
     return (await backend()).batch(statements);
+  },
+  async transaction(fn) {
+    return (await backend()).transaction((query) =>
+      fn({
+        sql: (strings, ...params) => query(toQuery(strings, params).text, params),
+        query,
+      })
+    );
   },
 };
 

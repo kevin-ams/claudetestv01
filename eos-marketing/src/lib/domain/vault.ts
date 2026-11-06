@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getAccess } from "@/lib/auth/access";
 import { orgAnchorTeam, orgTeamIds } from "./teams";
 import { createHash } from "node:crypto";
+import { asJson, asNumbers, asStrings } from "@/lib/db-values";
 import {
   EMBED_DIM,
   EMBED_MODEL,
@@ -61,11 +62,7 @@ const SUMMARY = `
   FROM vault_notes n
   LEFT JOIN users uu ON uu.id = n.updated_by`;
 
-function arr(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map(String);
-  if (typeof v === "string") return v.replace(/^\{|\}$/g, "").split(",").filter(Boolean).map((s) => s.replace(/^"|"$/g, ""));
-  return [];
-}
+const arr = asStrings;
 
 function toSummary(r: Record<string, unknown>): NoteSummary {
   return {
@@ -98,7 +95,7 @@ export async function getNote(vaultId: number, id: number): Promise<Note | null>
   return {
     ...toSummary(r),
     content: String(r.content ?? ""),
-    frontmatter: (typeof r.frontmatter === "string" ? JSON.parse(r.frontmatter) : r.frontmatter) ?? {},
+    frontmatter: asJson<Record<string, unknown>>(r.frontmatter, {}),
     version: Number(r.version),
     created_at: String(r.created_at),
     created_by_name: (r.created_by_name as string) ?? null,
@@ -166,19 +163,43 @@ export async function relatedNotesFor(kind: EosKind, ids: number[]): Promise<Rec
 
 // --- Escritura ------------------------------------------------------------------------
 
-async function writeLinks(vaultId: number, noteId: number, content: string, entities: EosEntity[]) {
-  await db().sql`DELETE FROM vault_links WHERE from_note_id = ${noteId}`;
+type Statement = { text: string; params?: unknown[] };
+
+/** Sentencias para reemplazar los enlaces salientes de una nota (van juntas en un lote atómico). */
+function linkStatements(vaultId: number, noteId: number, content: string, entities: EosEntity[]): Statement[] {
   const seen = new Set<string>();
+  const kinds: string[] = [];
+  const targets: string[] = [];
+  const labels: string[] = [];
+  const entityIds: (number | null)[] = [];
   for (const l of extractWikilinks(content)) {
     const target = l.kind === "note" ? normalizeKey(l.target) : `${l.kind}:${normalizeKey(l.ref)}`;
     if (seen.has(target)) continue;
     seen.add(target);
-    const entity = l.kind === "note" ? null : resolveEntity(entities, l.kind, l.ref);
-    await db().sql`
-      INSERT INTO vault_links (from_note_id, vault_id, kind, target, label, entity_id)
-      VALUES (${noteId}, ${vaultId}, ${l.kind}, ${target}, ${l.target}, ${entity?.id ?? null})
-    `;
+    kinds.push(l.kind);
+    targets.push(target);
+    labels.push(l.target);
+    entityIds.push(l.kind === "note" ? null : (resolveEntity(entities, l.kind, l.ref)?.id ?? null));
   }
+  const out: Statement[] = [{ text: "DELETE FROM vault_links WHERE from_note_id = $1", params: [noteId] }];
+  if (targets.length) {
+    out.push({
+      text: `INSERT INTO vault_links (from_note_id, vault_id, kind, target, label, entity_id)
+             SELECT $1, $2, k, t, l, e FROM unnest($3::text[], $4::text[], $5::text[], $6::int[]) AS x(k, t, l, e)`,
+      params: [noteId, vaultId, kinds, targets, labels, entityIds],
+    });
+  }
+  return out;
+}
+
+/** Entidades EOS para resolver [[rock:…]], etc.; solo se cargan si la nota las enlaza. */
+async function entitiesFor(teamId: number, ...contents: string[]): Promise<EosEntity[]> {
+  const needs = contents.some((c) => extractWikilinks(c).some((l) => l.kind !== "note"));
+  return needs ? listEosEntities(teamId) : [];
+}
+
+async function writeLinks(vaultId: number, noteId: number, content: string, entities: EosEntity[]) {
+  await db().batch(linkStatements(vaultId, noteId, content, entities));
 }
 
 /** Ruta libre: "carpeta/titulo.md", "carpeta/titulo-2.md"… */
@@ -202,7 +223,7 @@ export async function createNote(input: { vaultId: number; teamId: number; folde
     RETURNING id
   `) as { id: number }[];
   const id = Number(rows[0].id);
-  await writeLinks(input.vaultId, id, input.content, await listEosEntities(input.teamId));
+  await writeLinks(input.vaultId, id, input.content, await entitiesFor(input.teamId, input.content));
   await indexText(id);
   await snapshot(id, input.userId, true);
   return id;
@@ -270,7 +291,7 @@ export async function saveNote(input: {
       ? { ok: false, conflict: true, server: { version: now.version, content: now.content, title: now.title, updated_by_name: now.updated_by_name } }
       : { ok: false, conflict: false, message: "La nota ya no existe." };
   }
-  const entities = await listEosEntities(input.teamId);
+  let entities = await entitiesFor(input.teamId, input.content);
   await writeLinks(input.vaultId, input.id, input.content, entities);
   await indexText(input.id);
   await snapshot(input.id, input.userId);
@@ -290,11 +311,15 @@ export async function saveNote(input: {
       for (const n of linking) {
         const next = renameLinks(n.content, stale, input.title);
         if (next === n.content) continue;
-        await db().sql`
-          UPDATE vault_notes SET content = ${next}, version = version + 1, updated_at = NOW(), updated_by = ${input.userId}
-          WHERE id = ${n.id}
-        `;
-        await writeLinks(input.vaultId, Number(n.id), next, entities);
+        if (!entities.length) entities = await entitiesFor(input.teamId, next);
+        // Contenido y enlaces de la otra nota en un solo lote: o cambian ambos o ninguno.
+        await db().batch([
+          {
+            text: "UPDATE vault_notes SET content = $1, version = version + 1, updated_at = NOW(), updated_by = $2 WHERE id = $3 AND vault_id = $4",
+            params: [next, input.userId, n.id, input.vaultId],
+          },
+          ...linkStatements(input.vaultId, Number(n.id), next, entities),
+        ]);
         await indexText(Number(n.id));
         renamed++;
       }
@@ -421,21 +446,25 @@ function normalize(v: number[]): number[] {
 export async function storeChunks(vaultId: number, noteId: number, version: number, items: { index: number; embedding: number[] }[]): Promise<boolean> {
   const plan = await chunkPlan(vaultId, noteId);
   if (!plan || plan.version !== version) return false;
+  // Todos los fragmentos en un solo lote (una ida a la base, todo o nada).
+  const statements: Statement[] = [];
   for (const it of items) {
     const c = plan.chunks[it.index];
     if (!c || it.embedding.length !== EMBED_DIM || !it.embedding.every(Number.isFinite)) continue;
-    await db().sql`
-      INSERT INTO vault_chunks (note_id, vault_id, chunk_index, text, content_hash, embedding)
-      VALUES (${noteId}, ${vaultId}, ${c.index}, ${c.text}, ${c.hash}, ${it.embedding}::real[])
-      ON CONFLICT (note_id, chunk_index) DO UPDATE SET text = EXCLUDED.text, content_hash = EXCLUDED.content_hash,
-        embedding = EXCLUDED.embedding, updated_at = NOW()
-    `;
+    statements.push({
+      text: `INSERT INTO vault_chunks (note_id, vault_id, chunk_index, text, content_hash, embedding)
+             VALUES ($1, $2, $3, $4, $5, $6::real[])
+             ON CONFLICT (note_id, chunk_index) DO UPDATE SET text = EXCLUDED.text, content_hash = EXCLUDED.content_hash,
+               embedding = EXCLUDED.embedding, updated_at = NOW()`,
+      params: [noteId, vaultId, c.index, c.text, c.hash, it.embedding],
+    });
   }
-  await db().sql`DELETE FROM vault_chunks WHERE note_id = ${noteId} AND chunk_index >= ${plan.chunks.length}`;
+  statements.push({ text: "DELETE FROM vault_chunks WHERE note_id = $1 AND chunk_index >= $2", params: [noteId, plan.chunks.length] });
+  await db().batch(statements);
   const all = (await db().sql`SELECT content_hash, embedding FROM vault_chunks WHERE note_id = ${noteId}`) as { content_hash: string; embedding: unknown }[];
   const valid = all.filter((r) => plan.chunks.some((c) => c.hash === r.content_hash));
   if (valid.length < plan.chunks.length) return false; // faltan fragmentos
-  const vecs = valid.map((r) => (Array.isArray(r.embedding) ? r.embedding : String(r.embedding).replace(/[{}]/g, "").split(",")).map(Number));
+  const vecs = valid.map((r) => asNumbers(r.embedding));
   const mean = normalize(Array.from({ length: EMBED_DIM }, (_, i) => vecs.reduce((s, v) => s + (v[i] ?? 0), 0) / vecs.length));
   await db().sql`UPDATE vault_notes SET embedding = ${mean}::real[], embedded_version = ${version} WHERE id = ${noteId} AND version = ${version}`;
   return true;
@@ -518,7 +547,7 @@ export async function semanticEdges(vaultId: number, threshold = 0.8, perNote = 
     LIMIT 3000
   `) as { id: number; embedding: unknown }[];
   const ids = rows.map((r) => Number(r.id));
-  const vecs = rows.map((r) => Float32Array.from((Array.isArray(r.embedding) ? r.embedding : String(r.embedding).replace(/[{}]/g, "").split(",")).map(Number)));
+  const vecs = rows.map((r) => Float32Array.from(asNumbers(r.embedding)));
   const best: { j: number; s: number }[][] = ids.map(() => []);
   for (let i = 0; i < vecs.length; i++) {
     for (let j = i + 1; j < vecs.length; j++) {

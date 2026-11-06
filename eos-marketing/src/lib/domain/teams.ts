@@ -3,9 +3,31 @@ import { db } from "@/lib/db";
 import { storage } from "@/lib/storage";
 import type { Team } from "./types";
 
-export async function createTeam(name: string): Promise<Team> {
+/** Organización principal (la de los equipos reales); se crea con el primer equipo. */
+export async function mainOrganizationId(): Promise<number> {
+  const found = (await db().sql`SELECT id FROM organizations WHERE NOT is_demo ORDER BY id LIMIT 1`) as { id: number }[];
+  if (found[0]) return found[0].id;
+  const created = (await db().sql`
+    INSERT INTO organizations (name, plan) VALUES ('Organización principal', 'premium') RETURNING id
+  `) as { id: number }[];
+  return created[0].id;
+}
+
+/** Organización de demo de una persona (una por dueño). */
+export async function demoOrganizationId(ownerId: number): Promise<number> {
+  const rows = (await db().sql`
+    INSERT INTO organizations (name, is_demo, demo_owner_id) VALUES ('Demo', TRUE, ${ownerId})
+    ON CONFLICT (demo_owner_id) WHERE is_demo DO UPDATE SET name = organizations.name
+    RETURNING id
+  `) as { id: number }[];
+  return rows[0].id;
+}
+
+/** Crea un equipo en una organización (por omisión, la principal). */
+export async function createTeam(name: string, organizationId?: number): Promise<Team> {
+  const org = organizationId ?? (await mainOrganizationId());
   const rows = await db().sql`
-    INSERT INTO teams (name) VALUES (${name}) RETURNING *
+    INSERT INTO teams (name, organization_id) VALUES (${name}, ${org}) RETURNING *
   `;
   return rows[0] as Team;
 }
@@ -76,14 +98,24 @@ export async function teamReplyTo(teamId: number, fallback?: string): Promise<st
 
 // --- Organización: todos los equipos reales (cada demo es su propia organización) ---------------
 
-/** Equipos de la misma organización que `teamId` (incluido él). */
+/** Equipos de la misma organización que `teamId` (incluido él), del más antiguo al más nuevo. */
 export async function orgTeamIds(teamId: number): Promise<number[]> {
   const rows = (await db().sql`
-    SELECT t.id FROM teams t, teams me
-    WHERE me.id = ${teamId} AND t.is_demo = me.is_demo AND (NOT t.is_demo OR t.demo_owner_id = me.demo_owner_id)
+    SELECT t.id FROM teams t JOIN teams me ON me.organization_id = t.organization_id
+    WHERE me.id = ${teamId}
     ORDER BY t.id
   `) as { id: number }[];
-  return rows.map((r) => r.id);
+  return rows.length ? rows.map((r) => r.id) : [teamId];
+}
+
+export type Organization = { id: number; name: string; plan: "base" | "premium"; is_demo: boolean };
+
+/** Organización del equipo. */
+export async function getOrganization(teamId: number): Promise<Organization | null> {
+  const rows = (await db().sql`
+    SELECT o.id, o.name, o.plan, o.is_demo FROM organizations o JOIN teams t ON t.organization_id = o.id WHERE t.id = ${teamId}
+  `) as Organization[];
+  return rows[0] ?? null;
 }
 
 /** Equipo donde se guarda lo que es de toda la organización (V/TO): el primero creado. */

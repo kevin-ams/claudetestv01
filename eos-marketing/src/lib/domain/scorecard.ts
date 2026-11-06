@@ -269,19 +269,19 @@ export async function setMetricSharing(teamId: number, metricId: number, sharedA
   if (targets.length > 0) {
     await db().sql`
       INSERT INTO scorecard_metric_shares (metric_id, team_id)
-      SELECT ${metricId}, t.id FROM teams t WHERE t.id = ANY(${targets}::int[])
+      SELECT ${metricId}, t.id FROM teams t JOIN teams me ON me.id = ${teamId}
+      WHERE t.id = ANY(${targets}::int[]) AND t.organization_id = me.organization_id
       ON CONFLICT DO NOTHING
     `;
   }
   return true;
 }
 
-/** Otros equipos a los que se puede compartir (mismo tipo: real o demo). */
+/** Otros equipos de la misma organización (a los que se puede compartir o enviar). */
 export async function listShareableTeams(teamId: number) {
   const rows = await db().sql`
-    SELECT t.id, t.name FROM teams t, teams me
-    WHERE me.id = ${teamId} AND t.id <> me.id AND t.is_demo = me.is_demo
-      AND (NOT t.is_demo OR t.demo_owner_id = me.demo_owner_id)
+    SELECT t.id, t.name FROM teams t JOIN teams me ON me.organization_id = t.organization_id
+    WHERE me.id = ${teamId} AND t.id <> me.id
     ORDER BY t.name ASC
   `;
   return rows as { id: number; name: string }[];
@@ -307,8 +307,8 @@ export async function listSharedScorecards(teamId: number, weeks: string[]): Pro
     JOIN teams me ON me.id = ${teamId}
     LEFT JOIN scorecard_metric_shares s ON s.metric_id = m.id AND s.team_id = me.id
     WHERE m.team_id <> me.id AND m.archived = FALSE
-      AND (s.team_id IS NOT NULL OR (m.shared_all AND t.is_demo = me.is_demo
-        AND (NOT t.is_demo OR t.demo_owner_id = me.demo_owner_id)))
+      AND t.organization_id = me.organization_id
+      AND (s.team_id IS NOT NULL OR m.shared_all)
     ORDER BY t.name ASC, m.sort_order ASC, m.id ASC
   `) as (ScorecardMetric & { team_name: string })[];
   const byTeam = new Map<number, SharedScorecard>();

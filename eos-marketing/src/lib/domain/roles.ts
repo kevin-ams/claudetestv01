@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { isAccessLevel, MODULES, type Permissions } from "@/lib/auth/modules";
+import { asJson } from "@/lib/db-values";
 
 export type TeamRole = {
   id: number;
@@ -19,7 +20,7 @@ export const PREMIUM_ROLE = "Administrador Premium";
 const USER_DEFAULT: Permissions = { ajustes: "view" };
 
 function parsePermissions(value: unknown): Permissions {
-  const raw = typeof value === "string" ? JSON.parse(value) : (value ?? {});
+  const raw = asJson<Record<string, unknown>>(value, {});
   const out: Permissions = {};
   for (const m of MODULES) {
     const v = (raw as Record<string, unknown>)[m.key];

@@ -1,11 +1,17 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { Issue, IssueStatus, IssueTerm } from "./types";
+import { asJson } from "@/lib/db-values";
+
+/** Cuántos Issues resueltos se cargan como máximo (los más recientes). */
+export const SOLVED_ISSUES_LIMIT = 150;
 
 export async function listIssues(
   teamId: number,
   status: IssueStatus = "open"
 ): Promise<Issue[]> {
+  // Los abiertos se cargan todos (es la lista de trabajo); los resueltos, solo los más recientes.
+  const limit = status === "open" ? null : SOLVED_ISSUES_LIMIT;
   const rows = (await db().sql`
     SELECT i.*, ft.name AS from_team_name, su.name AS sent_by_name,
       COALESCE((
@@ -16,9 +22,12 @@ export async function listIssues(
     LEFT JOIN teams ft ON ft.id = i.from_team_id
     LEFT JOIN users su ON su.id = i.sent_by
     WHERE i.team_id = ${teamId} AND i.status = ${status}
-    ORDER BY i.top_rank ASC NULLS LAST, i.sort_order ASC, i.id ASC
+    ORDER BY
+      CASE WHEN ${limit}::int IS NULL THEN NULL ELSE i.solved_at END DESC NULLS LAST,
+      i.top_rank ASC NULLS LAST, i.sort_order ASC, i.id ASC
+    LIMIT ${limit}
   `) as Issue[];
-  return rows.map((r) => ({ ...r, sent_to: typeof r.sent_to === "string" ? JSON.parse(r.sent_to) : r.sent_to }));
+  return rows.map((r) => ({ ...r, sent_to: asJson<Issue["sent_to"]>(r.sent_to, undefined) }));
 }
 
 /**

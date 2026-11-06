@@ -16,6 +16,7 @@ export type Team = {
   name: string;
   created_at: string;
   is_demo: boolean;
+  organization_id: number | null;
   demo_owner_id: number | null;
   theme_color: string;
   logo_mime: string | null;

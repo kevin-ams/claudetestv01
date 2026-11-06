@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getSession, requireSession } from "./session";
 import type { SessionPayload } from "./token";
 import { allows, levelFor, MODULES, type AccessLevel, type ModuleKey, type Permissions } from "./modules";
+import { asJson } from "@/lib/db-values";
 
 export type Access = {
   session: SessionPayload;
@@ -36,7 +37,7 @@ async function loadAccess(session: SessionPayload): Promise<Access> {
     | { id: number | null; name: string | null; is_admin: boolean | null; is_premium: boolean | null; permissions: Permissions | string | null }
     | undefined;
   const permissions: Permissions =
-    typeof row?.permissions === "string" ? JSON.parse(row.permissions) : (row?.permissions ?? {});
+    asJson<Permissions>(row?.permissions, {});
   // Sin rol asignado: acceso de usuario con todo editable salvo los ajustes.
   const isAdmin = Boolean(row?.is_admin);
   const isPremium = Boolean(row?.is_premium);

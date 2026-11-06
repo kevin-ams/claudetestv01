@@ -131,3 +131,40 @@ describe("Organigrama", () => {
     expect((await db().sql`SELECT 1 FROM accountability_seats WHERE id = ${rows[0].id}`).length).toBe(1);
   });
 });
+
+describe("Organizaciones", () => {
+  it("compartir y enviar solo entre equipos de la misma organización", async () => {
+    const { demoOrg } = await import("./helpers");
+    const { listShareableTeams, setMetricSharing, listSharedScorecards } = await import("@/lib/domain/scorecard");
+    const { orgTeamIds, getOrganization } = await import("@/lib/domain/teams");
+    const other = await demoOrg("Demo ajena");
+    expect((await listShareableTeams(A)).map((t) => t.id)).toContain(B);
+    expect((await listShareableTeams(A)).map((t) => t.id)).not.toContain(other.team.id);
+    expect(await orgTeamIds(other.team.id)).toEqual([other.team.id]);
+    expect((await getOrganization(other.team.id))?.is_demo).toBe(true);
+    expect((await getOrganization(A))?.id).toBe((await getOrganization(B))?.id);
+
+    // Compartir explícitamente con un equipo de otra organización no tiene efecto.
+    const m = await createMetric({ teamId: A, name: "Compartido", predicts: "", direction: "higher_better", format: "count", aggregation: "sum" });
+    await setMetricSharing(A, m.id, false, [other.team.id, B]);
+    expect((await listSharedScorecards(other.team.id, ["2026-01-05"])).flatMap((s) => s.metrics.map((x) => x.id))).not.toContain(m.id);
+    expect((await listSharedScorecards(B, ["2026-01-05"])).flatMap((s) => s.metrics.map((x) => x.id))).toContain(m.id);
+  });
+});
+
+describe("Demo", () => {
+  it("crear la demo abre su propia organización y desactivarla la borra", async () => {
+    const { createDemoTeam, deleteDemoFor } = await import("@/lib/domain/demo");
+    const { getOrganization, orgTeamIds } = await import("@/lib/domain/teams");
+    const demoTeam = await createDemoTeam(userA, "Equipo A");
+    const org = await getOrganization(demoTeam);
+    expect(org?.is_demo).toBe(true);
+    expect(await orgTeamIds(demoTeam)).toEqual([demoTeam]);
+    expect(await orgTeamIds(A)).not.toContain(demoTeam);
+    // Regenerar reutiliza la organización de la persona.
+    const again = await createDemoTeam(userA, "Equipo A");
+    expect((await getOrganization(again))?.id).not.toBeUndefined();
+    await deleteDemoFor(userA);
+    expect(await db().sql`SELECT 1 FROM organizations WHERE is_demo AND demo_owner_id = ${userA}`).toHaveLength(0);
+  }, 60000);
+});

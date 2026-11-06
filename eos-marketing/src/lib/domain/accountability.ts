@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { Seat } from "./types";
 import { orgTeamIds } from "./teams";
+import { asJson, asNumbers } from "@/lib/db-values";
 
 // Organigrama de responsabilidades: uno para toda la organización (todos los equipos lo ven y editan).
 // Cada puesto puede tener varias personas (accountability_seat_people).
@@ -18,8 +19,8 @@ export async function listSeats(teamId: number): Promise<Seat[]> {
   `) as (Seat & { people: number[] | string })[];
   return rows.map((r) => ({
     ...r,
-    roles: typeof r.roles === "string" ? JSON.parse(r.roles) : r.roles,
-    people: typeof r.people === "string" ? JSON.parse(r.people) : r.people,
+    roles: asJson<Seat["roles"]>(r.roles, []),
+    people: asNumbers(r.people),
   }));
 }
 

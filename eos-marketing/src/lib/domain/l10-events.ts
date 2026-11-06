@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { weekStartISO } from "@/lib/utils/dates";
+import { asJson } from "@/lib/db-values";
 
 export type L10Event = {
   id: number;
@@ -59,7 +60,7 @@ async function list(f: Filter): Promise<L10Event[]> {
       e.week_from ASC NULLS FIRST, e.event_date ASC NULLS LAST, e.id ASC
     LIMIT ${limit}
   `) as L10Event[];
-  return rows.map((r) => ({ ...r, sent_to: typeof r.sent_to === "string" ? JSON.parse(r.sent_to) : r.sent_to }));
+  return rows.map((r) => ({ ...r, sent_to: asJson<L10Event["sent_to"]>(r.sent_to, []) }));
 }
 
 /**

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { ADMIN_ROLE, PREMIUM_ROLE, ensureTeamRoles } from "@/lib/domain/roles";
-import { createTeam } from "@/lib/domain/teams";
+import { createTeam, demoOrganizationId } from "@/lib/domain/teams";
 import { addTeamMember, createUser } from "@/lib/domain/users";
 
 let n = 0;
@@ -25,7 +25,8 @@ export async function realTeam(name: string) {
 export async function demoOrg(name: string) {
   const t = await realTeam(name);
   const owner = await person(t.id, PREMIUM_ROLE);
-  await db().sql`UPDATE teams SET is_demo = TRUE, demo_owner_id = ${owner.id} WHERE id = ${t.id}`;
+  const org = await demoOrganizationId(owner.id);
+  await db().sql`UPDATE teams SET is_demo = TRUE, demo_owner_id = ${owner.id}, organization_id = ${org} WHERE id = ${t.id}`;
   return { team: t, owner };
 }
 

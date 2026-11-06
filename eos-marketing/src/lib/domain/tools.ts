@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import type { Tool, ToolAccess, ToolKind } from "./tools-shared";
+import { asNumbers } from "@/lib/db-values";
 
 const SELECT = `
   SELECT t.id, t.team_id, t.name, t.description, t.category, t.kind, t.url, t.icon, t.access, t.active, t.sort_order,
@@ -11,8 +12,8 @@ const SELECT = `
 const parse = (rows: Record<string, unknown>[]): Tool[] =>
   rows.map((r) => ({
     ...(r as Tool),
-    role_ids: (typeof r.role_ids === "string" ? JSON.parse(r.role_ids) : r.role_ids) as number[],
-    user_ids: (typeof r.user_ids === "string" ? JSON.parse(r.user_ids) : r.user_ids) as number[],
+    role_ids: asNumbers(r.role_ids),
+    user_ids: asNumbers(r.user_ids),
   }));
 
 /** Todas las herramientas del equipo (para administrarlas). */
