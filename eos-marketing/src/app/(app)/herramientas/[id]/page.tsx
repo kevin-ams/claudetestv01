@@ -26,7 +26,7 @@ export default async function ToolPage({ params }: { params: Promise<{ id: strin
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-sm text-muted">
-            <Link href="/herramientas" className="text-primary underline">
+            <Link prefetch={false} href="/herramientas" className="text-primary underline">
               Otras herramientas
             </Link>{" "}
             / {tool.name}

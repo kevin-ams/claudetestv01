@@ -14,7 +14,7 @@ export default function RecuperarPage() {
           <RecoverForm />
         </Card.Content>
         <Card.Footer className="text-xs text-muted">
-          <Link href="/login" className="font-medium text-primary underline">
+          <Link prefetch={false} href="/login" className="font-medium text-primary underline">
             Volver a iniciar sesión
           </Link>
         </Card.Footer>

@@ -41,17 +41,17 @@ export default async function CoberturasPage({ searchParams }: PageProps<"/cober
         </div>
         <div className="flex items-center gap-2">
           {!all && (
-            <Link className={nav} href={`/coberturas?mes=${shiftMonth(month, -1)}`} aria-label="Mes anterior">
+            <Link prefetch={false} className={nav} href={`/coberturas?mes=${shiftMonth(month, -1)}`} aria-label="Mes anterior">
               ‹
             </Link>
           )}
           <span className="min-w-36 text-center font-semibold capitalize">{all ? "Todo el registro" : formatMonth(month)}</span>
           {!all && (
-            <Link className={nav} href={`/coberturas?mes=${shiftMonth(month, 1)}`} aria-label="Mes siguiente">
+            <Link prefetch={false} className={nav} href={`/coberturas?mes=${shiftMonth(month, 1)}`} aria-label="Mes siguiente">
               ›
             </Link>
           )}
-          <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href={all ? "/coberturas" : "/coberturas?mes=todo"}>
+          <Link prefetch={false} className={buttonVariants({ variant: "ghost", size: "sm" })} href={all ? "/coberturas" : "/coberturas?mes=todo"}>
             {all ? "Por mes" : "Ver todo"}
           </Link>
         </div>

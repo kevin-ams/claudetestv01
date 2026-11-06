@@ -55,7 +55,7 @@ export default async function TeamSettingsPage() {
       <Card className="block gap-0 mb-6 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-bold uppercase tracking-wide text-muted">Miembros ({members.length})</h2>
-          <Link href="/ajustes/roles" className="text-sm text-primary underline">
+          <Link prefetch={false} href="/ajustes/roles" className="text-sm text-primary underline">
             Configurar roles y accesos
           </Link>
         </div>

@@ -274,7 +274,7 @@ export default async function VTOPage() {
               Los Rocks de la organización y de cada persona viven en su propio
               módulo, conectados a este mismo equipo.
             </p>
-            <Link href="/rocks" className={`${buttonVariants({ variant: "outline" })} mt-3`}>
+            <Link prefetch={false} href="/rocks" className={`${buttonVariants({ variant: "outline" })} mt-3`}>
               Ir a Rocks <ArrowRight aria-hidden />
             </Link>
           </Card>

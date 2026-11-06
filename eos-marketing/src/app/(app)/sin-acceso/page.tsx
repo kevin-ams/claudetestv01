@@ -21,7 +21,7 @@ export default async function NoAccessPage({ searchParams }: PageProps<"/sin-acc
         Si lo necesitas, pídele a un administrador que lo habilite en Ajustes › Roles y accesos.
       </p>
       {home !== "/sin-acceso" && (
-        <Link href={home} className={`${buttonVariants({ variant: "primary" })} mt-6 inline-flex`}>
+        <Link prefetch={false} href={home} className={`${buttonVariants({ variant: "primary" })} mt-6 inline-flex`}>
           Ir a una sección disponible
         </Link>
       )}

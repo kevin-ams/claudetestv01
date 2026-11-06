@@ -163,7 +163,7 @@ export function CoverageBoard({
       {editable && (
         <p className="text-xs text-muted">
           Las listas de facultades, tipos, estados y paquetes se editan en{" "}
-          <Link href="/ajustes/listas" className="text-primary underline">
+          <Link prefetch={false} href="/ajustes/listas" className="text-primary underline">
             Ajustes › Listas de contenido
           </Link>
           .

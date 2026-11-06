@@ -31,14 +31,14 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             </p>
           )}
           <LoginForm />
-          <Link href="/recuperar" className="mt-3 inline-block text-sm text-primary underline">
+          <Link prefetch={false} href="/recuperar" className="mt-3 inline-block text-sm text-primary underline">
             ¿Olvidaste tu contraseña?
           </Link>
         </Card.Content>
         <Card.Footer className="text-xs text-muted">
           <span>
             ¿Primera vez usando la app?{" "}
-            <Link href="/setup" className="font-medium text-primary underline">
+            <Link prefetch={false} href="/setup" className="font-medium text-primary underline">
               Configura tu equipo
             </Link>
           </span>

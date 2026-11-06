@@ -69,13 +69,13 @@ export default async function RocksPage({
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Link href={quarterHref(prev.quarter, prev.year)} className={buttonVariants({ variant: "outline" })}>
+          <Link prefetch={false} href={quarterHref(prev.quarter, prev.year)} className={buttonVariants({ variant: "outline" })}>
             <ArrowLeft aria-hidden /> Q{prev.quarter} {prev.year}
           </Link>
           <span className="font-semibold">
             Q{quarter} {year}
           </span>
-          <Link href={quarterHref(next.quarter, next.year)} className={buttonVariants({ variant: "outline" })}>
+          <Link prefetch={false} href={quarterHref(next.quarter, next.year)} className={buttonVariants({ variant: "outline" })}>
             Q{next.quarter} {next.year} <ArrowRight aria-hidden />
           </Link>
         </div>

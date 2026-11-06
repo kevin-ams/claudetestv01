@@ -27,7 +27,7 @@ function StatCard({
   tone?: "red" | "green";
 }) {
   return (
-    <Link href={href} className="card card--default flex flex-col gap-1 p-5 hover:border-primary">
+    <Link prefetch={false} href={href} className="card card--default flex flex-col gap-1 p-5 hover:border-primary">
       <span className="text-xs font-semibold uppercase tracking-wide text-muted">
         {label}
       </span>
@@ -103,7 +103,7 @@ export default async function DashboardPage() {
       </div>
 
       {activeMeeting && (
-        <Link
+        <Link prefetch={false}
           href={`/meeting/${activeMeeting.id}`}
           className="card card--default gap-0 mb-6 flex flex-row items-center justify-between border-primary bg-primary/5 p-4"
         >

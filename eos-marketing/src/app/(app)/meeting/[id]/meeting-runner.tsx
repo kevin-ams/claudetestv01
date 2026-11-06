@@ -37,6 +37,7 @@ import {
   rateMeetingAction,
   completeMeetingAction,
   discardMeetingAction,
+  meetingPulseAction,
   saveCascadeNotesAction,
   setAttendanceAction,
   setMeetingLeaderAction,
@@ -477,10 +478,27 @@ export function MeetingRunner({
   const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
 
   useEffect(() => {
-    // Quien sigue la reunión se actualiza más seguido para ver el cambio de sección casi al instante.
-    const t = setInterval(() => router.refresh(), drives ? 15000 : 5000);
+    // Sincronización liviana: cada pocos segundos se pide solo una "huella" de la reunión (una consulta)
+    // y la página se recarga completa únicamente si algo cambió. Con la pestaña oculta no se consulta.
+    let last: string | null = null;
+    let busy = false;
+    const tick = async () => {
+      if (busy || document.hidden) return;
+      busy = true;
+      try {
+        const sig = await meetingPulseAction(meeting.id);
+        if (sig && last !== null && sig !== last) router.refresh();
+        last = sig;
+      } catch {
+        // Sin conexión o versión nueva publicada: se intenta en la siguiente vuelta.
+      } finally {
+        busy = false;
+      }
+    };
+    tick();
+    const t = setInterval(tick, drives ? 10000 : 4000);
     return () => clearInterval(t);
-  }, [router, drives]);
+  }, [router, drives, meeting.id]);
 
   const totalMinutes = useMemo(
     () => L10_AGENDA.reduce((a, s) => a + s.minutes, 0),
@@ -499,7 +517,7 @@ export function MeetingRunner({
           <a href={`/api/reuniones/${meeting.id}/resumen`} className={buttonVariants({ variant: "primary" })}>
             <ArrowDownToLine aria-hidden /> Generar resumen (PDF)
           </a>
-          <Link href="/meeting" className={buttonVariants({ variant: "outline" })}>
+          <Link prefetch={false} href="/meeting" className={buttonVariants({ variant: "outline" })}>
             Volver al historial
           </Link>
         </div>

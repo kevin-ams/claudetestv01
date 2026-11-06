@@ -1,5 +1,6 @@
 "use server";
 
+import { db } from "@/lib/db";
 import { L10_AGENDA, segmentIndex } from "@/lib/domain/meeting-shared";
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
@@ -340,4 +341,30 @@ export async function reuseEventAction(id: number, weekFrom: string | null = nul
   await logActivity(session, "meeting", "Reutilizó evento para la L10", `Evento #${id}${week ? ` · semana ${week}` : ""}`);
   refreshEvents();
   return { ok: true, message: week ? `Listo: se leerá en la L10 de la semana del ${week}.` : "Listo: se leerá en la próxima L10." };
+}
+
+/**
+ * Huella de lo que se ve en la L10 (sección, asistencia, To-Dos, Issues, titulares, agenda…), en una sola
+ * consulta. La pantalla la consulta cada pocos segundos y solo se vuelve a cargar completa si cambió:
+ * así no se ejecuta toda la página (decenas de consultas) cada vez.
+ */
+export async function meetingPulseAction(meetingId: number): Promise<string | null> {
+  const session = await requireModule("meeting", "view");
+  const rows = (await db().sql`
+    SELECT md5(concat_ws('|',
+      m.status, m.current_segment, m.furthest_segment, m.leader_id, m.segment_started_at, length(m.cascade_notes),
+      (SELECT string_agg(t.id || ':' || t.status || ':' || coalesce(t.owner_id, 0) || ':' || coalesce(t.due_date::text, '') || ':' || md5(t.title), ',' ORDER BY t.id)
+        FROM todos t WHERE t.team_id = m.team_id AND (t.status = 'open' OR t.meeting_id = m.id)),
+      (SELECT string_agg(i.id || ':' || i.status || ':' || coalesce(i.owner_id, 0) || ':' || coalesce(i.top_rank, 0) || ':' || md5(i.title), ',' ORDER BY i.id)
+        FROM issues i WHERE i.team_id = m.team_id AND i.status = 'open'),
+      (SELECT count(*) FROM meeting_headlines h WHERE h.meeting_id = m.id),
+      (SELECT string_agg(a.user_id || ':' || a.present, ',' ORDER BY a.user_id) FROM meeting_attendees a WHERE a.meeting_id = m.id),
+      (SELECT string_agg(r.user_id || ':' || r.rating, ',' ORDER BY r.user_id) FROM meeting_ratings r WHERE r.meeting_id = m.id),
+      (SELECT count(*) || ':' || coalesce(max(g.updated_at)::text, '') FROM team_agenda g WHERE g.team_id = m.team_id),
+      (SELECT count(*) FROM meeting_issues mi WHERE mi.meeting_id = m.id AND mi.discussed),
+      (SELECT count(*) FROM l10_events e WHERE e.team_id = m.team_id)
+    )) AS sig
+    FROM meetings m WHERE m.id = ${Number(meetingId)} AND m.team_id = ${session.teamId}
+  `) as { sig: string }[];
+  return rows[0]?.sig ?? null;
 }

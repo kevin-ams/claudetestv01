@@ -5,7 +5,7 @@ export function SettingsHeader({ title, description }: { title: string; descript
   return (
     <div>
       <p className="text-sm text-muted">
-        <Link href="/ajustes" className="text-primary underline">
+        <Link prefetch={false} href="/ajustes" className="text-primary underline">
           Ajustes
         </Link>{" "}
         / {title}

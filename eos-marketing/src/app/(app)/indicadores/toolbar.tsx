@@ -77,28 +77,28 @@ export function Toolbar({
         />
         {month ? (
           <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-            <Link href={monthHref(shiftMonth(month, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Mes anterior">
+            <Link prefetch={false} href={monthHref(shiftMonth(month, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Mes anterior">
               <ArrowLeft aria-hidden />
             </Link>
             <span className="px-2 text-sm font-semibold capitalize">{monthLabel}</span>
-            <Link href={monthHref(shiftMonth(month, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Mes siguiente">
+            <Link prefetch={false} href={monthHref(shiftMonth(month, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Mes siguiente">
               <ArrowRight aria-hidden />
             </Link>
           </div>
         ) : (
           <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
-            <Link href={weekHref(shiftWeek(week, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana anterior">
+            <Link prefetch={false} href={weekHref(shiftWeek(week, -1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana anterior">
               <ArrowLeft aria-hidden />
             </Link>
             <span className="px-2 text-sm font-semibold">{weekLabel}</span>
-            <Link href={weekHref(shiftWeek(week, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana siguiente">
+            <Link prefetch={false} href={weekHref(shiftWeek(week, 1))} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Semana siguiente">
               <ArrowRight aria-hidden />
             </Link>
           </div>
         )}
         {month && <span className="text-xs text-muted">Suma de las semanas que empiezan en el mes · meta completa del mes</span>}
         {!month && week !== defaultWeek && (
-          <Link href={weekHref(defaultWeek)} className="text-sm text-primary underline">
+          <Link prefetch={false} href={weekHref(defaultWeek)} className="text-sm text-primary underline">
             Ir a la última semana cerrada
           </Link>
         )}
@@ -110,7 +110,7 @@ export function Toolbar({
             <AcSyncButton pendingSince={acPendingSince} />
           ) : (
             // Los leads de ActiveCampaign solo se guardan en la semana en curso.
-            <Link href={weekHref(currentWeek)} className={buttonVariants({ variant: "outline" })}>
+            <Link prefetch={false} href={weekHref(currentWeek)} className={buttonVariants({ variant: "outline" })}>
               Ir a la semana en curso para actualizar leads
             </Link>
           )}

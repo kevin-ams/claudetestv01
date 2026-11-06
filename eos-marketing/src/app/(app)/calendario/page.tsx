@@ -49,15 +49,15 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/calen
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Link className={nav} href={`/calendario?mes=${shiftMonth(month, -1)}`} aria-label="Mes anterior">
+          <Link prefetch={false} className={nav} href={`/calendario?mes=${shiftMonth(month, -1)}`} aria-label="Mes anterior">
             ‹
           </Link>
           <span className="min-w-36 text-center font-semibold capitalize">{formatMonth(month)}</span>
-          <Link className={nav} href={`/calendario?mes=${shiftMonth(month, 1)}`} aria-label="Mes siguiente">
+          <Link prefetch={false} className={nav} href={`/calendario?mes=${shiftMonth(month, 1)}`} aria-label="Mes siguiente">
             ›
           </Link>
           {month !== monthISO() && (
-            <Link className={buttonVariants({ variant: "ghost", size: "sm" })} href="/calendario">
+            <Link prefetch={false} className={buttonVariants({ variant: "ghost", size: "sm" })} href="/calendario">
               Hoy
             </Link>
           )}
@@ -67,11 +67,11 @@ export default async function CalendarioPage({ searchParams }: PageProps<"/calen
       {pieces.length === 0 && range.min && (
         <p className="text-sm text-muted">
           No hay piezas en este mes. El calendario tiene piezas del{" "}
-          <Link className="text-primary underline" href={`/calendario?mes=${range.min.slice(0, 7)}`}>
+          <Link prefetch={false} className="text-primary underline" href={`/calendario?mes=${range.min.slice(0, 7)}`}>
             {range.min}
           </Link>{" "}
           al{" "}
-          <Link className="text-primary underline" href={`/calendario?mes=${range.max!.slice(0, 7)}`}>
+          <Link prefetch={false} className="text-primary underline" href={`/calendario?mes=${range.max!.slice(0, 7)}`}>
             {range.max}
           </Link>
           .

@@ -9,7 +9,7 @@ export function RelatedNotes({ notes, compact = false }: { notes?: RelatedNote[]
   if (!notes?.length) return null;
   if (compact) {
     return (
-      <Link
+      <Link prefetch={false}
         href={`/conocimiento?nota=${notes[0].id}`}
         className="inline-flex items-center gap-0.5 text-[11px] text-primary hover:underline"
         title={`Notas relacionadas: ${notes.map((n) => n.title).join(", ")}`}
@@ -25,7 +25,7 @@ export function RelatedNotes({ notes, compact = false }: { notes?: RelatedNote[]
         <BookOpen width={12} height={12} aria-hidden /> Notas relacionadas:
       </span>
       {notes.map((n) => (
-        <Link key={n.id} href={`/conocimiento?nota=${n.id}`} className="text-primary hover:underline">
+        <Link prefetch={false} key={n.id} href={`/conocimiento?nota=${n.id}`} className="text-primary hover:underline">
           {n.title}
         </Link>
       ))}

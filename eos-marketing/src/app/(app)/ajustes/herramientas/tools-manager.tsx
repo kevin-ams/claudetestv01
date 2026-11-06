@@ -259,7 +259,7 @@ export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted">
           {tools.length} herramienta(s) ·{" "}
-          <Link href="/herramientas" className="text-primary underline">
+          <Link prefetch={false} href="/herramientas" className="text-primary underline">
             ver “Otras herramientas”
           </Link>
         </p>

@@ -113,7 +113,7 @@ export default async function TratosPage({ searchParams }: PageProps<"/dashboard
         </div>
         <div className="flex items-start gap-2">
           {admin && (
-            <Link href="/ajustes/dashboard-ac" className="rounded-xl border border-border px-3 py-2 text-sm hover:bg-default">
+            <Link prefetch={false} href="/ajustes/dashboard-ac" className="rounded-xl border border-border px-3 py-2 text-sm hover:bg-default">
               Ajustes del dashboard
             </Link>
           )}
@@ -130,7 +130,7 @@ export default async function TratosPage({ searchParams }: PageProps<"/dashboard
       {baseLinks.length === 0 && (
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
           No hay carreras vinculadas a embudos. Vincúlalas en{" "}
-          <Link href="/ajustes/activecampaign" className="underline">
+          <Link prefetch={false} href="/ajustes/activecampaign" className="underline">
             Ajustes › Leads desde ActiveCampaign
           </Link>
           : el dashboard usa esos mismos embudos, carreras y facultades.

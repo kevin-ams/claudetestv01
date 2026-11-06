@@ -74,7 +74,7 @@ export default async function IndicadoresPage({
         <p className="-mt-2 text-xs text-muted">
           Leads de ActiveCampaign · última actualización:{" "}
           {acLast.at ? `${AC_WHEN.format(new Date(acLast.at))} (${acLast.detail})` : "todavía no se ha sincronizado"} ·{" "}
-          <Link href="/ajustes/activecampaign" className="text-primary underline">
+          <Link prefetch={false} href="/ajustes/activecampaign" className="text-primary underline">
             vincular carreras
           </Link>
         </p>

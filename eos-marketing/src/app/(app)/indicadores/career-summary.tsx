@@ -178,7 +178,7 @@ export function CareerSummary({
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-lg font-bold">Indicadores de carrera · {weekLabel}</h3>
-        <Link href={`/indicadores?semana=${week}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary underline">
+        <Link prefetch={false} href={`/indicadores?semana=${week}`} className="inline-flex items-center gap-1 text-sm font-medium text-primary underline">
           Ver detalle <ArrowRight aria-hidden />
         </Link>
       </div>

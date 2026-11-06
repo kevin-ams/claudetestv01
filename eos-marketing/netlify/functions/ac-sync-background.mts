@@ -1,6 +1,6 @@
 /**
- * Sincronización manual de leads en segundo plano (hasta 15 minutos): la lanza el botón
- * "Sincronizar ahora" y sigue aunque se cierre la página. Llama a /api/cron/activecampaign en
+ * Sincronización de leads en segundo plano (hasta 15 minutos): la lanzan el botón "Sincronizar ahora"
+ * y la función programada ac-weekly-sync, y sigue aunque se cierre la página. Llama a /api/cron/activecampaign en
  * tandas (cada una revisa unos segundos el historial y retoma donde quedó) hasta terminar;
  * al terminar, esa ruta guarda los leads de la semana en curso.
  */
@@ -30,7 +30,7 @@ export default async (req: Request) => {
       return;
     }
   }
-  console.log("[ac-sync-background] se agotó el tiempo; la sincronización horaria continúa lo pendiente.");
+  console.log("[ac-sync-background] se agotó el tiempo; la siguiente pasada programada continúa lo pendiente.");
 };
 
 export const config = { background: true };

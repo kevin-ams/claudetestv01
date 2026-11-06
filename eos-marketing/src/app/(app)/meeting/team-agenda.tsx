@@ -470,14 +470,14 @@ export function TeamAgendaPanel({
           </p>
           {nav && (
             <span className="mt-1 flex flex-wrap items-center gap-1 text-xs">
-              <Link href={nav.prevHref} scroll={false} className="inline-flex items-center rounded-md px-1.5 py-0.5 text-muted hover:bg-default" aria-label="Semana anterior">
+              <Link prefetch={false} href={nav.prevHref} scroll={false} className="inline-flex items-center rounded-md px-1.5 py-0.5 text-muted hover:bg-default" aria-label="Semana anterior">
                 <ChevronLeft width={14} height={14} aria-hidden /> Anterior
               </Link>
-              <Link href={nav.nextHref} scroll={false} className="inline-flex items-center rounded-md px-1.5 py-0.5 text-muted hover:bg-default" aria-label="Semana siguiente">
+              <Link prefetch={false} href={nav.nextHref} scroll={false} className="inline-flex items-center rounded-md px-1.5 py-0.5 text-muted hover:bg-default" aria-label="Semana siguiente">
                 Siguiente <ChevronRight width={14} height={14} aria-hidden />
               </Link>
               {nav.defaultHref && (
-                <Link href={nav.defaultHref} scroll={false} className="rounded-md px-1.5 py-0.5 text-primary hover:bg-default">
+                <Link prefetch={false} href={nav.defaultHref} scroll={false} className="rounded-md px-1.5 py-0.5 text-primary hover:bg-default">
                   Ir a la semana de la próxima L10
                 </Link>
               )}

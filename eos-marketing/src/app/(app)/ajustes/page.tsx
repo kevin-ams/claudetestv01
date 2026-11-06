@@ -198,7 +198,7 @@ export default async function AjustesIndexPage() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {SECTIONS.map((s) => (
-          <Link key={s.href} href={s.href} className="group rounded-2xl focus-visible:outline-2 focus-visible:outline-primary">
+          <Link prefetch={false} key={s.href} href={s.href} className="group rounded-2xl focus-visible:outline-2 focus-visible:outline-primary">
             <Card className="h-full transition group-hover:shadow-md group-hover:ring-1 group-hover:ring-primary/40">
               <Card.Header className="flex-row items-start gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden>

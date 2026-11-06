@@ -73,7 +73,7 @@ export default async function DealsSettingsPage() {
       {configured && !meta.fetchedAt && (
         <p className="rounded-lg bg-yellow-bg px-3 py-2 text-sm text-yellow">
           Sincroniza primero en el{" "}
-          <Link href="/dashboard-ac" className="underline">
+          <Link prefetch={false} href="/dashboard-ac" className="underline">
             Dashboard AC
           </Link>{" "}
           para leer las etapas y los campos de ActiveCampaign.
@@ -81,7 +81,7 @@ export default async function DealsSettingsPage() {
       )}
       <p className="text-sm text-muted">
         Embudos, carreras y facultades salen de{" "}
-        <Link href="/ajustes/activecampaign" className="text-primary underline">
+        <Link prefetch={false} href="/ajustes/activecampaign" className="text-primary underline">
           Leads desde ActiveCampaign
         </Link>{" "}
         ({linked.size} embudos vinculados).

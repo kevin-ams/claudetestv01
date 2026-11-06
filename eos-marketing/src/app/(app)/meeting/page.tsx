@@ -61,7 +61,7 @@ export default async function MeetingListPage({ searchParams }: { searchParams: 
           </p>
         </div>
         {active ? (
-          <Link href={`/meeting/${active.id}`} className={buttonVariants({ variant: "primary" })}>
+          <Link prefetch={false} href={`/meeting/${active.id}`} className={buttonVariants({ variant: "primary" })}>
             Continuar reunión en curso <ArrowRight aria-hidden />
           </Link>
         ) : (
@@ -114,7 +114,7 @@ export default async function MeetingListPage({ searchParams }: { searchParams: 
                     <ArrowDownToLine aria-hidden /> Resumen PDF
                   </a>
                 )}
-                <Link href={`/meeting/${m.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+                <Link prefetch={false} href={`/meeting/${m.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                   Ver
                 </Link>
               </div>

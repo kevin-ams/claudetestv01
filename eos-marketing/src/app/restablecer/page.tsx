@@ -21,7 +21,7 @@ export default async function RestablecerPage({ searchParams }: PageProps<"/rest
           {valid ? (
             <ResetForm token={value} />
           ) : (
-            <Link href="/recuperar" className="mt-4 inline-block font-medium text-primary underline">
+            <Link prefetch={false} href="/recuperar" className="mt-4 inline-block font-medium text-primary underline">
               Pedir un enlace nuevo
             </Link>
           )}

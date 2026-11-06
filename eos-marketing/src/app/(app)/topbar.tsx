@@ -24,6 +24,7 @@ export function Topbar({
         <ThemeToggleButton />
         <Link
           href="/perfil"
+          prefetch={false}
           className="flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2 text-sm text-muted hover:bg-default hover:text-foreground"
           title="Mi perfil"
         >

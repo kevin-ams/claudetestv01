@@ -31,7 +31,7 @@ export default async function ToolsIndexPage({ searchParams }: { searchParams: P
           <p className="text-sm text-muted">Accesos directos y sitios que el equipo usa a diario.</p>
         </div>
         {access.isAdmin && (
-          <Link href="/ajustes/herramientas" className={buttonVariants({ variant: "outline", size: "sm" })}>
+          <Link prefetch={false} href="/ajustes/herramientas" className={buttonVariants({ variant: "outline", size: "sm" })}>
             Administrar herramientas
           </Link>
         )}
@@ -47,11 +47,11 @@ export default async function ToolsIndexPage({ searchParams }: { searchParams: P
         <>
           {groups.length > 1 && (
             <nav aria-label="Categorías" className="flex flex-wrap gap-2">
-              <Link href="/herramientas" className={chip(!selected)}>
+              <Link prefetch={false} href="/herramientas" className={chip(!selected)}>
                 Todas · {tools.length}
               </Link>
               {groups.map((g) => (
-                <Link key={g.category} href={`/herramientas?categoria=${encodeURIComponent(g.category)}`} className={chip(selected === g.category)}>
+                <Link prefetch={false} key={g.category} href={`/herramientas?categoria=${encodeURIComponent(g.category)}`} className={chip(selected === g.category)}>
                   {g.category} · {g.tools.length}
                 </Link>
               ))}
@@ -102,7 +102,7 @@ function ToolCard({ tool: t }: { tool: Tool }) {
           {body}
         </a>
       ) : (
-        <Link href={`/herramientas/${t.id}`} className={cls}>
+        <Link prefetch={false} href={`/herramientas/${t.id}`} className={cls}>
           {body}
         </Link>
       )}

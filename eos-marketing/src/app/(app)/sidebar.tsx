@@ -36,6 +36,9 @@ function NavLink({
   const link = (
     <Link
       href={item.href}
+      // Sin precarga: cada página es dinámica y precargarla ejecuta el servidor y la base de datos
+      // por cada enlace visible del menú (≈20 por página vista), aunque la persona no entre.
+      prefetch={false}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       aria-label={collapsed ? item.label : undefined}
