@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireModule } from "@/lib/auth/access";
+import { getAccess, requireModule } from "@/lib/auth/access";
+import { db } from "@/lib/db";
+import { appUrl } from "@/lib/email";
+import { createApiToken, listApiTokens, revokeApiToken, type ApiToken, type TokenScope } from "@/lib/domain/api-tokens";
 import { logActivity } from "@/lib/domain/activity";
 import {
   backlinks,
@@ -198,4 +201,71 @@ export async function semanticEdgesAction(threshold: number): Promise<{ a: numbe
   const session = await requireModule("conocimiento", "view");
   const t = Math.min(0.99, Math.max(0.5, Number(threshold) || 0.8));
   return semanticEdges((await getVault(session.teamId)).id, t);
+}
+
+// --- Conectar con Claude (servidor MCP) --------------------------------------------------
+
+export type ConnectInfo = {
+  tokens: ApiToken[];
+  base: string;
+  consultantUrl: string | null;
+  canWrite: boolean;
+  isAdmin: boolean;
+  userId: number;
+};
+
+export async function connectInfoAction(): Promise<ConnectInfo> {
+  const session = await requireModule("conocimiento", "view");
+  const [access, vault, base] = await Promise.all([getAccess(), getVault(session.teamId), appUrl()]);
+  const rows = (await db().sql`SELECT claude_consultant_url FROM vaults WHERE id = ${vault.id}`) as { claude_consultant_url: string | null }[];
+  return {
+    tokens: await listApiTokens(session.teamId),
+    base,
+    consultantUrl: rows[0]?.claude_consultant_url ?? null,
+    canWrite: access?.level("conocimiento") === "edit",
+    isAdmin: Boolean(access?.isAdmin),
+    userId: session.userId,
+  };
+}
+
+export async function createTokenAction(input: { label: string; scope: TokenScope; canWrite: boolean }): Promise<{ ok: boolean; message: string; token?: string }> {
+  try {
+    const session = await requireModule("conocimiento", "view");
+    const access = await getAccess();
+    const label = String(input.label ?? "").trim().slice(0, 80) || "Claude";
+    const canWrite = Boolean(input.canWrite) && access?.level("conocimiento") === "edit";
+    const scope: TokenScope = input.scope === "eos" ? "eos" : "vault";
+    const { token } = await createApiToken({ teamId: session.teamId, userId: session.userId, label, scope, canWrite });
+    await logActivity(session, "conocimiento", "Creó token de Claude (MCP)", `${label} · ${scope === "eos" ? "EOS completo" : "solo vault"} · ${canWrite ? "lectura y escritura" : "solo lectura"}`);
+    return { ok: true, message: "Token creado. Cópialo ahora: no se vuelve a mostrar.", token };
+  } catch (e) {
+    return { ok: false, message: fail(e, "No se pudo crear el token.") };
+  }
+}
+
+export async function revokeTokenAction(id: number): Promise<{ ok: boolean; message: string }> {
+  try {
+    const session = await requireModule("conocimiento", "view");
+    const access = await getAccess();
+    const done = await revokeApiToken(session.teamId, Number(id), session.userId, Boolean(access?.isAdmin));
+    if (!done) return { ok: false, message: "No se pudo revocar (ya estaba revocado o no es tuyo)." };
+    await logActivity(session, "conocimiento", "Revocó token de Claude (MCP)", `#${id}`);
+    return { ok: true, message: "Token revocado: deja de funcionar de inmediato." };
+  } catch (e) {
+    return { ok: false, message: fail(e, "No se pudo revocar el token.") };
+  }
+}
+
+export async function setConsultantUrlAction(url: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const session = await requireModule("conocimiento");
+    const value = String(url ?? "").trim();
+    if (value && !/^https:\/\/[^\s]+$/i.test(value)) return { ok: false, message: "Escribe un enlace que empiece con https://" };
+    const vault = await getVault(session.teamId);
+    await db().sql`UPDATE vaults SET claude_consultant_url = ${value || null} WHERE id = ${vault.id}`;
+    revalidatePath("/conocimiento");
+    return { ok: true, message: value ? "Enlace del consultor guardado." : "Se quitó el enlace del consultor." };
+  } catch (e) {
+    return { ok: false, message: fail(e, "No se pudo guardar el enlace.") };
+  }
 }

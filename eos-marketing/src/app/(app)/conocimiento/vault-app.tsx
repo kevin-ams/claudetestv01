@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronRight, FileText, Folder, Magnifier, Plus, TrashBin } from "@gravity-ui/icons";
-import { Button, Chip, Input } from "@heroui/react";
+import { Button, Chip, Input, buttonVariants } from "@heroui/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -41,6 +41,7 @@ import { NotePreview } from "./note-preview";
 import { NewNoteDialog, PdfImportDialog } from "./vault-dialogs";
 import { SearchDialog } from "./search-dialog";
 import { GraphPanel, LocalGraph, type GraphActions } from "./graph-panel";
+import { ConnectClaudeDialog } from "./connect-claude";
 import { disableSemantic, embedPassages, enableSemantic, semanticEnabled, useEmbedder } from "./embedder";
 
 type Status = "saved" | "dirty" | "saving" | "error" | "conflict";
@@ -105,7 +106,17 @@ function FolderNode({
   );
 }
 
-export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: NoteSummary[]; entities: EosEntity[]; canEdit: boolean }) {
+export function VaultApp({
+  initialNotes,
+  entities,
+  canEdit,
+  consultantUrl,
+}: {
+  initialNotes: NoteSummary[];
+  entities: EosEntity[];
+  canEdit: boolean;
+  consultantUrl: string | null;
+}) {
   const router = useRouter();
   const params = useSearchParams();
   const [notes, setNotes] = useState(initialNotes);
@@ -120,7 +131,7 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
   const [filter, setFilter] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set());
-  const [dialog, setDialog] = useState<null | { kind: "new"; title?: string } | { kind: "pdf" } | { kind: "switch" } | { kind: "delete" }>(null);
+  const [dialog, setDialog] = useState<null | { kind: "new"; title?: string } | { kind: "pdf" } | { kind: "switch" } | { kind: "delete" } | { kind: "claude" }>(null);
   const [versions, setVersions] = useState<NoteVersion[] | null>(null);
   const [viewing, setViewing] = useState<{ v: NoteVersion; content: string } | null>(null);
   const [loading, startLoad] = useTransition();
@@ -436,6 +447,14 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
             value={view}
             onChange={setView}
           />
+          {consultantUrl && (
+            <a href={consultantUrl} target="_blank" rel="noopener noreferrer" className={buttonVariants({ variant: "outline" })}>
+              Preguntar a la IA (Claude)
+            </a>
+          )}
+          <Button variant="outline" onPress={() => setDialog({ kind: "claude" })}>
+            Conectar con Claude
+          </Button>
           <Button variant="outline" onPress={() => setDialog({ kind: "switch" })}>
             <Magnifier aria-hidden /> Buscar <kbd className="ml-1 hidden rounded border border-border px-1 text-[10px] text-muted sm:inline">Ctrl K</kbd>
           </Button>
@@ -744,6 +763,7 @@ export function VaultApp({ initialNotes, entities, canEdit }: { initialNotes: No
           onClose={() => setDialog(null)}
         />
       )}
+      {dialog?.kind === "claude" && <ConnectClaudeDialog onClose={() => setDialog(null)} />}
       {dialog?.kind === "pdf" && <PdfImportDialog folders={folders} defaultFolder={draft?.folder ?? ""} onCreate={create} onClose={() => setDialog(null)} />}
       {dialog?.kind === "switch" && (
         <SearchDialog

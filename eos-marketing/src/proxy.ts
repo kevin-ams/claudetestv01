@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/token";
 
-// /api/cron se protege con su propio secreto (CRON_SECRET).
-const PUBLIC_PATHS = ["/login", "/setup", "/salir", "/recuperar", "/restablecer", "/api/cron"];
+// /api/cron se protege con su propio secreto (CRON_SECRET) y /api/mcp con su token (Conocimiento › Conectar con Claude).
+const PUBLIC_PATHS = ["/login", "/setup", "/salir", "/recuperar", "/restablecer", "/api/cron", "/api/mcp"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

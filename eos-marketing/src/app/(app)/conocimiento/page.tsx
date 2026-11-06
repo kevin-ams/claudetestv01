@@ -10,7 +10,12 @@ export default async function ConocimientoPage() {
   const [notes, entities] = await Promise.all([listNotes(vault.id), listEosEntities(access.session.teamId)]);
   return (
     <div className="mx-auto max-w-[1600px]">
-      <VaultApp initialNotes={notes} entities={entities} canEdit={access.level("conocimiento") === "edit"} />
+      <VaultApp
+        initialNotes={notes}
+        entities={entities}
+        canEdit={access.level("conocimiento") === "edit"}
+        consultantUrl={vault.claude_consultant_url ?? null}
+      />
     </div>
   );
 }

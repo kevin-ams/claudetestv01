@@ -52,6 +52,17 @@ async function loadAccess(session: SessionPayload): Promise<Access> {
   };
 }
 
+/** Acceso de una persona en un equipo sin cookie de sesión (p. ej. el servidor MCP con un token). */
+export async function accessFor(userId: number, teamId: number): Promise<Access | null> {
+  const rows = (await db().sql`
+    SELECT u.id, u.name, u.email, u.role FROM users u JOIN team_members tm ON tm.user_id = u.id
+    WHERE u.id = ${userId} AND tm.team_id = ${teamId}
+  `) as { id: number; name: string; email: string; role: "admin" | "member" }[];
+  const u = rows[0];
+  if (!u) return null;
+  return loadAccess({ userId: u.id, teamId, role: u.role, name: u.name, email: u.email });
+}
+
 /** Acceso de la persona en su equipo actual (una consulta por petición). */
 export const getAccess = cache(async (): Promise<Access | null> => {
   const session = await getSession();

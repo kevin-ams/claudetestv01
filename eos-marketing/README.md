@@ -202,6 +202,12 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   configurable, máx. 3 por nota, calculadas en el servidor con los vectores de cada nota). Hover resalta vecinos con
   tooltip, clic abre, arrastrar mueve, "Centrar", filtros por carpeta, tag y fecha, búsqueda que resalta y contador de
   notas huérfanas. Grafo local (1–2 saltos) en el panel derecho de cada nota. Con 2 000 notas abre en ~0,6 s.
+- **Conectar con Claude (servidor MCP)** — `POST /api/mcp/<token>` (o `/api/mcp` con `Authorization: Bearer`).
+  Tokens personales desde Conocimiento › Conectar con Claude: alcance "Solo vault" o "Vault + EOS completo"
+  (Rocks, Scorecard, indicadores de carrera semanal/mensual, Issues, To-Dos, V/TO, organigrama, L10, agenda) y opción
+  de escritura (notas, Issues, To-Dos, estado de Rocks, valores del Scorecard). Actúa con los permisos del rol de quien
+  lo creó y exige acceso a Conocimiento (premium). Hash SHA-256, revocables, 120 peticiones/min. Botón opcional
+  "Preguntar a la IA (Claude)" (`vaults.claude_consultant_url`). Ver `docs/vault-mcp.md`. Migración 039.
 - **Rol Administrador Premium y módulos premium** — cada equipo tiene el rol de sistema "Administrador Premium"
   (todo lo de Administrador + módulos premium; hoy: Conocimiento / Vault en `/conocimiento`). Los demás roles, incluido
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el

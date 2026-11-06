@@ -30,12 +30,12 @@ import {
 
 // Conocimiento (Vault): un vault por organización, guardado en el equipo ancla.
 
-export type Vault = { id: number; team_id: number; name: string };
+export type Vault = { id: number; team_id: number; name: string; claude_consultant_url?: string | null };
 
 /** Vault de la organización del equipo (se crea con sus plantillas la primera vez). */
 export async function getVault(teamId: number): Promise<Vault> {
   const anchor = await orgAnchorTeam(teamId);
-  const found = (await db().sql`SELECT id, team_id, name FROM vaults WHERE team_id = ${anchor}`) as Vault[];
+  const found = (await db().sql`SELECT id, team_id, name, claude_consultant_url FROM vaults WHERE team_id = ${anchor}`) as Vault[];
   if (found[0]) return found[0];
   const created = (await db().sql`
     INSERT INTO vaults (team_id) VALUES (${anchor})
