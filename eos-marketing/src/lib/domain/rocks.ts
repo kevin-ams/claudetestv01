@@ -43,11 +43,21 @@ export async function createRock(input: {
   return rows[0] as Rock;
 }
 
-export async function updateRockStatus(rockId: number, status: RockStatus) {
-  await db().sql`UPDATE rocks SET status = ${status} WHERE id = ${rockId}`;
+// Las funciones por id reciben el equipo; los hitos se validan a través de su Rock.
+
+/** Rock del equipo (null si no existe o es de otro equipo). */
+export async function getRock(teamId: number, rockId: number): Promise<Rock | null> {
+  const rows = await db().sql`SELECT * FROM rocks WHERE id = ${rockId} AND team_id = ${teamId}`;
+  return (rows[0] as Rock) ?? null;
+}
+
+export async function updateRockStatus(teamId: number, rockId: number, status: RockStatus): Promise<boolean> {
+  const rows = await db().sql`UPDATE rocks SET status = ${status} WHERE id = ${rockId} AND team_id = ${teamId} RETURNING id`;
+  return rows.length > 0;
 }
 
 export async function updateRock(
+  teamId: number,
   rockId: number,
   input: {
     title: string;
@@ -64,18 +74,20 @@ export async function updateRock(
       owner_id = ${input.ownerId},
       due_date = ${input.dueDate},
       is_company_rock = ${input.isCompanyRock}
-    WHERE id = ${rockId}
+    WHERE id = ${rockId} AND team_id = ${teamId}
   `;
 }
 
-export async function deleteRock(rockId: number) {
-  await db().sql`DELETE FROM rocks WHERE id = ${rockId}`;
+export async function deleteRock(teamId: number, rockId: number): Promise<boolean> {
+  const rows = await db().sql`DELETE FROM rocks WHERE id = ${rockId} AND team_id = ${teamId} RETURNING id`;
+  return rows.length > 0;
 }
 
-export async function listMilestones(rockId: number): Promise<RockMilestone[]> {
+export async function listMilestones(teamId: number, rockId: number): Promise<RockMilestone[]> {
   const rows = await db().sql`
-    SELECT * FROM rock_milestones WHERE rock_id = ${rockId}
-    ORDER BY due_date ASC NULLS LAST, sort_order ASC, id ASC
+    SELECT m.* FROM rock_milestones m JOIN rocks r ON r.id = m.rock_id
+    WHERE m.rock_id = ${rockId} AND r.team_id = ${teamId}
+    ORDER BY m.due_date ASC NULLS LAST, m.sort_order ASC, m.id ASC
   `;
   return rows as RockMilestone[];
 }
@@ -105,14 +117,35 @@ export async function addMilestone(input: {
   return rows[0] as RockMilestone;
 }
 
-export async function toggleMilestone(milestoneId: number, done: boolean) {
-  await db().sql`UPDATE rock_milestones SET done = ${done} WHERE id = ${milestoneId}`;
+/** Hito del equipo con el título de su Rock (null si es de otro equipo). */
+export async function getMilestone(teamId: number, milestoneId: number): Promise<(RockMilestone & { rock_title: string }) | null> {
+  const rows = await db().sql`
+    SELECT m.*, r.title AS rock_title FROM rock_milestones m JOIN rocks r ON r.id = m.rock_id
+    WHERE m.id = ${milestoneId} AND r.team_id = ${teamId}
+  `;
+  return (rows[0] as RockMilestone & { rock_title: string }) ?? null;
 }
 
-export async function setMilestoneDueDate(milestoneId: number, dueDate: string | null) {
-  await db().sql`UPDATE rock_milestones SET due_date = ${dueDate} WHERE id = ${milestoneId}`;
+export async function toggleMilestone(teamId: number, milestoneId: number, done: boolean): Promise<boolean> {
+  const rows = await db().sql`
+    UPDATE rock_milestones m SET done = ${done} FROM rocks r
+    WHERE m.id = ${milestoneId} AND r.id = m.rock_id AND r.team_id = ${teamId} RETURNING m.id
+  `;
+  return rows.length > 0;
 }
 
-export async function deleteMilestone(milestoneId: number) {
-  await db().sql`DELETE FROM rock_milestones WHERE id = ${milestoneId}`;
+export async function setMilestoneDueDate(teamId: number, milestoneId: number, dueDate: string | null): Promise<boolean> {
+  const rows = await db().sql`
+    UPDATE rock_milestones m SET due_date = ${dueDate} FROM rocks r
+    WHERE m.id = ${milestoneId} AND r.id = m.rock_id AND r.team_id = ${teamId} RETURNING m.id
+  `;
+  return rows.length > 0;
+}
+
+export async function deleteMilestone(teamId: number, milestoneId: number): Promise<boolean> {
+  const rows = await db().sql`
+    DELETE FROM rock_milestones m USING rocks r
+    WHERE m.id = ${milestoneId} AND r.id = m.rock_id AND r.team_id = ${teamId} RETURNING m.id
+  `;
+  return rows.length > 0;
 }

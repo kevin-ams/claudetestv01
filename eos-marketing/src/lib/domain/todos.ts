@@ -68,35 +68,41 @@ export async function createTodo(input: {
   return rows[0] as Todo;
 }
 
-export async function getTodo(todoId: number): Promise<Todo | null> {
-  const rows = await db().sql`SELECT * FROM todos WHERE id = ${todoId}`;
+// Las funciones por id reciben el equipo y lo usan en el WHERE (aislamiento entre equipos).
+
+/** To-Do del equipo (null si no existe o es de otro equipo). */
+export async function getTodo(teamId: number, todoId: number): Promise<Todo | null> {
+  const rows = await db().sql`SELECT * FROM todos WHERE id = ${todoId} AND team_id = ${teamId}`;
   return (rows[0] as Todo) ?? null;
 }
 
 export async function updateTodo(
+  teamId: number,
   todoId: number,
   input: { title: string; description: string; ownerId: number | null; dueDate: string | null }
-) {
-  await db().sql`
+): Promise<boolean> {
+  const rows = await db().sql`
     UPDATE todos SET
       title = ${input.title},
       description = ${input.description},
       owner_id = ${input.ownerId},
       due_date = ${input.dueDate}
-    WHERE id = ${todoId}
+    WHERE id = ${todoId} AND team_id = ${teamId}
+    RETURNING id
   `;
+  return rows.length > 0;
 }
 
-export async function completeTodo(todoId: number, done: boolean) {
-  if (done) {
-    await db().sql`UPDATE todos SET status = 'done', done_at = NOW() WHERE id = ${todoId}`;
-  } else {
-    await db().sql`UPDATE todos SET status = 'open', done_at = NULL WHERE id = ${todoId}`;
-  }
+export async function completeTodo(teamId: number, todoId: number, done: boolean): Promise<boolean> {
+  const rows = done
+    ? await db().sql`UPDATE todos SET status = 'done', done_at = NOW() WHERE id = ${todoId} AND team_id = ${teamId} RETURNING id`
+    : await db().sql`UPDATE todos SET status = 'open', done_at = NULL WHERE id = ${todoId} AND team_id = ${teamId} RETURNING id`;
+  return rows.length > 0;
 }
 
-export async function deleteTodo(todoId: number) {
-  await db().sql`DELETE FROM todos WHERE id = ${todoId}`;
+export async function deleteTodo(teamId: number, todoId: number): Promise<boolean> {
+  const rows = await db().sql`DELETE FROM todos WHERE id = ${todoId} AND team_id = ${teamId} RETURNING id`;
+  return rows.length > 0;
 }
 
 export async function countOpenTodos(teamId: number): Promise<number> {
@@ -114,9 +120,9 @@ export async function countOverdueTodos(teamId: number): Promise<number> {
   return (rows[0] as { count: number }).count;
 }
 
-export async function listTodosByMeeting(meetingId: number): Promise<Todo[]> {
+export async function listTodosByMeeting(teamId: number, meetingId: number): Promise<Todo[]> {
   const rows = await db().sql`
-    SELECT * FROM todos WHERE meeting_id = ${meetingId} ORDER BY id ASC
+    SELECT * FROM todos WHERE meeting_id = ${meetingId} AND team_id = ${teamId} ORDER BY id ASC
   `;
   return rows as Todo[];
 }

@@ -29,8 +29,8 @@ export default async function MeetingPage({
 
   const { id } = await params;
   const meetingId = Number(id);
-  const meeting = await getMeeting(meetingId);
-  if (!meeting || meeting.team_id !== session.teamId) notFound();
+  const meeting = await getMeeting(session.teamId, meetingId);
+  if (!meeting) notFound();
 
   const weeks = lastNWeeks(4);
   // Agenda del equipo: la semana de la reunión.

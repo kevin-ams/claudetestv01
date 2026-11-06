@@ -84,7 +84,7 @@ export async function moveMilestoneAction(id: number, delta: -1 | 1) {
 export async function deleteMilestoneAction(id: number) {
   const session = await requireAdmin();
   const label = await labelOf("control_milestones", id);
-  await deleteControlMilestone(session.teamId, id);
+  if (!(await deleteControlMilestone(session.teamId, id))) return;
   await logActivity(session, "ajustes", "Eliminó hito de Control de carrera", label);
   refresh();
 }

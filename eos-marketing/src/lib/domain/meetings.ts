@@ -10,8 +10,10 @@ export async function listMeetings(teamId: number): Promise<Meeting[]> {
   return rows as Meeting[];
 }
 
-export async function getMeeting(id: number): Promise<Meeting | null> {
-  const rows = await db().sql`SELECT * FROM meetings WHERE id = ${id}`;
+/** Una reunión del equipo (null si no existe o es de otro equipo). */
+export async function getMeeting(teamId: number, id: number): Promise<Meeting | null> {
+  if (!Number.isInteger(id) || id <= 0) return null;
+  const rows = await db().sql`SELECT * FROM meetings WHERE id = ${id} AND team_id = ${teamId}`;
   return (rows[0] as Meeting) ?? null;
 }
 

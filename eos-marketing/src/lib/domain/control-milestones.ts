@@ -156,9 +156,9 @@ export async function countCompletions(teamId: number, key: string): Promise<num
   return rows[0].n;
 }
 
-export async function deleteControlMilestone(teamId: number, id: number) {
+export async function deleteControlMilestone(teamId: number, id: number): Promise<boolean> {
   const current = await getControlMilestone(id);
-  if (!current || current.team_id !== teamId) return;
+  if (!current || current.team_id !== teamId) return false;
   const list = await listControlMilestones(teamId);
   const removed = list.find((m) => m.id === id)!;
   // Quien dependía de este hito pasa a depender de sus dependencias (no se rompe la cadena).
@@ -174,6 +174,7 @@ export async function deleteControlMilestone(teamId: number, id: number) {
   `;
   await db().sql`DELETE FROM control_milestones WHERE id = ${id}`;
   await renumber(teamId, await listControlMilestones(teamId));
+  return true;
 }
 
 /** Vuelve a los 12 hitos predeterminados; se conserva el avance de los que coinciden. */

@@ -97,8 +97,8 @@ export async function moveSeat(teamId: number, seatId: number, direction: "left"
 }
 
 /** Elimina un puesto; los que dependían de él suben a reportar al puesto de arriba. */
-export async function deleteSeat(teamId: number, seatId: number) {
-  if (!(await seatInOrg(teamId, seatId))) return;
+export async function deleteSeat(teamId: number, seatId: number): Promise<boolean> {
+  if (!(await seatInOrg(teamId, seatId))) return false;
   await db().sql`
     UPDATE accountability_seats c
     SET parent_seat_id = p.parent_seat_id
@@ -106,6 +106,7 @@ export async function deleteSeat(teamId: number, seatId: number) {
     WHERE p.id = ${seatId} AND c.parent_seat_id = p.id
   `;
   await db().sql`DELETE FROM accountability_seats WHERE id = ${seatId}`;
+  return true;
 }
 
 /** ¿Se puede poner `parentId` como jefe de `seatId`? (misma organización y sin ciclos) */

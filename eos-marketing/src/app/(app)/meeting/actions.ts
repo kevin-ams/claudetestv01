@@ -67,15 +67,18 @@ export async function addHeadlineAction(
   type: "customer" | "employee",
   content: string
 ) {
-  const session = await requireModule("meeting");
-  if (!content.trim()) return;
-  await addHeadline({ meetingId, type, content: content.trim(), createdBy: session.userId });
+  const { session } = await teamMeeting(meetingId);
+  const text = String(content ?? "").trim().slice(0, 1000);
+  if (!text || (type !== "customer" && type !== "employee")) return;
+  await addHeadline({ meetingId, type, content: text, createdBy: session.userId });
   revalidatePath(`/meeting/${meetingId}`);
 }
 
 export async function rateMeetingAction(meetingId: number, rating: number) {
-  const session = await requireModule("meeting", "view");
-  await rateMeeting(meetingId, session.userId, rating);
+  const { session } = await teamMeeting(meetingId, "view");
+  const value = Math.round(Number(rating));
+  if (!(value >= 1 && value <= 10)) throw new Error("La calificación va de 1 a 10");
+  await rateMeeting(meetingId, session.userId, value);
   revalidatePath(`/meeting/${meetingId}`);
 }
 
@@ -84,8 +87,7 @@ export async function completeMeetingAction(meetingId: number) {
   assertDrives(meeting, session.userId);
   await completeMeeting(meetingId);
   // Los eventos pendientes quedan como leídos en esta reunión.
-  const finished = await getMeeting(meetingId);
-  if (finished && finished.team_id === session.teamId) await attachPendingEvents(session.teamId, meetingId);
+  if (await getMeeting(session.teamId, meetingId)) await attachPendingEvents(session.teamId, meetingId);
   await logActivity(session, "meeting", "Finalizó reunión L10", `Reunión #${meetingId}`);
   revalidatePath("/meeting");
   // Queda en la reunión: la pantalla final ofrece descargar el resumen en PDF.
@@ -120,9 +122,7 @@ export type QuickItemInput = {
 };
 
 async function checkQuickItem(meetingId: number, input: QuickItemInput) {
-  const session = await requireModule("meeting");
-  const meeting = await getMeeting(meetingId);
-  if (!meeting || meeting.team_id !== session.teamId) throw new Error("Reunión no encontrada");
+  const { session } = await teamMeeting(meetingId);
   const title = input.title.trim().slice(0, 200);
   if (!title) throw new Error("Falta el título");
   const ownerId =
@@ -161,15 +161,16 @@ export async function createMeetingIssueAction(meetingId: number, input: QuickIt
 }
 
 export async function saveCascadeNotesAction(meetingId: number, notes: string) {
-  const session = await requireModule("meeting");
+  const { session } = await teamMeeting(meetingId);
   await setCascadeNotes(meetingId, session.teamId, notes.slice(0, 5000));
   revalidatePath(`/meeting/${meetingId}`);
 }
 
-async function teamMeeting(meetingId: number) {
-  const session = await requireModule("meeting");
-  const meeting = await getMeeting(meetingId);
-  if (!meeting || meeting.team_id !== session.teamId) throw new Error("Reunión no encontrada");
+/** Sesión con permiso al módulo + la reunión, solo si es del equipo de quien llama. */
+async function teamMeeting(meetingId: number, needed: "view" | "edit" = "edit") {
+  const session = await requireModule("meeting", needed);
+  const meeting = await getMeeting(session.teamId, Number(meetingId));
+  if (!meeting) throw new Error("Reunión no encontrada");
   return { session, meeting };
 }
 

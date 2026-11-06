@@ -2,7 +2,10 @@
 
 import { requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { labelOf, logActivity } from "@/lib/domain/activity";
+import { logActivity } from "@/lib/domain/activity";
+import { z } from "zod";
+import { NOT_FOUND, formObject, parse, safeAction, zId, zOptDate, zOwner, zText, zTitle, type ActionResult } from "@/lib/actions";
+import { notifyAssignee } from "@/lib/domain/assignment-email";
 import {
   listIssues,
   createIssue,
@@ -18,149 +21,130 @@ import {
   sendIssueToTeam,
 } from "@/lib/domain/issues";
 import { listShareableTeams } from "@/lib/domain/scorecard";
-import { getTeam, teamReplyTo } from "@/lib/domain/teams";
 import { listTeamMembers } from "@/lib/domain/users";
-import { appUrl, emailConfigured, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import { emailConfigured } from "@/lib/email";
 import type { TeamOption } from "@/app/(app)/todos/actions";
 import { sendToClickUp, type SendResult } from "@/lib/domain/clickup-send";
 import { createTodo } from "@/lib/domain/todos";
-import type { IssueTerm } from "@/lib/domain/types";
 
-function ownerId(formData: FormData): number | null {
-  const raw = formData.get("ownerId");
-  if (!raw || raw === "none") return null;
-  return Number(raw);
+// Cada acción: permiso → validar (zod) → dominio con el equipo de la sesión (ids de otro equipo no hacen nada).
+
+const zTerm = z.enum(["short_term", "long_term"]).catch("short_term");
+const issueForm = z.object({ title: zTitle(300), description: zText(4000), ownerId: zOwner, term: zTerm, dueDate: zOptDate });
+
+function refresh(extra?: string) {
+  revalidatePath("/issues");
+  revalidatePath("/meeting", "layout");
+  if (extra) revalidatePath(extra);
 }
 
 export async function createIssueAction(formData: FormData) {
   const session = await requireModule("issues");
-  await createIssue({
-    teamId: session.teamId,
-    title: String(formData.get("title") ?? "").trim(),
-    description: String(formData.get("description") ?? "").trim(),
-    raisedBy: session.userId,
-    ownerId: ownerId(formData),
-    term: (formData.get("term") as IssueTerm) || "short_term",
-    dueDate: (formData.get("dueDate") as string) || null,
-  });
-  await logActivity(session, "issues", "Creó Issue", String(formData.get("title") ?? "").trim());
-  revalidatePath("/issues");
-  revalidatePath("/meeting", "layout");
+  const input = parse(issueForm, formObject(formData));
+  await createIssue({ teamId: session.teamId, raisedBy: session.userId, ...input });
+  await logActivity(session, "issues", "Creó Issue", input.title);
+  refresh();
 }
 
 export async function setIssueDueDateAction(issueId: number, dueDate: string | null) {
   const session = await requireModule("issues");
-  const issue = await getIssue(issueId);
-  if (!issue || issue.team_id !== session.teamId) return;
-  await setIssueDueDate(issueId, dueDate || null);
-  await logActivity(session, "issues", "Cambió fecha de Issue", `${await labelOf("issues", issueId)}: ${dueDate ?? "sin fecha"}`);
-  revalidatePath("/issues");
-  revalidatePath("/meeting", "layout");
+  const issue = await getIssue(session.teamId, parse(zId, issueId));
+  if (!issue) return;
+  const d = parse(zOptDate, dueDate);
+  await setIssueDueDate(session.teamId, issue.id, d);
+  await logActivity(session, "issues", "Cambió fecha de Issue", `${issue.title}: ${d ?? "sin fecha"}`);
+  refresh();
 }
 
 export async function sendIssueToClickUpAction(issueId: number, target: { listId: string; assigneeId: number | null }): Promise<SendResult> {
   const session = await requireModule("issues");
-  const issue = await getIssue(issueId);
-  if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
+  const issue = await getIssue(session.teamId, parse(zId, issueId));
+  if (!issue) return NOT_FOUND;
   const result = await sendToClickUp("issue", issue, { listId: String(target?.listId ?? ""), assigneeId: Number(target?.assigneeId) || null });
-  if (result.ok) {
-    revalidatePath("/issues");
-    revalidatePath("/meeting", "layout");
-  }
+  if (result.ok) refresh();
   return result;
 }
 
 export async function moveIssueAction(issueId: number, direction: "up" | "down") {
   const session = await requireModule("issues");
+  const id = parse(zId, issueId);
   const all = await listIssues(session.teamId, "open");
-  const current = all.find((i) => i.id === issueId);
+  const current = all.find((i) => i.id === id);
   if (!current) return;
   if (current.top_rank) {
-    await moveIssueTop(session.teamId, issueId, direction === "up" ? -1 : 1);
-    revalidatePath("/issues");
-    revalidatePath("/meeting", "layout");
+    await moveIssueTop(session.teamId, id, direction === "up" ? -1 : 1);
+    refresh();
     return;
   }
   // Fuera del top 3 se reordena solo entre los demás.
   const issues = all.filter((i) => !i.top_rank);
-  const idx = issues.findIndex((i) => i.id === issueId);
-  if (idx === -1) return;
+  const idx = issues.findIndex((i) => i.id === id);
   const swapWith = direction === "up" ? idx - 1 : idx + 1;
-  if (swapWith < 0 || swapWith >= issues.length) return;
-
+  if (idx === -1 || swapWith < 0 || swapWith >= issues.length) return;
   const a = issues[idx];
   const b = issues[swapWith];
-  await reorderIssue(a.id, b.sort_order);
-  await reorderIssue(b.id, a.sort_order);
-  revalidatePath("/issues");
-  revalidatePath("/meeting", "layout");
+  await reorderIssue(session.teamId, a.id, b.sort_order);
+  await reorderIssue(session.teamId, b.id, a.sort_order);
+  refresh();
 }
 
 /** Marca o quita un Issue del Top 3 de la L10. */
-export async function toggleIssueTopAction(issueId: number, on: boolean): Promise<{ ok: boolean; message: string }> {
-  const session = await requireModule("issues");
-  const issue = await getIssue(issueId);
-  if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
-  if (!(await setIssueTop(session.teamId, issueId, on))) {
-    return { ok: false, message: "Ya hay 3 issues en el Top 3. Quita uno para agregar otro." };
-  }
-  await logActivity(session, "issues", on ? "Marcó Issue en el Top 3" : "Quitó Issue del Top 3", issue.title);
-  revalidatePath("/issues");
-  revalidatePath("/meeting", "layout");
-  return { ok: true, message: "" };
+export async function toggleIssueTopAction(issueId: number, on: boolean): Promise<ActionResult> {
+  return safeAction("issues", "No se pudo cambiar el Top 3.", async () => {
+    const session = await requireModule("issues");
+    const issue = await getIssue(session.teamId, parse(zId, issueId));
+    if (!issue) return NOT_FOUND;
+    if (!(await setIssueTop(session.teamId, issue.id, Boolean(on)))) {
+      return { ok: false, message: "Ya hay 3 issues en el Top 3. Quita uno para agregar otro." };
+    }
+    await logActivity(session, "issues", on ? "Marcó Issue en el Top 3" : "Quitó Issue del Top 3", issue.title);
+    refresh();
+    return { ok: true, message: "" };
+  });
 }
 
-export async function updateIssueAction(issueId: number, formData: FormData): Promise<{ ok: boolean; message: string }> {
-  const session = await requireModule("issues");
-  const issue = await getIssue(issueId);
-  if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
-  const title = String(formData.get("title") ?? "").trim().slice(0, 300);
-  if (!title) return { ok: false, message: "Escribe el título del issue." };
-  const owner = ownerId(formData);
-  const due = String(formData.get("dueDate") ?? "");
-  await updateIssue(issueId, {
-    title,
-    description: String(formData.get("description") ?? "").trim().slice(0, 4000),
-    ownerId: owner && Number.isInteger(owner) ? owner : null,
-    term: formData.get("term") === "long_term" ? "long_term" : "short_term",
-    dueDate: /^\d{4}-\d{2}-\d{2}$/.test(due) ? due : null,
+export async function updateIssueAction(issueId: number, formData: FormData): Promise<ActionResult> {
+  return safeAction("issues", "No se pudo guardar el Issue.", async () => {
+    const session = await requireModule("issues");
+    const issue = await getIssue(session.teamId, parse(zId, issueId));
+    if (!issue) return NOT_FOUND;
+    const input = parse(issueForm, formObject(formData));
+    await updateIssue(session.teamId, issue.id, input);
+    await logActivity(session, "issues", "Editó Issue", input.title);
+    refresh();
+    return { ok: true, message: "Issue actualizado." };
   });
-  await logActivity(session, "issues", "Editó Issue", title);
-  revalidatePath("/issues");
-  revalidatePath("/meeting", "layout");
-  return { ok: true, message: "Issue actualizado." };
 }
 
 export async function solveIssueAction(issueId: number, createFollowUpTodo: string) {
   const session = await requireModule("issues");
-  await solveIssue(issueId);
-  if (createFollowUpTodo.trim()) {
-    await createTodo({
-      teamId: session.teamId,
-      title: createFollowUpTodo.trim(),
-      ownerId: session.userId,
-      dueDate: null,
-      meetingId: null,
-    });
+  const issue = await getIssue(session.teamId, parse(zId, issueId));
+  if (!issue) return;
+  await solveIssue(session.teamId, issue.id);
+  const followUp = parse(zText(300), createFollowUpTodo ?? "");
+  if (followUp) {
+    await createTodo({ teamId: session.teamId, title: followUp, ownerId: session.userId, dueDate: null, meetingId: null });
   }
-  await logActivity(session, "issues", "Resolvió Issue", await labelOf("issues", issueId));
-  revalidatePath("/issues");
-  revalidatePath("/todos");
+  await logActivity(session, "issues", "Resolvió Issue", issue.title);
+  refresh("/todos");
 }
 
 export async function reopenIssueAction(issueId: number) {
   const session = await requireModule("issues");
-  await reopenIssue(issueId);
-  await logActivity(session, "issues", "Reabrió Issue", await labelOf("issues", issueId));
-  revalidatePath("/issues");
+  const issue = await getIssue(session.teamId, parse(zId, issueId));
+  if (!issue) return;
+  await reopenIssue(session.teamId, issue.id);
+  await logActivity(session, "issues", "Reabrió Issue", issue.title);
+  refresh();
 }
 
 export async function deleteIssueAction(issueId: number) {
   const session = await requireModule("issues");
-  const label = await labelOf("issues", issueId);
-  await deleteIssue(issueId);
-  await logActivity(session, "issues", "Eliminó Issue", label);
-  revalidatePath("/issues");
+  const issue = await getIssue(session.teamId, parse(zId, issueId));
+  if (!issue) return;
+  await deleteIssue(session.teamId, issue.id);
+  await logActivity(session, "issues", "Eliminó Issue", issue.title);
+  refresh();
 }
 
 // --- Enviar Issues a otros equipos -------------------------------------------------
@@ -175,48 +159,30 @@ export async function issueTeamOptionsAction(): Promise<{ teams: TeamOption[]; e
   return { teams: withMembers, emailEnabled: emailConfigured() };
 }
 
+const sendForm = z.object({ teamId: zId, ownerId: zOwner, dueDate: zOptDate.catch(null), notify: z.boolean().catch(false), move: z.boolean().catch(false) });
+
 export async function sendIssueToTeamAction(
   issueId: number,
   input: { teamId: number; ownerId: number | null; dueDate: string | null; notify: boolean; move: boolean }
-): Promise<{ ok: boolean; message: string }> {
-  try {
+): Promise<ActionResult> {
+  return safeAction("issues", "No se pudo enviar el Issue.", async () => {
     const session = await requireModule("issues");
-    const issue = await getIssue(issueId);
-    if (!issue || issue.team_id !== session.teamId) return { ok: false, message: "Issue no encontrado." };
-    const teamId = Number(input?.teamId);
-    const target = (await listShareableTeams(session.teamId)).find((t) => t.id === teamId);
+    const issue = await getIssue(session.teamId, parse(zId, issueId));
+    if (!issue) return NOT_FOUND;
+    const form = parse(sendForm, input);
+    const target = (await listShareableTeams(session.teamId)).find((t) => t.id === form.teamId);
     if (!target) return { ok: false, message: "Elige un equipo válido." };
-    const owner = (await listTeamMembers(teamId)).find((m) => m.id === Number(input.ownerId)) ?? null;
-    const dueDate = /^\d{4}-\d{2}-\d{2}$/.test(String(input.dueDate ?? "")) ? String(input.dueDate) : (issue.due_date?.slice(0, 10) ?? null);
+    const owner = (await listTeamMembers(target.id)).find((m) => m.id === form.ownerId) ?? null;
+    const dueDate = form.dueDate ?? issue.due_date?.slice(0, 10) ?? null;
 
-    const copy = await sendIssueToTeam({ issue, toTeamId: teamId, ownerId: owner?.id ?? null, dueDate, userId: session.userId });
+    const copy = await sendIssueToTeam({ issue, toTeamId: target.id, ownerId: owner?.id ?? null, dueDate, userId: session.userId });
     if (!copy) return { ok: false, message: `${target.name} ya tiene este Issue abierto.` };
-    await logActivity(session, "issues", input.move ? "Movió Issue a otro equipo" : "Envió Issue a otro equipo", `${issue.title} → ${target.name}`);
-
-    let note = "";
-    if (input.notify && owner && !owner.email.endsWith(".local") && emailConfigured()) {
-      const from = await getTeam(session.teamId);
-      const mail = await sendEmail({
-        to: [owner.email],
-        replyTo: await teamReplyTo(session.teamId, session.email),
-        subject: `Nuevo Issue de ${from?.name ?? "otro equipo"}: ${issue.title}`,
-        html: emailLayout({
-          title: "Te enviaron un Issue",
-          intro: `${escapeHtml(session.name)} (${escapeHtml(from?.name ?? "otro equipo")}) envió un Issue a <b>${escapeHtml(target.name)}</b> con tu nombre como responsable:`,
-          body: `<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:22px;color:#111827;font-weight:bold;margin:16px 0 4px">${escapeHtml(issue.title)}</p>${
-            issue.description ? `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#374151;white-space:pre-line;margin:0">${escapeHtml(issue.description)}</p>` : ""
-          }${dueDate ? `<p style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#374151;margin:8px 0 0">Fecha: <b>${escapeHtml(dueDate)}</b></p>` : ""}`,
-          cta: { label: "Ver Issues", url: `${await appUrl()}/issues` },
-        }),
-      });
-      note = mail.ok ? ` Se avisó por correo a ${owner.name}.` : ` (No se pudo avisar por correo: ${mail.message})`;
-    }
-    if (input.move) await deleteIssue(issue.id);
-    revalidatePath("/issues");
-    revalidatePath("/meeting", "layout");
-    return { ok: true, message: `${input.move ? "Movido" : "Enviado"} a ${target.name}${owner ? ` (responsable: ${owner.name})` : ""}.${note}` };
-  } catch (e) {
-    console.error("[issues] enviar a equipo", e);
-    return { ok: false, message: e instanceof Error && e.name === "AccessDeniedError" ? e.message : "No se pudo enviar el Issue." };
-  }
+    await logActivity(session, "issues", form.move ? "Movió Issue a otro equipo" : "Envió Issue a otro equipo", `${issue.title} → ${target.name}`);
+    const note = form.notify
+      ? await notifyAssignee({ kind: "issue", sender: session, targetTeamName: target.name, owner, title: issue.title, description: issue.description, dueDate })
+      : "";
+    if (form.move) await deleteIssue(session.teamId, issue.id);
+    refresh();
+    return { ok: true, message: `${form.move ? "Movido" : "Enviado"} a ${target.name}${owner ? ` (responsable: ${owner.name})` : ""}.${note}` };
+  });
 }

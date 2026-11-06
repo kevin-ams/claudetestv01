@@ -35,8 +35,32 @@ export async function createOwner(
   return inserted[0] as ScorecardOwner;
 }
 
-export async function deleteOwner(ownerId: number) {
-  await db().sql`DELETE FROM scorecard_owners WHERE id = ${ownerId}`;
+/** Borra un dueño del equipo; devuelve su nombre (o null si no es del equipo). */
+export async function deleteOwner(teamId: number, ownerId: number): Promise<string | null> {
+  const rows = (await db().sql`DELETE FROM scorecard_owners WHERE id = ${ownerId} AND team_id = ${teamId} RETURNING name`) as { name: string }[];
+  return rows[0]?.name ?? null;
+}
+
+/** Nombre de un indicador del equipo (archivado o no); null si no es del equipo. */
+export async function getMetricName(teamId: number, metricId: number): Promise<string | null> {
+  if (!Number.isInteger(metricId)) return null;
+  const rows = (await db().sql`SELECT name FROM scorecard_metrics WHERE id = ${metricId} AND team_id = ${teamId}`) as { name: string }[];
+  return rows[0]?.name ?? null;
+}
+
+/** Indicador + dueño, solo si ambos son del equipo (para validar antes de escribir una celda). */
+export async function getScorecardCell(
+  teamId: number,
+  metricId: number,
+  ownerId: number
+): Promise<{ metric: string; owner: string } | null> {
+  if (!Number.isInteger(metricId) || !Number.isInteger(ownerId)) return null;
+  const rows = (await db().sql`
+    SELECT m.name AS metric, o.name AS owner
+    FROM scorecard_metrics m JOIN scorecard_owners o ON o.team_id = m.team_id
+    WHERE m.id = ${metricId} AND o.id = ${ownerId} AND m.team_id = ${teamId}
+  `) as { metric: string; owner: string }[];
+  return rows[0] ?? null;
 }
 
 export async function listMetrics(teamId: number): Promise<ScorecardMetric[]> {
@@ -160,13 +184,16 @@ export async function listTargets(teamId: number): Promise<ScorecardTarget[]> {
 }
 
 export async function setTarget(
+  teamId: number,
   metricId: number,
   ownerId: number,
   value: number
 ) {
+  // Solo si indicador y dueño son del equipo (INSERT … SELECT no inserta nada si no).
   await db().sql`
     INSERT INTO scorecard_targets (metric_id, owner_id, target_value)
-    VALUES (${metricId}, ${ownerId}, ${value})
+    SELECT m.id, o.id, ${value} FROM scorecard_metrics m JOIN scorecard_owners o ON o.team_id = m.team_id
+    WHERE m.id = ${metricId} AND o.id = ${ownerId} AND m.team_id = ${teamId}
     ON CONFLICT (metric_id, owner_id) DO UPDATE SET target_value = ${value}
   `;
 }
@@ -186,6 +213,7 @@ export async function listEntries(
 }
 
 export async function upsertEntry(input: {
+  teamId: number;
   metricId: number;
   ownerId: number;
   weekStart: string;
@@ -194,14 +222,17 @@ export async function upsertEntry(input: {
 }) {
   if (input.value === null) {
     await db().sql`
-      DELETE FROM scorecard_entries
-      WHERE metric_id = ${input.metricId} AND owner_id = ${input.ownerId} AND week_start = ${input.weekStart}
+      DELETE FROM scorecard_entries e USING scorecard_metrics m
+      WHERE e.metric_id = ${input.metricId} AND e.owner_id = ${input.ownerId} AND e.week_start = ${input.weekStart}
+        AND m.id = e.metric_id AND m.team_id = ${input.teamId}
     `;
     return;
   }
   await db().sql`
     INSERT INTO scorecard_entries (metric_id, owner_id, week_start, value, entered_by)
-    VALUES (${input.metricId}, ${input.ownerId}, ${input.weekStart}, ${input.value}, ${input.enteredBy})
+    SELECT m.id, o.id, ${input.weekStart}, ${input.value}, ${input.enteredBy}
+    FROM scorecard_metrics m JOIN scorecard_owners o ON o.team_id = m.team_id
+    WHERE m.id = ${input.metricId} AND o.id = ${input.ownerId} AND m.team_id = ${input.teamId}
     ON CONFLICT (metric_id, owner_id, week_start)
     DO UPDATE SET value = ${input.value}, entered_by = ${input.enteredBy}, entered_at = NOW()
   `;

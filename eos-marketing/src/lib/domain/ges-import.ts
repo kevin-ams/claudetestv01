@@ -142,7 +142,7 @@ export async function importComunicacionGes(admin: { userId: number; teamId: num
     });
     metricIds.set(m.name, metric.id);
     for (const [owner, value] of Object.entries(m.targets)) {
-      if (value !== null && value !== undefined) await setTarget(metric.id, ownerIds.get(owner)!, Number(value));
+      if (value !== null && value !== undefined) await setTarget(team.id, metric.id, ownerIds.get(owner)!, Number(value));
     }
   }
   // % Hygiene = Hygiene producidas ÷ Cadencia (como la columna "Calculado" de Config).

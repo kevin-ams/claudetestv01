@@ -2,7 +2,7 @@
 
 import { requireAdmin, requireModule } from "@/lib/auth/access";
 import { revalidatePath } from "next/cache";
-import { labelOf, logActivity } from "@/lib/domain/activity";
+import { logActivity } from "@/lib/domain/activity";
 import {
   upsertEntry,
   createMetric,
@@ -14,7 +14,11 @@ import {
   setMetricFormula,
   moveMetric,
   restoreMetric,
+  getScorecardCell,
+  getMetricName,
 } from "@/lib/domain/scorecard";
+import { NOT_FOUND, parse, zIsoDate, zId } from "@/lib/actions";
+import { z } from "zod";
 import { describeFormula, type MetricFormula } from "@/lib/domain/scorecard-formula";
 import type { Direction, MetricFormat, Aggregation } from "@/lib/domain/types";
 
@@ -25,8 +29,14 @@ export async function upsertEntryAction(
   value: number | null
 ) {
   const session = await requireModule("scorecard");
-  await upsertEntry({ metricId, ownerId, weekStart, value, enteredBy: session.userId });
-  await logActivity(session, "scorecard", "Registró valor del Scorecard", `${await labelOf("scorecard_metrics", metricId)} · ${await labelOf("scorecard_owners", ownerId)} · semana ${weekStart}: ${value ?? "vacío"}`);
+  const input = parse(
+    z.object({ metricId: zId, ownerId: zId, weekStart: zIsoDate, value: z.number().finite().nullable() }),
+    { metricId, ownerId, weekStart, value }
+  );
+  const cell = await getScorecardCell(session.teamId, input.metricId, input.ownerId);
+  if (!cell) throw new Error("Indicador no encontrado");
+  await upsertEntry({ teamId: session.teamId, ...input, enteredBy: session.userId });
+  await logActivity(session, "scorecard", "Registró valor del Scorecard", `${cell.metric} · ${cell.owner} · semana ${input.weekStart}: ${input.value ?? "vacío"}`);
   revalidatePath("/scorecard");
   revalidatePath("/");
 }
@@ -47,7 +57,8 @@ export async function createMetricAction(formData: FormData) {
 
 export async function archiveMetricAction(metricId: number): Promise<{ ok: boolean; message: string }> {
   const session = await requireModule("scorecard");
-  const label = await labelOf("scorecard_metrics", metricId);
+  const label = await getMetricName(session.teamId, Number(metricId));
+  if (label === null) return NOT_FOUND;
   const usedBy = await archiveMetric(session.teamId, metricId);
   if (usedBy.length) {
     return { ok: false, message: `No se puede archivar: lo usa la fórmula de ${usedBy.join(", ")}. Cambia esa fórmula primero.` };
@@ -60,8 +71,9 @@ export async function archiveMetricAction(metricId: number): Promise<{ ok: boole
 
 export async function restoreMetricAction(metricId: number): Promise<{ ok: boolean; message: string }> {
   const session = await requireModule("scorecard");
-  await restoreMetric(session.teamId, metricId);
-  const label = await labelOf("scorecard_metrics", metricId);
+  const label = await getMetricName(session.teamId, Number(metricId));
+  if (label === null) return NOT_FOUND;
+  await restoreMetric(session.teamId, Number(metricId));
   await logActivity(session, "scorecard", "Restauró indicador", label);
   revalidatePath("/scorecard");
   revalidatePath("/ajustes/scorecard");
@@ -87,8 +99,8 @@ export async function createOwnerAction(formData: FormData) {
 
 export async function deleteOwnerAction(ownerId: number) {
   const session = await requireModule("scorecard");
-  const label = await labelOf("scorecard_owners", ownerId);
-  await deleteOwner(ownerId);
+  const label = await deleteOwner(session.teamId, Number(ownerId));
+  if (label === null) return;
   await logActivity(session, "scorecard", "Eliminó dueño del Scorecard", label);
   revalidatePath("/scorecard");
 }
@@ -108,11 +120,11 @@ export async function setMetricFormulaAction(metricId: number, formula: MetricFo
     : null;
   const error = await setMetricFormula(session.teamId, metricId, clean);
   if (error) return { ok: false, message: error };
-  const label = await labelOf("scorecard_metrics", metricId);
+  const label = (await getMetricName(session.teamId, Number(metricId))) ?? "";
   let detail = "manual";
   if (clean) {
     const names: Record<number, string> = {};
-    for (const id of Object.values(clean.vars)) names[id] = await labelOf("scorecard_metrics", id);
+    for (const id of Object.values(clean.vars)) names[id] = (await getMetricName(session.teamId, id)) ?? "?";
     detail = describeFormula(clean, (id) => names[id] ?? "?");
   }
   await logActivity(session, "scorecard", "Cambió cálculo de indicador", `${label}: ${detail}`);
@@ -124,8 +136,11 @@ export async function setMetricFormulaAction(metricId: number, formula: MetricFo
 export async function setTargetAction(metricId: number, ownerId: number, value: number) {
   await requireModule("scorecard");
   const session = await requireAdmin("Solo un administrador puede cambiar las metas.");
-  await setTarget(metricId, ownerId, value);
-  await logActivity(session, "scorecard", "Cambió meta del Scorecard", `${await labelOf("scorecard_metrics", metricId)} · ${await labelOf("scorecard_owners", ownerId)}: ${value}`);
+  const input = parse(z.object({ metricId: zId, ownerId: zId, value: z.number().finite() }), { metricId, ownerId, value });
+  const cell = await getScorecardCell(session.teamId, input.metricId, input.ownerId);
+  if (!cell) throw new Error("Indicador no encontrado");
+  await setTarget(session.teamId, input.metricId, input.ownerId, input.value);
+  await logActivity(session, "scorecard", "Cambió meta del Scorecard", `${cell.metric} · ${cell.owner}: ${input.value}`);
   revalidatePath("/scorecard");
 }
 
@@ -135,10 +150,11 @@ export async function setMetricSharingAction(
   teamIds: number[]
 ): Promise<{ ok: boolean; message: string }> {
   const session = await requireModule("scorecard");
-  const ok = await setMetricSharing(session.teamId, metricId, sharedAll, teamIds);
-  await logActivity(session, "scorecard", "Cambió visibilidad de indicador", `${await labelOf("scorecard_metrics", metricId)}: ${sharedAll ? "todos los equipos" : `${teamIds.length} equipo(s)`}`);
-  revalidatePath("/scorecard");
+  const ids = (Array.isArray(teamIds) ? teamIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0);
+  const ok = await setMetricSharing(session.teamId, Number(metricId), Boolean(sharedAll), ids);
   if (!ok) return { ok: false, message: "Ese indicador no es de este equipo." };
+  await logActivity(session, "scorecard", "Cambió visibilidad de indicador", `${await getMetricName(session.teamId, Number(metricId))}: ${sharedAll ? "todos los equipos" : `${ids.length} equipo(s)`}`);
+  revalidatePath("/scorecard");
   return {
     ok: true,
     message: sharedAll

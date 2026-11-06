@@ -9,7 +9,7 @@ import { listCareers, listMonthly, listWeekly, monthGoals, weeklyGoals } from "@
 import { mergeWeekly } from "@/lib/domain/careers-shared";
 import { createIssue, listIssues } from "@/lib/domain/issues";
 import { listMeetings } from "@/lib/domain/meetings";
-import { listMilestonesForRocks, listRocks, updateRockStatus } from "@/lib/domain/rocks";
+import { getRock, listMilestonesForRocks, listRocks, updateRockStatus } from "@/lib/domain/rocks";
 import { listEntries, listMetrics, listOwners, listTargets, upsertEntry } from "@/lib/domain/scorecard";
 import { buildScorecardGrid, isCalculated } from "@/lib/domain/scorecard-shared";
 import { listAgenda } from "@/lib/domain/team-agenda";
@@ -449,9 +449,9 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     { title: "Completar To-Do", description: "Marca un To-Do como hecho (o lo reabre con done=false).", inputSchema: { todo_id: z.number().int(), done: z.boolean().optional() } },
     async ({ todo_id, done }) => {
       if (!writes("todos")) return denied("To-Dos");
-      const t = await getTodo(todo_id);
-      if (!t || t.team_id !== teamId) return fail("To-Do no encontrado.");
-      await completeTodo(todo_id, done ?? true);
+      const t = await getTodo(teamId, todo_id);
+      if (!t) return fail("To-Do no encontrado.");
+      await completeTodo(teamId, todo_id, done ?? true);
       await log("todos", done === false ? "Reabrió To-Do" : "Completó To-Do", t.title);
       return ok({ updated: true, id: todo_id, done: done ?? true });
     },
@@ -462,11 +462,11 @@ export function buildMcpServer(ctx: McpContext): McpServer {
     { title: "Estado de un Rock", description: "Cambia el estado de un Rock: on_track, off_track o done.", inputSchema: { rock_id: z.number().int(), status: z.enum(["on_track", "off_track", "done"]) } },
     async ({ rock_id, status }) => {
       if (!writes("rocks")) return denied("Rocks");
-      const rows = (await db().sql`SELECT title FROM rocks WHERE id = ${rock_id} AND team_id = ${teamId}`) as { title: string }[];
-      if (!rows[0]) return fail("Rock no encontrado en este equipo.");
-      await updateRockStatus(rock_id, status);
-      await log("rocks", "Cambió estado de Rock", `${rows[0].title}: ${status}`);
-      return ok({ updated: true, rock: rows[0].title, status });
+      const rock = await getRock(teamId, rock_id);
+      if (!rock) return fail("Rock no encontrado en este equipo.");
+      await updateRockStatus(teamId, rock_id, status);
+      await log("rocks", "Cambió estado de Rock", `${rock.title}: ${status}`);
+      return ok({ updated: true, rock: rock.title, status });
     },
   );
 
@@ -486,7 +486,7 @@ export function buildMcpServer(ctx: McpContext): McpServer {
       if (!o) return fail(`No hay un dueño “${owner}” en el Scorecard.`);
       if (isCalculated(m) || o.is_rollup) return fail("Ese valor se calcula solo; no se captura a mano.");
       const w = week ? shiftWeek(week, 0) : weekStartISO();
-      await upsertEntry({ metricId: m.id, ownerId: o.id, weekStart: w, value, enteredBy: session.userId });
+      await upsertEntry({ teamId, metricId: m.id, ownerId: o.id, weekStart: w, value, enteredBy: session.userId });
       await log("scorecard", "Capturó valor del Scorecard", `${m.name} · ${o.name} · ${w}: ${value ?? "—"}`);
       return ok({ saved: true, metric: m.name, owner: o.name, week: w, value });
     },

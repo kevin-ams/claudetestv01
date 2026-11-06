@@ -15,6 +15,7 @@ import {
 } from "@/lib/domain/users";
 import { countAdmins, listRoles, setMemberRole } from "@/lib/domain/roles";
 import { isPlatformOwner } from "@/lib/auth/platform";
+import { db } from "@/lib/db";
 import { getTeam, renameTeam, setTeamReplyTo } from "@/lib/domain/teams";
 import { EMAIL_RE } from "@/lib/email";
 import { sendAccessEmail } from "@/lib/domain/account-emails";
@@ -91,6 +92,16 @@ export async function updateAccessAction(
   }
   if (!(await isUserInTeam(userId, session.teamId))) {
     return { error: "Esa persona no pertenece a este equipo." };
+  }
+  // Correo y contraseña son de la cuenta (no del equipo): si la persona también está en otro equipo,
+  // o es dueña de la plataforma, solo ella misma o el dueño de la plataforma pueden cambiarlos.
+  if (userId !== session.userId && !(await isPlatformOwner(session.userId))) {
+    const otherTeams = (await db().sql`
+      SELECT 1 FROM team_members WHERE user_id = ${userId} AND team_id <> ${session.teamId} LIMIT 1
+    `).length;
+    if (otherTeams || (await isPlatformOwner(userId))) {
+      return { error: "Esta persona también está en otro equipo: solo ella (desde su Perfil) o el dueño de la plataforma puede cambiar su acceso." };
+    }
   }
 
   const name = String(formData.get("name") ?? "").trim();

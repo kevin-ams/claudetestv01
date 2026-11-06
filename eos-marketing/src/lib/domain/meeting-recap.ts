@@ -35,8 +35,8 @@ const ts = (v: string | null) => (v ? new Date(v).getTime() : null);
 
 /** Todo lo registrado en una reunión L10 (para la Conclusión y el resumen PDF). */
 export async function meetingRecap(meetingId: number, teamId: number): Promise<MeetingRecap | null> {
-  const meeting = (await getMeeting(meetingId)) as (Meeting & { cascade_notes?: string }) | null;
-  if (!meeting || meeting.team_id !== teamId) return null;
+  const meeting = (await getMeeting(teamId, meetingId)) as (Meeting & { cascade_notes?: string }) | null;
+  if (!meeting) return null;
 
   const from = ts(meeting.started_at) ?? ts(meeting.created_at)!;
   const to = ts(meeting.ended_at) ?? Date.now();

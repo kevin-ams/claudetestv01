@@ -69,7 +69,7 @@ export async function deleteSeatAction(seatId: number): Promise<Result> {
   try {
     const session = await requireModule("accountability");
     const label = await labelOf("accountability_seats", seatId);
-    await deleteSeat(session.teamId, seatId);
+    if (!(await deleteSeat(session.teamId, seatId))) return { ok: false, message: "Puesto no encontrado." };
     await logActivity(session, "accountability", "Eliminó puesto del organigrama", label);
     revalidatePath("/accountability");
     return { ok: true, message: "Puesto eliminado." };
