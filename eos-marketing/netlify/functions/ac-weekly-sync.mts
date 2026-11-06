@@ -1,13 +1,12 @@
-// Sincronización automática de leads calificados desde ActiveCampaign.
+// Sincronización automática de los leads semanales (Indicadores de carrera) desde ActiveCampaign.
+// No toca el Dashboard AC: ese se sincroniza solo a mano.
 //
-// Antes esta función programada hacía el trabajo ella misma, pero Netlify la corta a los ~15 s:
-// nunca terminaba ("quedan embudos por revisar"), y aun así despertaba la base de datos cada hora,
-// las 24 horas. Ahora solo lanza la función en segundo plano (ac-sync-background, hasta 15 min), que
-// llama a /api/cron/activecampaign en tandas hasta terminar y guardar la semana en curso.
+// Corre UNA vez por semana: el lunes a las 7:07 (hora de Guatemala = 13:07 UTC). Cierra la semana
+// anterior con sus leads finales (y deja la nueva semana en cero). Durante la semana, los leads se
+// actualizan solo cuando alguien pulsa "Sincronizar ahora".
 //
-// Horario (UTC; Guatemala = UTC-6): cada 2 horas de 7:07 a 17:07 hora de Guatemala, de lunes a sábado.
-// Fuera de ese horario la base de datos puede apagarse (no se cobra cómputo mientras está apagada).
-// Los lunes, la primera pasada también cierra la semana anterior.
+// Antes corría cada hora, 24/7, y Netlify la cortaba a los ~15 s sin terminar. Ahora solo lanza la
+// función en segundo plano (ac-sync-background, hasta 15 min), que trabaja en tandas hasta terminar.
 async function acWeeklySync() {
   const base = (process.env.APP_URL || process.env.URL || "").replace(/\/$/, "");
   const secret = process.env.CRON_SECRET;
@@ -18,7 +17,7 @@ async function acWeeklySync() {
   const res = await fetch(`${base}/.netlify/functions/ac-sync-background`, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },
-    body: "{}",
+    body: JSON.stringify({ chain: 0 }),
   });
   // Las funciones en segundo plano responden 202 de inmediato y siguen trabajando.
   if (res.status !== 202) console.error("[ac-sync] No se pudo lanzar la sincronización en segundo plano:", res.status);
@@ -27,4 +26,4 @@ async function acWeeklySync() {
 
 export default acWeeklySync;
 
-export const config = { schedule: "7 13,15,17,19,21,23 * * 1-6" };
+export const config = { schedule: "7 13 * * 1" };

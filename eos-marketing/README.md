@@ -67,7 +67,7 @@ La primera vez, abre el sitio y verás `/setup` para crear el equipo y el admini
 | `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Leads semanales desde ActiveCampaign (Ajustes › Leads desde ActiveCampaign). |
 | `CLICKUP_API_TOKEN` | Token personal de ClickUp (Settings › Apps › API Token), secreto. Activa "Enviar a ClickUp" en To-Dos e Issues. |
 | `CLICKUP_SPACE_NAME` / `CLICKUP_SPACE_ID` | Espacio de ClickUp cuyas listas se ofrecen al enviar (por defecto "Marketing"). |
-| `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función en segundo plano `ac-sync-background`, lanzada por la programada `netlify/functions/ac-weekly-sync.mts` (cada 2 h, 7:07–17:07 de Guatemala, lunes a sábado). |
+| `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función en segundo plano `ac-sync-background`, lanzada por el botón "Sincronizar ahora" o por la programada `netlify/functions/ac-weekly-sync.mts` (una vez por semana: lunes 7:07 de Guatemala). |
 
 ## Leads desde ActiveCampaign
 
@@ -82,7 +82,7 @@ se sugiere el que coincide con el nombre).
 - Las fechas se guardan en `ac_deal_entries`; `ac_pipeline_scans` recuerda hasta dónde se revisó cada embudo. Solo
   se vuelve a leer el historial de un trato si cambió. La primera revisión cubre los tratos modificados en las
   últimas 27 semanas y puede tardar varios minutos (≈5 consultas por segundo a ActiveCampaign).
-- **Automático**: cada 2 horas en horario laboral (lunes a sábado) la función programada lanza la sincronización en segundo plano, que revisa lo nuevo y escribe la **semana en curso**; los lunes
+- **Automático**: una vez por semana (lunes 7:07, hora de Guatemala) la función programada lanza la sincronización en segundo plano, que revisa lo nuevo y escribe la **semana en curso**; los lunes
   también cierra la semana anterior. **Manual**: "Sincronizar ahora" en Ajustes o el botón de Indicadores (visible
   en la semana en curso), con barra de avance.
 - **Semanas anteriores (solo administradores)**: se elige una semana cerrada (últimas 26) y "Ver comparativa"
@@ -206,8 +206,8 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   está encendida. Para no mantenerla despierta: el menú lateral y el perfil no precargan páginas (`prefetch={false}`;
   cada precarga ejecutaba el layout con ~8 consultas por enlace visible), la L10 consulta cada pocos segundos solo una
   "huella" de la reunión (`meetingPulseAction`, una consulta) y recarga la página únicamente si cambió, y la
-  sincronización de ActiveCampaign corre en segundo plano cada 2 h en horario laboral (antes cada hora, 24/7, y no
-  alcanzaba a terminar).
+  sincronización automática de leads semanales corre una vez por semana (lunes 7:07) en segundo plano (antes cada hora,
+  24/7, y no alcanzaba a terminar); durante la semana solo con "Sincronizar ahora". El Dashboard AC es solo manual.
 - **Conectar con Claude (servidor MCP)** — `POST /api/mcp/<token>` (o `/api/mcp` con `Authorization: Bearer`).
   Tokens personales desde Conocimiento › Conectar con Claude: alcance "Solo vault" o "Vault + EOS completo"
   (Rocks, Scorecard, indicadores de carrera semanal/mensual, Issues, To-Dos, V/TO, organigrama, L10, agenda) y opción

@@ -7,7 +7,7 @@ const TZ = process.env.EOS_TIMEZONE || "America/Guatemala";
 
 /**
  * POST /api/cron/activecampaign — sincronización automática (todos los equipos).
- * La llama la función en segundo plano ac-sync-background (lanzada por la programada ac-weekly-sync, cada 2 h en horario laboral)
+ * La llama la función en segundo plano ac-sync-background (botón "Sincronizar ahora" o la programada ac-weekly-sync, los lunes 7:07)
  * con "Authorization: Bearer $CRON_SECRET", varias veces hasta que responde done = true.
  * Cada llamada revisa el historial de tratos unos segundos y retoma donde quedó; al terminar
  * guarda los leads calificados de la semana en curso. Los lunes también cierra la semana

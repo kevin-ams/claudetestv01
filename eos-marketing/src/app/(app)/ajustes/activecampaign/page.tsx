@@ -68,7 +68,7 @@ export default async function ActiveCampaignPage() {
               )}
             </p>
             <p className="text-xs text-muted">
-              Se actualiza sola cada 2 horas en horario laboral (lunes a sábado, 7:00–17:00) y con el botón cuando quieras; solo escribe la semana en curso (los lunes cierra
+              Se actualiza sola una vez por semana (lunes 7:00, cierra la semana anterior) y con el botón cuando quieras; solo escribe la semana en curso (los lunes cierra
               también la semana anterior). La primera vez revisa el historial de las últimas 27 semanas y puede tardar
               varios minutos.
             </p>
