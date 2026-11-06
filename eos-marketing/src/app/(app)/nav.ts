@@ -8,6 +8,7 @@ import {
   Clock,
   Compass,
   Cube,
+  Funnel,
   Gear,
   GraduationCap,
   House,
@@ -66,6 +67,7 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
     label: "Reportes",
     items: [
       { href: "/analisis", label: "Análisis", Icon: ChartLine },
+      { href: "/dashboard-ac", label: "Dashboard AC", Icon: Funnel },
       { href: "/analisis-contenido", label: "Análisis de contenido", Icon: ChartPie },
       { href: "/reportes-semanales", label: "Reportes semanales", Icon: FileText },
     ],

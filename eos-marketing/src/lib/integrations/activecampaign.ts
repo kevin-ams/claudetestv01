@@ -39,7 +39,7 @@ async function throttle() {
   if (slot > now) await sleep(slot - now);
 }
 
-async function acGet<T>(path: string): Promise<T> {
+export async function acGet<T>(path: string): Promise<T> {
   if (!isActiveCampaignConfigured()) throw new ActiveCampaignNotConfiguredError();
   const base = process.env.ACTIVECAMPAIGN_API_URL!.replace(/\/$/, "");
   for (let attempt = 0; ; attempt++) {
@@ -97,7 +97,7 @@ export async function listPipelines(): Promise<AcPipeline[]> {
 
 let careerFieldId: Promise<string | null> | undefined;
 /** Id del campo "Nombre de la Carrera" (se busca por su etiqueta de personalización). */
-async function getCareerFieldId(): Promise<string | null> {
+export async function getCareerFieldId(): Promise<string | null> {
   careerFieldId ??= (async () => {
     const r = await acGet<{ dealCustomFieldMeta: { id: string | number; personalization?: string; fieldLabel?: string }[] }>(
       "dealCustomFieldMeta?limit=100"

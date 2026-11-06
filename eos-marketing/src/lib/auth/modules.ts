@@ -15,6 +15,7 @@ export const MODULES = [
   { key: "coberturas", label: "Control de coberturas", href: "/coberturas" },
   { key: "analisis_contenido", label: "Análisis de contenido", href: "/analisis-contenido" },
   { key: "analisis", label: "Análisis", href: "/analisis" },
+  { key: "dashboard_ac", label: "Dashboard AC", href: "/dashboard-ac" },
   { key: "reportes_semanales", label: "Reportes semanales", href: "/reportes-semanales" },
   { key: "herramientas", label: "Otras herramientas", href: "/herramientas" },
   { key: "ajustes", label: "Ajustes (apariencia, hitos, anuncios, demo, exportar)", href: "/ajustes" },
@@ -32,8 +33,12 @@ export const LEVEL_LABEL: Record<AccessLevel, string> = {
 
 const RANK: Record<AccessLevel, number> = { none: 0, view: 1, edit: 2 };
 
+/** Módulos que por ahora solo ven los administradores (no se configuran por rol). */
+export const ADMIN_ONLY_MODULES: readonly ModuleKey[] = ["dashboard_ac"];
+
 export function levelFor(permissions: Permissions, isAdmin: boolean, module: ModuleKey): AccessLevel {
   if (isAdmin) return "edit";
+  if (ADMIN_ONLY_MODULES.includes(module)) return "none";
   return permissions[module] ?? "edit";
 }
 
