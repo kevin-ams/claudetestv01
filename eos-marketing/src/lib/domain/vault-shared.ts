@@ -47,9 +47,9 @@ export function normalizeKey(s: string): string {
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
-    .replace(/\.md$/, "")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .replace(/\.md$/, "");
 }
 
 /** "Proceso de inscripción" → "proceso-de-inscripcion" */

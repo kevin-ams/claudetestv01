@@ -443,3 +443,26 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   y se registran los mensajes a cascadear. Al finalizar, **Generar resumen (PDF)** descarga
   lo registrado (asistencia, quién dirigió, calificaciones, Scorecard fuera de meta, indicadores de carrera, Rocks,
   noticias, To-Dos, IDS y mensajes); también desde el historial de reuniones.
+
+## Pruebas
+
+`npm test` (Vitest) corre las pruebas de `tests/` contra una base **PGlite temporal** (nunca la de Netlify):
+
+- `vault-shared.test.ts` — `[[enlaces]]` (alias, encabezados, EOS, código), `#tags` y frontmatter, renombrar enlaces,
+  claves/rutas, árbol de carpetas, texto plegado y fragmentos de búsqueda, palabras vacías, Reciprocal Rank Fusion y
+  división en fragmentos.
+- `graph-model.test.ts` — nodos/aristas, huérfanas, notas por crear, tags, EOS, grafo local, filtros y relaciones por
+  significado.
+- `vault-isolation.test.ts` — un vault por organización; otra organización no lista, busca, abre, enlaza, indexa ni
+  guarda notas ajenas (texto ni significado); conflicto de versiones; renombrar actualiza enlaces y backlinks.
+- `mcp.test.ts` — tokens (solo hash, formato, revocación, límite por minuto, quién puede revocar), herramientas según
+  alcance y escritura, exigencia de Premium, aislamiento entre organizaciones por MCP y bitácora "(vía Claude)".
+
+### Sin servicios de pago (Conocimiento, etapas 1–6)
+
+Todas las dependencias nuevas son de código abierto y gratuitas: CodeMirror 6, unified/remark/rehype, `yaml`,
+`pdfjs-dist`, `@huggingface/transformers`, `sigma` + `graphology`, `@modelcontextprotocol/sdk` y Vitest (solo
+desarrollo). Corren en Netlify y en la base de datos actual. Lo único externo es la descarga del modelo de significado
+en el navegador (Hugging Face) y sus archivos WebAssembly (jsDelivr), ambos gratuitos. No hay llamadas a APIs de LLM ni
+de embeddings; la IA de pago es la Etapa 8 (premium, con topes de gasto).
+
