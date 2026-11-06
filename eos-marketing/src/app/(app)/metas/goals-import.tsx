@@ -10,10 +10,10 @@ import { careerLabel, money, num } from "@/lib/domain/careers-shared";
 import type { GoalImportPart, GoalImportPreview } from "@/lib/domain/goals-shared";
 import type { Career } from "@/lib/domain/types";
 import { goalsImportApplyAction, goalsImportPreviewAction } from "./actions";
+import { STALE } from "@/lib/client-actions";
 
 const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const monthShort = (m: string) => `${MONTH_LABELS[Number(m.slice(5, 7)) - 1]} ${m.slice(2, 4)}`;
-const STALE = "No se pudo completar. Si se publicó una versión nueva, recarga la página.";
 
 /** "145 + 24 = 169 (ciclo 168,3)" */
 function PartCell({ p, fmt }: { p: GoalImportPart | null; fmt: (n: number) => string }) {

@@ -5,9 +5,9 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Segmented } from "@/components/ui/segmented";
 import { connectInfoAction, createTokenAction, revokeTokenAction, setConsultantUrlAction, type ConnectInfo } from "./actions";
+import { STALE } from "@/lib/client-actions";
 
 const WHEN = new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" });
-const STALE = "No se pudo completar. Si se publicó una versión nueva, recarga la página.";
 
 function CopyField({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);

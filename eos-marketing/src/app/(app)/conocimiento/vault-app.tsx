@@ -1,110 +1,28 @@
 "use client";
 
-import { ChevronDown, ChevronRight, FileText, Folder, Magnifier, Plus, TrashBin } from "@gravity-ui/icons";
+import { FileText, Magnifier, Plus, TrashBin } from "@gravity-ui/icons";
 import { Button, Chip, Input, buttonVariants } from "@heroui/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Segmented } from "@/components/ui/segmented";
-import {
-  EOS_LABEL,
-  TEMPLATE_FOLDER,
-  buildTree,
-  extractTags,
-  extractWikilinks,
-  folderOf,
-  noteKeys,
-  normalizeKey,
-  type EosEntity,
-  type EosKind,
-  type NoteSummary,
-  type TreeFolder,
-} from "@/lib/domain/vault-shared";
+import { EOS_LABEL, TEMPLATE_FOLDER, buildTree, extractTags, extractWikilinks, folderOf, noteKeys, normalizeKey, type EosEntity, type EosKind, type NoteSummary } from "@/lib/domain/vault-shared";
 import type { NoteVersion } from "@/lib/domain/vault";
-import {
-  createNoteAction,
-  deleteNoteAction,
-  listNotesAction,
-  listVersionsAction,
-  chunkPlanAction,
-  indexStatusAction,
-  relatedByMeaningAction,
-  resetEmbeddingsAction,
-  storeChunksAction,
-  openNoteAction,
-  saveNoteAction,
-  versionContentAction,
-  type OpenNote,
-} from "./actions";
+import { createNoteAction, deleteNoteAction, listNotesAction, listVersionsAction, relatedByMeaningAction, resetEmbeddingsAction, openNoteAction, saveNoteAction, versionContentAction, type OpenNote } from "./actions";
 import { MarkdownEditor, type LinkOption } from "./markdown-editor";
 import { NotePreview } from "./note-preview";
 import { NewNoteDialog, PdfImportDialog } from "./vault-dialogs";
 import { SearchDialog } from "./search-dialog";
 import { GraphPanel, LocalGraph, type GraphActions } from "./graph-panel";
 import { ConnectClaudeDialog } from "./connect-claude";
-import { disableSemantic, embedPassages, enableSemantic, semanticEnabled, useEmbedder } from "./embedder";
+import { disableSemantic, enableSemantic, semanticEnabled, useEmbedder } from "./embedder";
+import { STALE } from "@/lib/client-actions";
+import { FolderNode } from "./folder-tree";
+import { useAutosave, useBackgroundIndexer, useUnsavedWarning, useVaultShortcuts } from "./vault-hooks";
 
 type Status = "saved" | "dirty" | "saving" | "error" | "conflict";
 type Draft = { title: string; folder: string; content: string };
-const STALE = "No se pudo completar. Si se publicó una versión nueva, recarga la página.";
 const WHEN = new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" });
-
-function FolderNode({
-  folder,
-  depth,
-  activeId,
-  open,
-  toggle,
-  onOpen,
-}: {
-  folder: TreeFolder;
-  depth: number;
-  activeId: number | null;
-  open: Set<string>;
-  toggle: (path: string) => void;
-  onOpen: (id: number) => void;
-}) {
-  return (
-    <ul className="flex flex-col">
-      {folder.folders.map((f) => {
-        const isOpen = open.has(f.path);
-        return (
-          <li key={f.path}>
-            <button
-              type="button"
-              onClick={() => toggle(f.path)}
-              aria-expanded={isOpen}
-              className="flex w-full items-center gap-1 rounded-md px-1 py-1 text-left text-sm text-muted hover:bg-default hover:text-foreground"
-              style={{ paddingLeft: depth * 12 + 4 }}
-            >
-              {isOpen ? <ChevronDown width={12} aria-hidden /> : <ChevronRight width={12} aria-hidden />}
-              <Folder width={14} aria-hidden />
-              <span className="truncate">{f.name}</span>
-            </button>
-            {isOpen && <FolderNode folder={f} depth={depth + 1} activeId={activeId} open={open} toggle={toggle} onOpen={onOpen} />}
-          </li>
-        );
-      })}
-      {folder.notes.map((n) => (
-        <li key={n.id}>
-          <button
-            type="button"
-            onClick={() => onOpen(n.id)}
-            aria-current={n.id === activeId ? "page" : undefined}
-            className={`flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-sm ${
-              n.id === activeId ? "bg-primary/10 font-medium text-primary" : "hover:bg-default"
-            }`}
-            style={{ paddingLeft: depth * 12 + 20 }}
-            title={n.path}
-          >
-            <FileText width={14} className="shrink-0 opacity-60" aria-hidden />
-            <span className="truncate">{n.title}</span>
-          </button>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 export function VaultApp({
   initialNotes,
@@ -137,11 +55,8 @@ export function VaultApp({
   const [loading, startLoad] = useTransition();
   const saving = useRef(false);
   const embedder = useEmbedder();
-  const [indexing, setIndexing] = useState<{ done: number; total: number } | null>(null);
-  const [indexTick, setIndexTick] = useState(0);
+  const { indexing, reindex } = useBackgroundIndexer(embedder.status === "ready" && canEdit);
   const [related, setRelated] = useState<{ id: number; title: string; score: number }[] | null>(null);
-  const indexingRef = useRef(false);
-  const rerunRef = useRef(false);
 
   const activeId = current?.note.id ?? null;
   const folders = useMemo(() => [...new Set(notes.map((n) => folderOf(n.path)).filter(Boolean))].sort(), [notes]);
@@ -224,7 +139,7 @@ export function VaultApp({
         }
         // La lista (tags, enlaces, títulos) se actualiza después de cada guardado; luego se reindexa.
         refreshList();
-        setIndexTick((t) => t + 1);
+        reindex();
         if (r.renamed) setMessage(`Se actualizaron los enlaces en ${r.renamed} nota(s).`);
       } else if (r.conflict) {
         setStatus("conflict");
@@ -234,7 +149,7 @@ export function VaultApp({
         setMessage(r.message);
       }
     },
-    [current, draft, version, canEdit, refreshList],
+    [current, draft, version, canEdit, refreshList, reindex],
   );
 
   // Búsqueda por significado: si ya se activó en este navegador, el modelo se carga (desde la caché).
@@ -242,42 +157,6 @@ export function VaultApp({
     if (semanticEnabled()) enableSemantic();
   }, []);
 
-  // Indexador en segundo plano: calcula los vectores de las notas nuevas o editadas.
-  useEffect(() => {
-    if (embedder.status !== "ready" || !canEdit) return;
-    if (indexingRef.current) {
-      rerunRef.current = true; // se guardó algo mientras se indexaba: otra vuelta al terminar
-      return;
-    }
-    indexingRef.current = true;
-    (async () => {
-      try {
-        const st = await indexStatusAction();
-        const ids = st.pending;
-        for (let i = 0; i < ids.length; i++) {
-          setIndexing({ done: i, total: ids.length });
-          const plan = await chunkPlanAction(ids[i]);
-          if (!plan) continue;
-          const need = plan.chunks.filter((c) => c.need);
-          const vectors = need.length ? await embedPassages(need.map((c) => c.text)) : [];
-          await storeChunksAction(
-            ids[i],
-            plan.version,
-            need.map((c, j) => ({ index: c.index, embedding: vectors[j] })),
-          );
-        }
-      } catch (e) {
-        console.error("[vault] indexar", e);
-      } finally {
-        setIndexing(null);
-        indexingRef.current = false;
-        if (rerunRef.current) {
-          rerunRef.current = false;
-          setIndexTick((t) => t + 1);
-        }
-      }
-    })();
-  }, [embedder.status, canEdit, indexTick]);
 
   // Notas relacionadas por significado (con los vectores ya guardados; no necesita el modelo).
   useEffect(() => {
@@ -291,36 +170,9 @@ export function VaultApp({
     };
   }, [activeId, indexing]);
 
-  // Autoguardado ~1.5 s después de dejar de escribir.
-  useEffect(() => {
-    if (status !== "dirty") return;
-    const t = setTimeout(() => save(), 1500);
-    return () => clearTimeout(t);
-  }, [status, draft, save]);
-
-  // Aviso al salir con cambios sin guardar.
-  useEffect(() => {
-    if (status !== "dirty" && status !== "saving") return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [status]);
-
-  // Ctrl/Cmd+K: buscador rápido. Ctrl/Cmd+S: guardar (también fuera del editor).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setDialog({ kind: "switch" });
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        save();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [save]);
+  useAutosave(status === "dirty", draft, save);
+  useUnsavedWarning(status === "dirty" || status === "saving");
+  useVaultShortcuts({ onSearch: () => setDialog({ kind: "switch" }), onSave: () => save() });
 
   const edit = (patch: Partial<Draft>) => {
     setDraft((d) => (d ? { ...d, ...patch } : d));
@@ -333,7 +185,7 @@ export function VaultApp({
     setDialog(null);
     await refreshList();
     openNote(r.id);
-    setIndexTick((t) => t + 1);
+    reindex();
     return null;
   };
 
@@ -424,7 +276,7 @@ export function VaultApp({
                   onPress={async () => {
                     const r = await resetEmbeddingsAction().catch(() => ({ ok: false, message: STALE }));
                     setMessage(r.message);
-                    setIndexTick((t) => t + 1);
+                    reindex();
                   }}
                 >
                   Reindexar vault

@@ -174,3 +174,21 @@ frases, carreras, roles, equipos del usuario) por equipo.
 | 4 | P1.1: tabla `organizations` y plan por organización | Requisito para vender Premium / Etapa 8 |
 | 5 | P1.2–P1.4: migraciones en el deploy, lotes y transacciones | Robustez de datos |
 | 6 | P2.3–P2.5: carpetas por módulo, componentes más chicos, caché por etiquetas | Mantenibilidad (gradual, al tocar cada módulo) |
+
+---
+
+## Avance (noviembre 2026)
+
+| Punto | Estado | Qué se hizo |
+|---|---|---|
+| **P0** aislamiento | ✅ | Issues, To-Dos, Rocks/hitos, L10 y Scorecard: el dominio recibe `teamId` y lo usa en el `WHERE`. Las acciones buscan el registro del equipo antes de modificar o registrar actividad. Se revisaron calendario, coberturas, agenda, carreras, control, organigrama, hitos, frases, roles, equipo y ActiveCampaign (ya filtraban por equipo; se cerraron dos fugas de nombres en el registro de actividad). Editar correo/contraseña de alguien que también está en otro equipo: solo esa persona o el dueño de la plataforma. Pruebas: `tests/eos-isolation.test.ts`. |
+| P1.1 organizaciones | ✅ base | Tabla `organizations` (+ `plan`) y `teams.organization_id`, con relleno. Organización, compartir indicadores y enviar a otros equipos se resuelven por `organization_id`. Pendiente: mover V/TO, organigrama, vault y tokens de "equipo ancla" a `organization_id` cuando se venda a otro cliente. |
+| P1.2 migraciones | ✅ | `scripts/migrate.mjs` en el build (si hay `NETLIFY_DB_URL`). Al arrancar solo se verifica la versión con una consulta ligera; el candado queda como respaldo. |
+| P1.3 lotes | ✅ vault | Enlaces y fragmentos del vault en lotes atómicos; entidades EOS solo si la nota las enlaza. Otros bucles (importaciones) se convertirán al tocarlos. |
+| P1.4 transacciones | ✅ | `db().transaction(async (tx) => …)` en PGlite y Neon (WebSocket). Dentro, usar solo `tx` (en local una consulta con `db()` esperaría a la transacción). |
+| P1.5 límites | ✅ parcial | To-Dos completados e Issues resueltos: se cargan los 150 más recientes. |
+| P1.6 columnas | ✅ | `lib/db-values.ts` (`asJson`, `asStrings`, `asNumbers`). |
+| P2.1–2.2 zod y resultados | ✅ módulos clave | `lib/actions.ts` (`parse`, `safeAction`, `NOT_FOUND`, esquemas comunes) en Issues, To-Dos, Rocks y Scorecard; `lib/client-actions.ts` (`STALE`, `callAction`, `safeCall`) en el navegador. El resto, al tocar cada módulo. |
+| P2.3 componentes | ✅ los dos más grandes | `meeting-runner` → `meeting-panels` + `meeting-hooks` (`useMeetingPulse`, `useElapsed`). `vault-app` → `folder-tree` + `vault-hooks` (`useBackgroundIndexer`, `useAutosave`, `useUnsavedWarning`, `useVaultShortcuts`). |
+| P2.4 lógica fuera de acciones | ✅ parcial | Aviso de asignación al enviar a otro equipo unificado (`domain/assignment-email.ts`). |
+| P2.5 caché | ⏸ | Las páginas son dinámicas (sesión), así que `revalidatePath` solo limpia la caché del navegador; las de layout raíz son de ajustes poco frecuentes. Cachear lecturas con `"use cache"` requiere activar `cacheComponents` y probarlo aparte. |

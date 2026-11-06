@@ -19,10 +19,10 @@ import {
   setAgendaStatusAction,
   updateAgendaItemAction,
 } from "./agenda-actions";
+import { STALE, safeCall } from "@/lib/client-actions";
 
 type Result = { ok: boolean; message: string };
-const STALE = "No se pudo completar. Si se publicó una versión nueva, recarga la página.";
-const safe = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
+const safe = safeCall;
 
 const DAY = new Intl.DateTimeFormat("es", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 const shortDate = (d: string) => DAY.format(new Date(`${d}T12:00:00Z`));

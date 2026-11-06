@@ -8,11 +8,11 @@ import { UserAvatar } from "@/components/user-avatar";
 import { AppSelect } from "@/components/ui/select";
 import type { Seat } from "@/lib/domain/types";
 import { createSeatAction, deleteSeatAction, moveSeatAction, updateSeatAction, type SeatInput } from "./actions";
+import { STALE } from "@/lib/client-actions";
 
 export type OrgPerson = { id: number; name: string; avatar: string | null; color?: string };
 
 const LMA = "Liderar, Gestionar y Rendir cuentas (LMA)";
-const STALE = "No se pudo completar. Si se publicó una versión nueva, recarga la página.";
 const hasLma = (roles: string[]) => /\blma\b|liderar.*gestionar/i.test(roles[0] ?? "");
 
 /** Reglas EOS que se marcan en cada puesto (no bloquean). */
