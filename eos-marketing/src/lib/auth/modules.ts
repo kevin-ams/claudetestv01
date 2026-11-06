@@ -18,6 +18,7 @@ export const MODULES = [
   { key: "dashboard_ac", label: "Dashboard AC", href: "/dashboard-ac" },
   { key: "reportes_semanales", label: "Reportes semanales", href: "/reportes-semanales" },
   { key: "herramientas", label: "Otras herramientas", href: "/herramientas" },
+  { key: "conocimiento", label: "Conocimiento (Vault)", href: "/conocimiento" },
   { key: "ajustes", label: "Ajustes (apariencia, hitos, anuncios, demo, exportar)", href: "/ajustes" },
 ] as const;
 
@@ -36,7 +37,14 @@ const RANK: Record<AccessLevel, number> = { none: 0, view: 1, edit: 2 };
 /** Módulos que por ahora solo ven los administradores (no se configuran por rol). */
 export const ADMIN_ONLY_MODULES: readonly ModuleKey[] = ["dashboard_ac"];
 
-export function levelFor(permissions: Permissions, isAdmin: boolean, module: ModuleKey): AccessLevel {
+/**
+ * Módulos premium: incluidos en el rol "Administrador Premium". Los demás roles (incluido Administrador) no los tienen,
+ * salvo que el dueño de la plataforma los active en Ajustes › Roles.
+ */
+export const PREMIUM_MODULES: readonly ModuleKey[] = ["conocimiento"];
+
+export function levelFor(permissions: Permissions, isAdmin: boolean, module: ModuleKey, isPremium = false): AccessLevel {
+  if (PREMIUM_MODULES.includes(module)) return isPremium ? "edit" : (permissions[module] ?? "none");
   if (isAdmin) return "edit";
   if (ADMIN_ONLY_MODULES.includes(module)) return "none";
   return permissions[module] ?? "edit";

@@ -9,6 +9,8 @@ import { allows, levelFor, MODULES, type AccessLevel, type ModuleKey, type Permi
 export type Access = {
   session: SessionPayload;
   isAdmin: boolean;
+  /** Rol "Administrador Premium" (módulos premium incluidos). */
+  isPremium: boolean;
   roleId: number | null;
   roleName: string;
   permissions: Permissions;
@@ -25,26 +27,28 @@ export class AccessDeniedError extends Error {
 
 async function loadAccess(session: SessionPayload): Promise<Access> {
   const rows = await db().sql`
-    SELECT r.id, r.name, r.is_admin, r.permissions
+    SELECT r.id, r.name, r.is_admin, r.is_premium, r.permissions
     FROM team_members tm
     LEFT JOIN team_roles r ON r.id = tm.role_id
     WHERE tm.team_id = ${session.teamId} AND tm.user_id = ${session.userId}
   `;
   const row = rows[0] as
-    | { id: number | null; name: string | null; is_admin: boolean | null; permissions: Permissions | string | null }
+    | { id: number | null; name: string | null; is_admin: boolean | null; is_premium: boolean | null; permissions: Permissions | string | null }
     | undefined;
   const permissions: Permissions =
     typeof row?.permissions === "string" ? JSON.parse(row.permissions) : (row?.permissions ?? {});
   // Sin rol asignado: acceso de usuario con todo editable salvo los ajustes.
   const isAdmin = Boolean(row?.is_admin);
+  const isPremium = Boolean(row?.is_premium);
   const effective: Permissions = row?.id ? permissions : { ajustes: "view" };
   return {
     session,
     isAdmin,
+    isPremium,
     roleId: row?.id ?? null,
     roleName: row?.name ?? "Usuario",
     permissions: effective,
-    level: (module) => levelFor(effective, isAdmin, module),
+    level: (module) => levelFor(effective, isAdmin, module, isPremium),
   };
 }
 

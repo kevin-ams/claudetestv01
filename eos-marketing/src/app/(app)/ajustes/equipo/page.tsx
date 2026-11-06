@@ -13,18 +13,23 @@ import { renameTeamAction } from "./actions";
 import { EditAccessForm } from "./edit-access-form";
 import { ReplyToForm } from "./reply-to-form";
 import { SettingsHeader } from "../settings-header";
+import { isPlatformOwner } from "@/lib/auth/platform";
 
 export default async function TeamSettingsPage() {
   const session = await getSession();
   if (!session) return null;
 
-  const [team, members, roles, admin, profiles] = await Promise.all([
+  const [team, members, roles, admin, profiles, owner] = await Promise.all([
     getTeam(session.teamId),
     listTeamMembersDetailed(session.teamId),
     listRoles(session.teamId),
     isTeamAdmin(),
     teamProfiles(session.teamId),
+    isPlatformOwner(session.userId),
   ]);
+  // El rol Administrador Premium solo lo da (o lo quita) el dueño de la plataforma.
+  const assignable = roles.filter((r) => owner || !r.is_premium).map((r) => ({ id: r.id, name: r.name }));
+  const premiumIds = roles.filter((r) => r.is_premium).map((r) => r.id);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -85,12 +90,12 @@ export default async function TeamSettingsPage() {
                 {admin && m.id !== session.userId && (
                   <EditAccessForm userId={m.id} name={m.name} email={m.email} />
                 )}
-                {admin ? (
+                {admin && (owner || !premiumIds.includes(m.role_id ?? -1)) ? (
                   <MemberControls
                     userId={m.id}
                     name={m.name}
                     roleId={m.role_id}
-                    roles={roles.map((r) => ({ id: r.id, name: r.name }))}
+                    roles={assignable}
                     isSelf={m.id === session.userId}
                   />
                 ) : (
@@ -109,7 +114,7 @@ export default async function TeamSettingsPage() {
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
             Agregar persona
           </h2>
-          <AddTeammateForm roles={roles.map((r) => ({ id: r.id, name: r.name }))} />
+          <AddTeammateForm roles={assignable} />
         </Card>
       ) : (
         <p className="text-sm text-muted">

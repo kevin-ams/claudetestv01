@@ -177,6 +177,11 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 - **L10 en curso: navegación libre** — la barra de secciones es clicable (ir a cualquiera) y hay botón "Anterior". Se
   guarda la sección más avanzada (`meetings.furthest_segment`) para que las ya vistas sigan marcadas al regresar. El
   cronómetro de la sección se reinicia al entrar y se detiene al finalizar la reunión.
+- **Rol Administrador Premium y módulos premium** — cada equipo tiene el rol de sistema "Administrador Premium"
+  (todo lo de Administrador + módulos premium; hoy: Conocimiento / Vault en `/conocimiento`). Los demás roles, incluido
+  Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el
+  dueño asigna o quita el rol Premium (también validado en el servidor). Dueño: correos en `PLATFORM_OWNER_EMAILS`
+  (opcional); si no, cuentas con `users.is_platform_owner`; si no, la primera cuenta creada. Migración 036.
 - **L10: quien dirige controla la vista** — solo quien dirige (o cualquiera si nadie dirige) cambia de sección, regresa o
   finaliza; los demás ven la barra deshabilitada con el aviso "Dirige X" y se actualizan cada ~5 s. Un administrador
   puede cambiar quién dirige y descartar la reunión. El servidor también lo valida.

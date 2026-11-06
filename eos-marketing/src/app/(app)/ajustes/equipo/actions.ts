@@ -14,6 +14,7 @@ import {
   updateUserAccess,
 } from "@/lib/domain/users";
 import { countAdmins, listRoles, setMemberRole } from "@/lib/domain/roles";
+import { isPlatformOwner } from "@/lib/auth/platform";
 import { getTeam, renameTeam, setTeamReplyTo } from "@/lib/domain/teams";
 import { EMAIL_RE } from "@/lib/email";
 import { sendAccessEmail } from "@/lib/domain/account-emails";
@@ -41,6 +42,9 @@ export async function addTeammateAction(
   if (!email.includes("@")) return { error: "Correo inválido" };
   const roles = await listRoles(session.teamId);
   const role = roles.find((r) => r.id === roleId) ?? roles.find((r) => r.name === "Usuario");
+  if (role?.is_premium && !(await isPlatformOwner(session.userId))) {
+    return { error: "Solo el dueño de la plataforma puede asignar el rol Administrador Premium." };
+  }
 
   let user = await getUserByEmail(email);
   if (!user) {
@@ -118,6 +122,10 @@ export async function setMemberRoleAction(userId: number, roleId: number): Promi
   const members = await listTeamMembersDetailed(session.teamId);
   const member = members.find((m) => m.id === userId);
   if (!member) return { ok: false, message: "Esa persona no pertenece a este equipo." };
+  const current = roles.find((r) => r.id === member.role_id);
+  if ((target.is_premium || current?.is_premium) && !(await isPlatformOwner(session.userId))) {
+    return { ok: false, message: "Solo el dueño de la plataforma puede dar o quitar el rol Administrador Premium." };
+  }
   if (member.is_admin && !target.is_admin && (await countAdmins(session.teamId)) <= 1) {
     return { ok: false, message: "El equipo necesita al menos un administrador." };
   }

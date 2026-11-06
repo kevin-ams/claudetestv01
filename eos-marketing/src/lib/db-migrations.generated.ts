@@ -143,5 +143,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "035_issue_send",
     "sql": "-- Issues enviados a otros equipos: la copia guarda de qué equipo e Issue viene.\nALTER TABLE issues ADD COLUMN from_team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL;\nALTER TABLE issues ADD COLUMN origin_issue_id INTEGER REFERENCES issues(id) ON DELETE SET NULL;\nALTER TABLE issues ADD COLUMN sent_by INTEGER REFERENCES users(id) ON DELETE SET NULL;\nCREATE INDEX issues_origin_idx ON issues (origin_issue_id);\n"
+  },
+  {
+    "name": "036_premium_role",
+    "sql": "-- Rol \"Administrador Premium\": todo lo de Administrador más los módulos premium (Conocimiento / Vault).\n-- Solo el dueño de la plataforma puede asignarlo o abrir módulos premium a otros roles.\nALTER TABLE team_roles ADD COLUMN is_premium BOOLEAN NOT NULL DEFAULT FALSE;\nINSERT INTO team_roles (team_id, name, is_admin, is_system, is_premium, permissions)\nSELECT id, 'Administrador Premium', TRUE, TRUE, TRUE, '{}'::jsonb FROM teams\nON CONFLICT (team_id, name) DO UPDATE SET is_admin = TRUE, is_system = TRUE, is_premium = TRUE;\n\n-- Dueño de la plataforma (se puede marcar a mano; si nadie lo está, es la primera cuenta creada).\nALTER TABLE users ADD COLUMN is_platform_owner BOOLEAN NOT NULL DEFAULT FALSE;\n"
   }
 ];

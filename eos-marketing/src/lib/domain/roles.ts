@@ -8,12 +8,14 @@ export type TeamRole = {
   name: string;
   is_admin: boolean;
   is_system: boolean;
+  is_premium: boolean;
   permissions: Permissions;
   members: number;
 };
 
 export const ADMIN_ROLE = "Administrador";
 export const USER_ROLE = "Usuario";
+export const PREMIUM_ROLE = "Administrador Premium";
 const USER_DEFAULT: Permissions = { ajustes: "view" };
 
 function parsePermissions(value: unknown): Permissions {
@@ -26,12 +28,13 @@ function parsePermissions(value: unknown): Permissions {
   return out;
 }
 
-/** Crea los roles Administrador y Usuario del equipo si no existen. */
+/** Crea los roles Administrador Premium, Administrador y Usuario del equipo si no existen. */
 export async function ensureTeamRoles(teamId: number) {
   await db().sql`
-    INSERT INTO team_roles (team_id, name, is_admin, is_system, permissions)
-    VALUES (${teamId}, ${ADMIN_ROLE}, TRUE, TRUE, '{}'::jsonb),
-           (${teamId}, ${USER_ROLE}, FALSE, TRUE, ${JSON.stringify(USER_DEFAULT)}::jsonb)
+    INSERT INTO team_roles (team_id, name, is_admin, is_system, is_premium, permissions)
+    VALUES (${teamId}, ${PREMIUM_ROLE}, TRUE, TRUE, TRUE, '{}'::jsonb),
+           (${teamId}, ${ADMIN_ROLE}, TRUE, TRUE, FALSE, '{}'::jsonb),
+           (${teamId}, ${USER_ROLE}, FALSE, TRUE, FALSE, ${JSON.stringify(USER_DEFAULT)}::jsonb)
     ON CONFLICT (team_id, name) DO NOTHING
   `;
 }
@@ -48,7 +51,7 @@ export async function listRoles(teamId: number): Promise<TeamRole[]> {
     SELECT r.*, (SELECT COUNT(*)::int FROM team_members tm WHERE tm.role_id = r.id) AS members
     FROM team_roles r
     WHERE r.team_id = ${teamId}
-    ORDER BY r.is_admin DESC, r.is_system DESC, r.name ASC
+    ORDER BY r.is_premium DESC, r.is_admin DESC, r.is_system DESC, r.name ASC
   `;
   return (rows as (Omit<TeamRole, "permissions"> & { permissions: unknown })[]).map((r) => ({
     ...r,
@@ -76,6 +79,14 @@ export async function updateRole(teamId: number, roleId: number, input: { name?:
       name = CASE WHEN is_system THEN name ELSE COALESCE(${input.name ?? null}, name) END,
       permissions = ${JSON.stringify(parsePermissions(input.permissions))}::jsonb
     WHERE id = ${roleId} AND team_id = ${teamId} AND is_admin = FALSE
+  `;
+}
+
+/** Permisos de módulos premium de un rol administrador (lo usa solo el dueño de la plataforma). */
+export async function setRolePremiumPermissions(teamId: number, roleId: number, permissions: Permissions) {
+  await db().sql`
+    UPDATE team_roles SET permissions = ${JSON.stringify(parsePermissions(permissions))}::jsonb
+    WHERE id = ${roleId} AND team_id = ${teamId} AND is_premium = FALSE
   `;
 }
 
