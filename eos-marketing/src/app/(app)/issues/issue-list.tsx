@@ -9,6 +9,7 @@ import { useState, useTransition } from "react";
 import type { Issue, PublicUser } from "@/lib/domain/types";
 import { ClickUpButton } from "@/components/clickup-button";
 import { TeamSendButton } from "@/components/team-send-button";
+import { RelatedNotes, type RelatedNote, type RelatedNotesMap } from "@/components/related-notes";
 import {
   moveIssueAction,
   solveIssueAction,
@@ -118,7 +119,9 @@ function IssueRow({
   canMoveUp,
   canMoveDown,
   topFull,
+  related,
 }: {
+  related?: RelatedNote[];
   issue: Issue;
   number: number;
   members: PublicUser[];
@@ -181,6 +184,7 @@ function IssueRow({
           </div>
         )}
         {issue.description && <p className="whitespace-pre-line text-xs text-muted">{issue.description}</p>}
+        <RelatedNotes notes={related} />
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted">
           <span>
             {members.find((m) => m.id === issue.owner_id)?.name ?? "Sin dueño"} · {TERM_LABEL[issue.term]}
@@ -261,7 +265,10 @@ export function IssueList({
   clickupConfigured,
   onCreateTodo,
   currentUserId,
+  relatedNotes,
 }: {
+  /** Notas del vault que mencionan cada Issue (solo con acceso a Conocimiento). */
+  relatedNotes?: RelatedNotesMap;
   openIssues: Issue[];
   solvedIssues: Issue[];
   members: PublicUser[];
@@ -295,7 +302,7 @@ export function IssueList({
         ) : (
           <ul className="flex flex-col gap-2">
             {top.map((issue, i) => (
-              <IssueRow key={issue.id} issue={issue} number={i + 1} canMoveUp={i > 0} canMoveDown={i < top.length - 1} {...rowProps} />
+              <IssueRow key={issue.id} issue={issue} related={relatedNotes?.[issue.id]} number={i + 1} canMoveUp={i > 0} canMoveDown={i < top.length - 1} {...rowProps} />
             ))}
           </ul>
         )}
@@ -327,6 +334,7 @@ export function IssueList({
                       <IssueRow
                         key={issue.id}
                         issue={issue}
+                        related={relatedNotes?.[issue.id]}
                         number={top.length + idx + 1}
                         canMoveUp={reorderable ? idx > 0 : null}
                         canMoveDown={reorderable ? idx < rest.length - 1 : null}

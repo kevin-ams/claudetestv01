@@ -1,5 +1,6 @@
 "use client";
 
+import { RelatedNotes, type RelatedNotesMap } from "@/components/related-notes";
 import { ArrowRight } from "@gravity-ui/icons";
 import { Button, Input, Tabs } from "@heroui/react";
 import { useState, useTransition } from "react";
@@ -144,7 +145,10 @@ export function ScorecardTable({
   onRaiseIssue,
   canEditTargets = false,
   currentWeek,
+  relatedNotes,
 }: {
+  /** Notas del vault que mencionan cada indicador (solo con acceso a Conocimiento). */
+  relatedNotes?: RelatedNotesMap;
   owners: ScorecardOwner[];
   metrics: ScorecardMetric[];
   targets: ScorecardTarget[];
@@ -226,7 +230,9 @@ export function ScorecardTable({
               return (
                 <tr key={m.id} className="border-b border-border last:border-0">
                   <td className="sticky left-0 z-10 min-w-[200px] max-w-[240px] bg-card px-3 py-2">
-                    <p className="font-medium">{m.name}</p>
+                    <p className="font-medium">
+                      {m.name} <RelatedNotes compact notes={relatedNotes?.[m.id]} />
+                    </p>
                     {m.predicts && <p className="text-xs text-muted">{m.predicts}</p>}
                     <p className="mt-0.5 text-[11px] text-muted">
                       {m.direction === "higher_better" ? "Mayor mejor" : "Menor mejor"}

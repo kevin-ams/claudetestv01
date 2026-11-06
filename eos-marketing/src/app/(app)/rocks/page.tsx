@@ -6,6 +6,7 @@ import { listRocks, listMilestonesForRocks } from "@/lib/domain/rocks";
 import { listTeamMembers } from "@/lib/domain/users";
 import { currentQuarter } from "@/lib/utils/dates";
 import { RockCard } from "./rock-card";
+import { relatedNotesFor } from "@/lib/domain/vault";
 import { AddRockForm } from "./add-rock-form";
 
 function quarterHref(quarter: number, year: number) {
@@ -42,7 +43,7 @@ export default async function RocksPage({
     listRocks(session.teamId, quarter, year),
     listTeamMembers(session.teamId),
   ]);
-  const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
+  const [milestones, related] = await Promise.all([listMilestonesForRocks(rocks.map((r) => r.id)), relatedNotesFor("rock", rocks.map((r) => r.id))]);
   const milestonesByRock = new Map<number, typeof milestones>();
   for (const m of milestones) {
     milestonesByRock.set(m.rock_id, [...(milestonesByRock.get(m.rock_id) ?? []), m]);
@@ -99,6 +100,7 @@ export default async function RocksPage({
                   rock={r}
                   milestones={milestonesByRock.get(r.id) ?? []}
                   members={members}
+                  related={related[r.id]}
                 />
               ))}
             </div>
@@ -125,6 +127,7 @@ export default async function RocksPage({
                         rock={r}
                         milestones={milestonesByRock.get(r.id) ?? []}
                         members={members}
+                        related={related[r.id]}
                       />
                     ))}
                   </div>

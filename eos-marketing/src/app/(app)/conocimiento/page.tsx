@@ -1,22 +1,16 @@
-import { Card, Chip } from "@heroui/react";
+import { getAccess } from "@/lib/auth/access";
+import { getVault, listEosEntities, listNotes } from "@/lib/domain/vault";
+import { VaultApp } from "./vault-app";
 
-/** Base de conocimiento (Vault) de toda la organización. Se construye en la Etapa 3. */
-export default function ConocimientoPage() {
+/** Conocimiento (Vault): notas en Markdown de toda la organización, enlazadas entre sí y con EOS. */
+export default async function ConocimientoPage() {
+  const access = await getAccess();
+  if (!access) return null;
+  const vault = await getVault(access.session.teamId);
+  const [notes, entities] = await Promise.all([listNotes(vault.id), listEosEntities(access.session.teamId)]);
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold">Conocimiento</h1>
-        <Chip size="sm" variant="soft" color="warning">
-          Premium
-        </Chip>
-      </div>
-      <Card className="flex flex-col gap-2 p-6">
-        <p className="font-medium">El vault de la organización está en construcción.</p>
-        <p className="text-sm text-muted">
-          Aquí vivirán los procesos, documentos y la información de carreras como notas enlazadas entre sí: editor con
-          [[enlaces]], búsqueda por palabras y por significado, conversor de PDF a nota, vista de grafo y conexión con Claude.
-        </p>
-      </Card>
+    <div className="mx-auto max-w-[1600px]">
+      <VaultApp initialNotes={notes} entities={entities} canEdit={access.level("conocimiento") === "edit"} />
     </div>
   );
 }

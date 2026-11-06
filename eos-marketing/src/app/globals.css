@@ -204,3 +204,31 @@ body {
 .ac-root > .ac-node::after {
   display: none;
 }
+
+/* Conocimiento (Vault): vista previa de notas en Markdown. */
+.vault-prose { font-size: 15px; line-height: 1.7; overflow-wrap: anywhere; }
+.vault-prose > * + * { margin-top: 0.75em; }
+.vault-prose h1 { font-size: 1.6em; font-weight: 700; line-height: 1.25; margin-top: 0.4em; }
+.vault-prose h2 { font-size: 1.3em; font-weight: 700; line-height: 1.3; margin-top: 1.2em; padding-bottom: 0.2em; border-bottom: 1px solid var(--border); }
+.vault-prose h3 { font-size: 1.1em; font-weight: 700; margin-top: 1em; }
+.vault-prose h4, .vault-prose h5, .vault-prose h6 { font-weight: 700; }
+.vault-prose ul { list-style: disc; padding-left: 1.4em; }
+.vault-prose ol { list-style: decimal; padding-left: 1.4em; }
+.vault-prose li + li { margin-top: 0.2em; }
+.vault-prose li > input[type="checkbox"] { margin-right: 0.4em; }
+.vault-prose a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.vault-prose a[href^="#wl:"] { text-decoration-style: dotted; }
+.vault-prose a[href^="#wlx:"] { color: var(--muted); text-decoration-style: dashed; }
+.vault-prose a[href^="#eos:"] {
+  display: inline-block; padding: 0 0.5em; border-radius: 999px; font-size: 0.85em; text-decoration: none;
+  background: color-mix(in oklab, var(--success, #16a34a) 14%, transparent); color: var(--success, #16a34a);
+}
+.vault-prose blockquote { border-left: 3px solid var(--border); padding-left: 0.9em; color: var(--muted); }
+.vault-prose code { font-family: ui-monospace, monospace; font-size: 0.9em; padding: 0.1em 0.35em; border-radius: 6px; background: var(--default); }
+.vault-prose pre { padding: 0.8em 1em; border-radius: 10px; background: var(--default); overflow-x: auto; }
+.vault-prose pre code { padding: 0; background: none; }
+.vault-prose table { width: 100%; border-collapse: collapse; font-size: 0.92em; display: block; overflow-x: auto; }
+.vault-prose th, .vault-prose td { border: 1px solid var(--border); padding: 0.35em 0.6em; text-align: left; }
+.vault-prose th { background: var(--default); }
+.vault-prose hr { border: 0; border-top: 1px solid var(--border); }
+.vault-prose img { max-width: 100%; border-radius: 8px; }

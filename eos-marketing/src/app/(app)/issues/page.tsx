@@ -3,6 +3,7 @@ import { listIssues } from "@/lib/domain/issues";
 import { listTeamMembers } from "@/lib/domain/users";
 import { isClickUpConfigured } from "@/lib/integrations/clickup";
 import { IssueList } from "./issue-list";
+import { relatedNotesFor } from "@/lib/domain/vault";
 import { AddIssueForm } from "./add-issue-form";
 
 export default async function IssuesPage() {
@@ -14,6 +15,7 @@ export default async function IssuesPage() {
     listIssues(session.teamId, "solved"),
     listTeamMembers(session.teamId),
   ]);
+  const relatedNotes = await relatedNotesFor("issue", [...openIssues, ...solvedIssues].map((i) => i.id));
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -32,6 +34,7 @@ export default async function IssuesPage() {
         members={members}
         clickupConfigured={isClickUpConfigured()}
         currentUserId={session.userId}
+        relatedNotes={relatedNotes}
       />
     </div>
   );

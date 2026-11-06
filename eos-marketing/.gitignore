@@ -45,3 +45,6 @@ next-env.d.ts
 
 # base de datos local (PGlite)
 /.data
+
+# worker de pdf.js (se copia en predev/prebuild)
+/public/pdf.worker.min.mjs

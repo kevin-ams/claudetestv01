@@ -1,5 +1,6 @@
 "use client";
 
+import { RelatedNotes, type RelatedNote } from "@/components/related-notes";
 import { ArrowRight, Xmark } from "@gravity-ui/icons";
 import { AppCheckbox } from "@/components/ui/checkbox";
 import { Button, Card, Chip, Input, TextArea, ToggleButton, ToggleButtonGroup } from "@heroui/react";
@@ -33,7 +34,9 @@ export function RockCard({
   milestones,
   members,
   onRaiseIssue,
+  related,
 }: {
+  related?: RelatedNote[];
   rock: Rock;
   milestones: RockMilestone[];
   members: PublicUser[];
@@ -238,6 +241,7 @@ export function RockCard({
           </div>
         </>
       )}
+      {related?.length ? <div className="mt-3 border-t border-border pt-2"><RelatedNotes notes={related} /></div> : null}
     </Card>
   );
 }

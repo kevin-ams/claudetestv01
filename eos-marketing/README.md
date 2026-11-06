@@ -177,6 +177,15 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
 - **L10 en curso: navegación libre** — la barra de secciones es clicable (ir a cualquiera) y hay botón "Anterior". Se
   guarda la sección más avanzada (`meetings.furthest_segment`) para que las ya vistas sigan marcadas al regresar. El
   cronómetro de la sección se reinicia al entrar y se detiene al finalizar la reunión.
+- **Conocimiento (Vault)** — `/conocimiento`, módulo premium. Un vault para toda la organización (tabla `vaults`, en el
+  equipo ancla). Notas en Markdown con carpetas (`path`), editor CodeMirror 6, `[[enlaces]]` con autocompletado,
+  Ctrl/Cmd+clic para abrir (o crear si no existe), `#tags` y frontmatter YAML, vista previa sanitizada (remark/rehype),
+  autoguardado (~1,5 s) con control de versión (aviso de conflicto, sin sobrescribir en silencio), historial
+  (`vault_note_versions`) con restaurar, renombrar actualiza los enlaces de las demás notas, plantillas (carpeta
+  `plantillas/`), buscador rápido Ctrl/Cmd+K, y enlaces a EOS `[[rock:…]]`, `[[issue:…]]`, `[[kpi:…]]` (por id o
+  nombre) con "Notas relacionadas" en Rocks, Issues y Scorecard. **PDF a nota**: pdf.js extrae el texto en el
+  navegador y lo convierte en Markdown (títulos por tamaño de letra, listas, sin encabezados/pies repetidos) para
+  revisarlo antes de crear la nota; el worker se copia a `public/` en `predev`/`prebuild`. Migración 037.
 - **Rol Administrador Premium y módulos premium** — cada equipo tiene el rol de sistema "Administrador Premium"
   (todo lo de Administrador + módulos premium; hoy: Conocimiento / Vault en `/conocimiento`). Los demás roles, incluido
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el

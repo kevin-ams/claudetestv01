@@ -14,6 +14,7 @@ import { formatWeekLabel, lastNWeeks, shiftWeek, weekStartISO } from "@/lib/util
 import { isTeamAdmin } from "@/lib/auth/access";
 import { WeekSlider } from "./week-slider";
 import { ScorecardTable } from "./scorecard-table";
+import { relatedNotesFor } from "@/lib/domain/vault";
 import { ScorecardAdmin } from "./scorecard-admin";
 import { ExportButton } from "@/components/export-button";
 
@@ -74,6 +75,7 @@ export default async function ScorecardPage({ searchParams }: PageProps<"/scorec
             targets={targets}
             grid={grid}
             weeks={weeks}
+            relatedNotes={await relatedNotesFor("kpi", metrics.map((m) => m.id))}
           />
         </div>
       )}
