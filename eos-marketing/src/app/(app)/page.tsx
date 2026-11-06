@@ -5,7 +5,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { firstAllowedPath, getAccess } from "@/lib/auth/access";
-import { getActiveMeeting, listMeetings, listRecentHeadlines } from "@/lib/domain/meetings";
+import { getActiveMeeting, listDashboardNews, listMeetings } from "@/lib/domain/meetings";
+import { DismissNewsButton } from "./dismiss-news-button";
 import { countOpenIssues } from "@/lib/domain/issues";
 import { countOpenTodos, countOverdueTodos } from "@/lib/domain/todos";
 import { listRocks } from "@/lib/domain/rocks";
@@ -74,7 +75,7 @@ export default async function DashboardPage() {
     listTargets(session.teamId),
     listEntries(session.teamId, [week]),
   ]);
-  const [news, quote] = await Promise.all([listRecentHeadlines(session.teamId), quoteOfTheDay(session.teamId)]);
+  const [news, quote] = await Promise.all([listDashboardNews(session.teamId, session.userId), quoteOfTheDay(session.teamId)]);
   const greeting = greetingFor(session.name.split(" ")[0]);
 
   const offTrackRocks = rocks.filter((r) => r.status === "off_track").length;
@@ -119,16 +120,16 @@ export default async function DashboardPage() {
           <h2 className="flex items-center gap-2 font-semibold">
             <Megaphone className="text-primary" aria-hidden /> Noticias
           </h2>
-          <span className="text-xs text-muted">Compartidas en la Reunión L10</span>
+          <span className="text-xs text-muted">De la Reunión L10 · últimos 7 días</span>
         </div>
         {news.length === 0 ? (
           <p className="text-sm text-muted">
-            Todavía no hay noticias. Se agregan en el paso &quot;Noticias&quot; de la Reunión L10.
+            No hay noticias de esta semana. Se agregan en el paso &quot;Noticias&quot; de la Reunión L10.
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-border">
             {news.map((n) => (
-              <li key={n.id} className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2 text-sm">
+              <li key={n.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 text-sm">
                 <Chip size="sm" variant="soft" color={n.type === "customer" ? "accent" : "success"}>
                   {n.type === "customer" ? "Externa" : "Equipo"}
                 </Chip>
@@ -137,6 +138,7 @@ export default async function DashboardPage() {
                   {n.author_name ?? "—"} ·{" "}
                   {new Date(n.created_at).toLocaleDateString("es-GT", { day: "numeric", month: "short" })}
                 </span>
+                <DismissNewsButton id={n.id} />
               </li>
             ))}
           </ul>

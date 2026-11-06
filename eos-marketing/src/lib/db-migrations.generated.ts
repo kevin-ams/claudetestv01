@@ -159,5 +159,9 @@ export const MIGRATIONS: { name: string; sql: string }[] = [
   {
     "name": "039_mcp_tokens",
     "sql": "-- Conexión con Claude (servidor MCP en /api/mcp): tokens personales, guardados solo como hash.\n-- Cada token actúa como la persona que lo creó, en su equipo, con los permisos de su rol:\n--   scope 'vault' = solo el vault (Conocimiento) · scope 'eos' = vault + EOS completo.\n--   can_write = puede crear/editar (si su rol también lo permite).\nCREATE TABLE api_tokens (\n  id SERIAL PRIMARY KEY,\n  team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  token_hash TEXT NOT NULL UNIQUE,\n  -- Primeros caracteres, para reconocerlo en la lista.\n  prefix TEXT NOT NULL,\n  label TEXT NOT NULL,\n  scope TEXT NOT NULL DEFAULT 'vault',\n  can_write BOOLEAN NOT NULL DEFAULT FALSE,\n  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  last_used_at TIMESTAMPTZ,\n  revoked_at TIMESTAMPTZ,\n  use_count INTEGER NOT NULL DEFAULT 0,\n  -- Límite de uso: peticiones en la ventana del minuto actual.\n  window_start TIMESTAMPTZ,\n  window_count INTEGER NOT NULL DEFAULT 0\n);\nCREATE INDEX api_tokens_team_idx ON api_tokens (team_id);\n\n-- Enlace al \"Consultor IA\" en Claude (artefacto que usa el conector MCP); vacío = no se muestra el botón.\nALTER TABLE vaults ADD COLUMN claude_consultant_url TEXT;\n"
+  },
+  {
+    "name": "040_news_dismissed",
+    "sql": "-- Dashboard › Noticias: cada persona puede quitar una noticia de su inicio (con la X).\nCREATE TABLE news_dismissed (\n  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,\n  headline_id INTEGER NOT NULL REFERENCES meeting_headlines(id) ON DELETE CASCADE,\n  dismissed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),\n  PRIMARY KEY (user_id, headline_id)\n);\n"
   }
 ];

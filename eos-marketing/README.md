@@ -202,6 +202,8 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   configurable, máx. 3 por nota, calculadas en el servidor con los vectores de cada nota). Hover resalta vecinos con
   tooltip, clic abre, arrastrar mueve, "Centrar", filtros por carpeta, tag y fecha, búsqueda que resalta y contador de
   notas huérfanas. Grafo local (1–2 saltos) en el panel derecho de cada nota. Con 2 000 notas abre en ~0,6 s.
+- **Dashboard › Noticias** — solo las noticias de la L10 de los últimos 7 días (las nuevas arriba); cada persona puede
+  quitar una de su inicio con la X (`news_dismissed`, migración 040).
 - **Consumo de base de datos (cómputo)** — la base se apaga sola tras unos minutos sin consultas y solo cobra mientras
   está encendida. Para no mantenerla despierta: el menú lateral y el perfil no precargan páginas (`prefetch={false}`;
   cada precarga ejecutaba el layout con ~8 consultas por enlace visible), la L10 consulta cada pocos segundos solo una

@@ -118,17 +118,33 @@ export async function markIssueDiscussed(meetingId: number, issueId: number) {
 }
 
 /** Últimas noticias de las reuniones del equipo, para el Dashboard. */
-export async function listRecentHeadlines(teamId: number, limit = 10) {
+/**
+ * Noticias del inicio (Dashboard): las de los últimos 7 días, sin las que la persona quitó con la X.
+ * Las más nuevas primero.
+ */
+export async function listDashboardNews(teamId: number, userId: number, limit = 20) {
   const rows = await db().sql`
     SELECT h.*, u.name AS author_name
     FROM meeting_headlines h
     JOIN meetings m ON m.id = h.meeting_id
     LEFT JOIN users u ON u.id = h.created_by
     WHERE m.team_id = ${teamId}
+      AND h.created_at > NOW() - INTERVAL '7 days'
+      AND NOT EXISTS (SELECT 1 FROM news_dismissed d WHERE d.user_id = ${userId} AND d.headline_id = h.id)
     ORDER BY h.created_at DESC, h.id DESC
     LIMIT ${limit}
   `;
   return rows as (MeetingHeadline & { author_name: string | null })[];
+}
+
+/** Quita una noticia del inicio de la persona (solo noticias de su equipo). */
+export async function dismissNews(teamId: number, userId: number, headlineId: number) {
+  await db().sql`
+    INSERT INTO news_dismissed (user_id, headline_id)
+    SELECT ${userId}, h.id FROM meeting_headlines h JOIN meetings m ON m.id = h.meeting_id
+    WHERE h.id = ${headlineId} AND m.team_id = ${teamId}
+    ON CONFLICT DO NOTHING
+  `;
 }
 
 export async function setCascadeNotes(meetingId: number, teamId: number, notes: string) {
