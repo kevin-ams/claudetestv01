@@ -18,15 +18,9 @@ const STATUS_LABEL: Record<RockStatus, string> = {
 };
 
 const STATUS_CLASS: Record<RockStatus, string> = {
-  on_track: "bg-sky-100 text-sky-700",
-  off_track: "bg-rose-100 text-rose-700",
-  done: "bg-emerald-100 text-emerald-700",
-};
-
-const STATUS_TONE: Record<RockStatus, string> = {
-  on_track: "tone-accountability",
-  off_track: "tone-red",
-  done: "tone-green",
+  on_track: "bg-green-bg text-green",
+  off_track: "bg-red-bg text-red",
+  done: "bg-primary/10 text-primary",
 };
 
 export function RockCard({
@@ -44,7 +38,7 @@ export function RockCard({
   const doneCount = milestones.filter((m) => m.done).length;
 
   return (
-    <div className={`${STATUS_TONE[rock.status]} card lift accent-left p-4`}>
+    <div className="card p-4">
       {editing ? (
         <form
           action={async (fd) => {
@@ -121,12 +115,6 @@ export function RockCard({
           </div>
 
           {milestones.length > 0 && (
-            <div className="progress mt-3" title={`${doneCount}/${milestones.length} hitos`}>
-              <span style={{ width: `${(doneCount / milestones.length) * 100}%` }} />
-            </div>
-          )}
-
-          {milestones.length > 0 && (
             <ul className="mt-3 flex flex-col gap-1.5">
               {milestones.map((m) => (
                 <li key={m.id} className="flex items-center gap-2 text-sm">
@@ -177,10 +165,8 @@ export function RockCard({
             {(["on_track", "off_track", "done"] as RockStatus[]).map((s) => (
               <button
                 key={s}
-                className={`badge transition-all ${
-                  rock.status === s
-                    ? `${STATUS_CLASS[s]} ring-1 ring-current/30`
-                    : "bg-background text-muted hover:scale-105"
+                className={`badge ${
+                  rock.status === s ? STATUS_CLASS[s] : "bg-background text-muted"
                 }`}
                 onClick={() => startTransition(() => updateRockStatusAction(rock.id, s))}
               >

@@ -21,7 +21,7 @@ export function AddIssueForm({ members }: { members: PublicUser[] }) {
         await createIssueAction(fd);
         setOpen(false);
       }}
-      className="tile animate-in flex max-w-xl flex-col gap-2 p-4 pt-5"
+      className="card flex max-w-xl flex-col gap-2 p-4"
     >
       <input name="title" required className="input" placeholder="Título del issue" />
       <textarea name="description" className="input min-h-16" placeholder="Detalle (opcional)" />

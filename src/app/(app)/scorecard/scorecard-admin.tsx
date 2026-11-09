@@ -19,7 +19,7 @@ export function ScorecardAdmin({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="tone-scorecard tile p-4 pt-5">
+    <div className="card p-4">
       <button
         className="text-sm font-semibold text-primary underline"
         onClick={() => setOpen((v) => !v)}

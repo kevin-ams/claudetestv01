@@ -3,7 +3,6 @@ import { listIssues } from "@/lib/domain/issues";
 import { listTeamMembers } from "@/lib/domain/users";
 import { IssueList } from "./issue-list";
 import { AddIssueForm } from "./add-issue-form";
-import { PageHeader } from "@/components/page-header";
 
 export default async function IssuesPage() {
   const session = await getSession();
@@ -16,12 +15,13 @@ export default async function IssuesPage() {
   ]);
 
   return (
-    <div className="tone-issues mx-auto max-w-4xl">
-      <PageHeader
-        module="issues"
-        title="Issues List (IDS)"
-        description="La lista maestra de obstáculos y oportunidades. Identifica, Discute y Resuelve."
-      />
+    <div className="mx-auto max-w-4xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Issues List (IDS)</h1>
+        <p className="text-sm text-muted">
+          La lista maestra de obstáculos y oportunidades. Identifica, Discute y Resuelve.
+        </p>
+      </div>
       <div className="mb-6">
         <AddIssueForm members={members} />
       </div>

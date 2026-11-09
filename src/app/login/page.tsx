@@ -14,15 +14,8 @@ export default async function LoginPage() {
   }
 
   return (
-    <div
-      className="flex flex-1 items-center justify-center px-4 py-12"
-      style={{
-        background:
-          "radial-gradient(600px 400px at 15% 20%, rgb(99 102 241 / 0.35), transparent 70%), radial-gradient(600px 400px at 85% 80%, rgb(217 70 239 / 0.3), transparent 70%), linear-gradient(135deg, #172a45, #1b2150)",
-      }}
-    >
-      <div className="tone-dashboard card animate-in w-full shadow-2xl shadow-indigo-900/40 max-w-sm p-8">
-        <span className="icon-chip icon-chip-solid mb-4 !h-12 !w-12 !rounded-2xl text-xl" aria-hidden>✨</span>
+    <div className="flex flex-1 items-center justify-center px-4 py-12">
+      <div className="card w-full max-w-sm p-8">
         <h1 className="text-xl font-bold">Iniciar sesión</h1>
         <p className="mt-1 text-sm text-muted">
           Entra a tu sistema EOS: V/TO, Rocks, Scorecard, Issues, To-Dos y la

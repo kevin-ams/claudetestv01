@@ -9,7 +9,6 @@ import { buildScorecardGrid } from "@/lib/domain/scorecard-shared";
 import { lastNWeeks } from "@/lib/utils/dates";
 import { ScorecardTable } from "./scorecard-table";
 import { ScorecardAdmin } from "./scorecard-admin";
-import { PageHeader } from "@/components/page-header";
 
 export default async function ScorecardPage() {
   const session = await getSession();
@@ -27,12 +26,13 @@ export default async function ScorecardPage() {
   const grid = Object.fromEntries(gridMap);
 
   return (
-    <div className="tone-scorecard mx-auto max-w-6xl">
-      <PageHeader
-        module="scorecard"
-        title="Scorecard"
-        description="Los 5 a 15 números que predicen el desempeño de tu negocio, revisados cada semana."
-      />
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Scorecard</h1>
+        <p className="text-sm text-muted">
+          Los 5 a 15 números que predicen el desempeño de tu negocio, revisados cada semana.
+        </p>
+      </div>
 
       {metrics.length === 0 || owners.length === 0 ? (
         <p className="mb-6 text-sm text-muted">
@@ -40,7 +40,7 @@ export default async function ScorecardPage() {
           indicadores y dueños&quot;.
         </p>
       ) : (
-        <div className="animate-in mb-6">
+        <div className="mb-6">
           <ScorecardTable
             owners={owners}
             metrics={metrics}

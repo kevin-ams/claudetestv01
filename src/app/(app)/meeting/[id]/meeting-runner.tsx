@@ -133,20 +133,16 @@ function RatingPanel({
       : null;
 
   return (
-    <div className="tone-meeting tile p-5">
-      <h4 className="mb-3 font-semibold">Califica esta reunión (1-10)</h4>
+    <div className="card p-5">
+      <h4 className="mb-2 font-semibold">Califica esta reunión (1-10)</h4>
       <div className="flex flex-wrap gap-1.5">
         {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
           <button
             key={n}
-            className={`h-10 w-10 rounded-xl text-sm font-bold transition-all duration-150 hover:-translate-y-0.5 ${
+            className={`h-9 w-9 rounded-lg text-sm font-semibold ${
               myRating === n
-                ? `${n >= 8 ? "tone-green" : n >= 6 ? "tone-orange" : "tone-red"} icon-chip-solid scale-110`
-                : n >= 8
-                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                : n >= 6
-                ? "bg-amber-50 text-amber-700 hover:bg-amber-100"
-                : "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-muted hover:bg-border"
             }`}
             onClick={() => rateMeetingAction(meetingId, n)}
           >
@@ -210,9 +206,8 @@ export function MeetingRunner({
 
   if (meeting.status === "completed") {
     return (
-      <div className="tone-meeting page-hero animate-in mx-auto max-w-2xl p-10 text-center">
-        <span className="icon-chip icon-chip-solid mx-auto !h-16 !w-16 !rounded-2xl text-3xl">🏆</span>
-        <h1 className="mt-4 text-2xl font-bold">Reunión #{meeting.id} completada</h1>
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="text-2xl font-bold">Reunión #{meeting.id} completada</h1>
         <p className="mt-2 text-sm text-muted">
           Duró {formatClock(totalElapsed)} · Calificación promedio:{" "}
           {meeting.avg_rating ? Number(meeting.avg_rating).toFixed(1) : "-"}/10
@@ -225,26 +220,23 @@ export function MeetingRunner({
   }
 
   return (
-    <div className="tone-meeting mx-auto max-w-5xl">
-      <div className="animate-in mb-6 flex items-center gap-3">
-        <span className="pulse-dot" aria-hidden />
-        <div>
-          <h1 className="text-2xl font-bold">Reunión Level 10 · en curso</h1>
-          <p className="text-sm text-muted">
-            Agenda de {totalMinutes} minutos · Tiempo total: {formatClock(totalElapsed)}
-          </p>
-        </div>
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Reunión Level 10 · en curso</h1>
+        <p className="text-sm text-muted">
+          Agenda de {totalMinutes} minutos · Tiempo total: {formatClock(totalElapsed)}
+        </p>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2 overflow-x-auto">
         {L10_AGENDA.map((s, i) => (
           <div
             key={s.key}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap ${
               i === idx
-                ? "icon-chip-solid scale-105"
+                ? "bg-primary text-primary-foreground"
                 : i < idx
-                ? "bg-emerald-100 text-emerald-700"
+                ? "bg-green-bg text-green"
                 : "bg-card border border-border text-muted"
             }`}
           >
@@ -254,19 +246,15 @@ export function MeetingRunner({
         ))}
       </div>
 
-      <div
-        key={segment.key}
-        className={`${remaining < 0 ? "tone-red" : "tone-meeting"} page-hero animate-in mb-6 p-5`}
-      >
-       <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="card mb-6 flex flex-wrap items-center justify-between gap-4 p-5">
         <div>
           <h2 className="text-xl font-bold">{segment.label}</h2>
           <p className="text-sm text-muted">{segment.description}</p>
         </div>
         <div className="flex items-center gap-4">
           <span
-            className={`rounded-xl px-3 py-1 font-mono text-3xl font-extrabold tabular-nums ${
-              remaining < 0 ? "bg-rose-100 text-rose-700" : "text-tone bg-white/70"
+            className={`text-2xl font-bold tabular-nums ${
+              remaining < 0 ? "text-red" : "text-foreground"
             }`}
           >
             {formatClock(remaining)}
@@ -286,16 +274,6 @@ export function MeetingRunner({
               Finalizar reunión ✓
             </button>
           )}
-        </div>
-       </div>
-        <div className="progress mt-4">
-          <span
-            style={{
-              width: `${Math.min(100, Math.max(0, (elapsed / (segment.minutes * 60)) * 100))}%`,
-              animation: "none",
-              transition: "width 1s linear",
-            }}
-          />
         </div>
       </div>
 
