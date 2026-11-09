@@ -6,8 +6,10 @@ import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { db } from "@/lib/db";
 import { logActivity } from "@/lib/domain/activity";
 import { PRONOUNS, removeAvatar, setAvatar, updateProfile } from "@/lib/domain/profile";
-import { imageMime, MAX_IMAGE_BYTES } from "@/lib/domain/announcements";
+import { imageMime, sniffImage, MAX_IMAGE_BYTES } from "@/lib/domain/announcements";
 import { isHexColor } from "@/lib/theme";
+import { passwordProblem } from "@/lib/auth/password-policy";
+import { recordSecurityEvent } from "@/lib/security/events";
 
 export type ProfileResult = { ok: boolean; message: string };
 
@@ -35,9 +37,10 @@ export async function uploadAvatarAction(formData: FormData): Promise<ProfileRes
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Elige una imagen." };
   if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "La imagen pesa más de 5 MB." };
-  const mime = imageMime(file);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const mime = imageMime(file) && sniffImage(bytes);
   if (!mime) return { ok: false, message: "Usa una imagen PNG, JPG, WEBP o GIF." };
-  await setAvatar(session.userId, new Uint8Array(await file.arrayBuffer()), mime);
+  await setAvatar(session.userId, bytes, mime);
   revalidatePath("/", "layout");
   return { ok: true, message: "Foto actualizada." };
 }
@@ -51,7 +54,8 @@ export async function removeAvatarAction(): Promise<ProfileResult> {
 
 export async function changePasswordAction(current: string, next: string): Promise<ProfileResult> {
   const session = await requireSession();
-  if (next.length < 8) return { ok: false, message: "La nueva contraseña debe tener al menos 8 caracteres." };
+  const weak = passwordProblem(next, session.email);
+  if (weak) return { ok: false, message: weak };
   const rows = (await db().sql`SELECT password_hash FROM users WHERE id = ${session.userId}`) as { password_hash: string }[];
   if (!rows[0] || !(await verifyPassword(current, rows[0].password_hash))) {
     return { ok: false, message: "La contraseña actual no es correcta." };
@@ -59,5 +63,6 @@ export async function changePasswordAction(current: string, next: string): Promi
   const hash = await hashPassword(next);
   await db().sql`UPDATE users SET password_hash = ${hash} WHERE id = ${session.userId}`;
   await logActivity(session, "equipo", "Cambió su contraseña", session.name);
+  await recordSecurityEvent({ type: "password_changed", userId: session.userId, teamId: session.teamId, email: session.email });
   return { ok: true, message: "Contraseña cambiada." };
 }

@@ -26,6 +26,7 @@ import {
 import { finishSync, lastSync, markSyncRequested, scanStatus, scanStep, writeWeek } from "@/lib/domain/ac-sync";
 import { shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import type { CareerLevel } from "@/lib/domain/types";
+import { config } from "@/lib/config/server";
 
 export type ActionResult = { ok: boolean; message: string };
 
@@ -305,8 +306,8 @@ export async function syncLeadsStepAction(startedAt: string, write = true): Prom
 export async function startBackgroundSyncAction(): Promise<{ background: boolean; startedAt: string; message: string }> {
   const session = await requireModule("indicadores");
   const now = new Date().toISOString();
-  const base = (process.env.APP_URL || process.env.URL || "").replace(/\/$/, "");
-  const secret = process.env.CRON_SECRET ?? "";
+  const base = config.app.url() ?? "";
+  const secret = config.app.cronSecret() ?? "";
   if (!isActiveCampaignConfigured()) return { background: false, startedAt: now, message: new ActiveCampaignNotConfiguredError().message };
   if (!base || secret.length < 16) return { background: false, startedAt: now, message: "" };
   try {

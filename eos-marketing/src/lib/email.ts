@@ -1,5 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
+import { config } from "@/lib/config/server";
 
 /**
  * Correos con Resend (https://resend.com) usando su API HTTP.
@@ -13,16 +14,17 @@ export type EmailResult = { ok: boolean; message: string };
 export type Attachment = { filename: string; content: Uint8Array };
 
 export function emailConfigured() {
-  return Boolean(process.env.RESEND_API_KEY);
+  return Boolean(config.email.resendKey());
 }
 
 export function emailFrom() {
-  return process.env.RESEND_FROM || "EOS Nivel 10 <onboarding@resend.dev>";
+  return config.email.from();
 }
 
 /** URL pública de la app (para los enlaces de los correos). */
 export async function appUrl(): Promise<string> {
-  if (process.env.APP_URL) return process.env.APP_URL.replace(/\/$/, "");
+  const configured = config.app.explicitUrl();
+  if (configured) return configured;
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
@@ -49,11 +51,11 @@ export async function sendEmail(input: {
   replyTo?: string;
   attachments?: Attachment[];
 }): Promise<EmailResult> {
-  const key = process.env.RESEND_API_KEY;
+  const key = config.email.resendKey();
   if (!key) return { ok: false, message: "El correo no está configurado (falta RESEND_API_KEY)." };
   if (input.to.length === 0) return { ok: false, message: "No hay destinatarios." };
   try {
-    const res = await fetch(`${process.env.RESEND_API_URL || "https://api.resend.com"}/emails`, {
+    const res = await fetch(`${config.email.resendUrl()}/emails`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({

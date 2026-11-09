@@ -7,6 +7,7 @@ import { isPlatformOwner } from "@/lib/auth/platform";
 import { logActivity } from "@/lib/domain/activity";
 import { AI_MODELS, getAiSettings, isAiModel, setAiSettings } from "@/lib/domain/ai-usage";
 import { parse, safeAction, type ActionResult } from "@/lib/actions";
+import { recordSecurityEvent } from "@/lib/security/events";
 
 const settingsForm = z.object({
   monthlyCapUsd: z.coerce.number().min(0, "El tope no puede ser negativo.").max(500, "El tope máximo es $500 al mes."),
@@ -32,6 +33,13 @@ export async function saveAiSettingsAction(input: { monthlyCapUsd: number; userD
       "Cambió los topes del asistente IA",
       `Tope $${form.monthlyCapUsd}/mes · ${form.userDailyLimit} preguntas por persona en 24 h · ${AI_MODELS[model].label}`,
     );
+    await recordSecurityEvent({
+      type: "ai_settings_changed",
+      userId: session.userId,
+      teamId: session.teamId,
+      email: session.email,
+      detail: `USD ${form.monthlyCapUsd}/mes · ${form.userDailyLimit}/24 h · ${model}`,
+    });
     revalidatePath("/ajustes/asistente");
     revalidatePath("/asistente");
     return { ok: true, message: "Guardado." };

@@ -57,7 +57,7 @@ export function BackupPanel({
             <ArrowDownToLine aria-hidden /> Descargar respaldo ahora
           </a>
         ) : (
-          <p className="text-sm text-muted">Solo un administrador puede descargar o restaurar respaldos.</p>
+          <p className="text-sm text-muted">Solo el dueño de la plataforma puede descargar o restaurar respaldos (incluyen a todas las organizaciones).</p>
         )}
         <p className="text-xs text-muted">
           El archivo (.json.gz) incluye los accesos de las personas (con las contraseñas cifradas): guárdalo en un lugar

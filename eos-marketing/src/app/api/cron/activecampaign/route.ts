@@ -2,8 +2,10 @@ import { timingSafeEqual } from "node:crypto";
 import { finishSync, scanStep, writeWeek } from "@/lib/domain/ac-sync";
 import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { shiftWeek, weekStartISO } from "@/lib/utils/dates";
+import { TIMEZONE } from "@/lib/config/shared";
+import { config } from "@/lib/config/server";
 
-const TZ = process.env.EOS_TIMEZONE || "America/Guatemala";
+const TZ = TIMEZONE;
 
 /**
  * POST /api/cron/activecampaign — sincronización automática (todos los equipos).
@@ -14,7 +16,7 @@ const TZ = process.env.EOS_TIMEZONE || "America/Guatemala";
  * anterior (para incluir los tratos que entraron en sus últimas horas).
  */
 export async function POST(request: Request) {
-  const secret = process.env.CRON_SECRET ?? "";
+  const secret = config.app.cronSecret() ?? "";
   const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
   const ok = secret.length >= 16 && given.length === secret.length && timingSafeEqual(Buffer.from(given), Buffer.from(secret));
   if (!ok) {
@@ -22,7 +24,10 @@ export async function POST(request: Request) {
     return Response.json({ error: secret.length < 16 ? "CRON_SECRET no está configurado en el servidor" : "No autorizado" }, { status: 401 });
   }
   if (!isActiveCampaignConfigured()) {
-    const missing = ["ACTIVECAMPAIGN_API_URL", "ACTIVECAMPAIGN_API_KEY"].filter((k) => !process.env[k]);
+    const missing = [
+      ...(config.activeCampaign.url() ? [] : ["ACTIVECAMPAIGN_API_URL"]),
+      ...(config.activeCampaign.apiKey() ? [] : ["ACTIVECAMPAIGN_API_KEY"]),
+    ];
     return Response.json({ error: `ActiveCampaign sin configurar: falta ${missing.join(" y ")}` }, { status: 503 });
   }
 

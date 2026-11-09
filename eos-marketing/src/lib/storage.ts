@@ -1,6 +1,7 @@
 import "server-only";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { config } from "@/lib/config/server";
 
 /**
  * Archivos subidos (imágenes de anuncios).
@@ -16,8 +17,8 @@ type Store = {
 };
 
 const LOCAL_DIR =
-  process.env.EOS_UPLOADS_DIR ||
-  path.join(path.dirname(process.env.EOS_DATA_DIR || path.join(process.cwd(), ".data", "pglite")), "uploads");
+  config.db.uploadsDir() ||
+  path.join(path.dirname(config.db.dataDir() || path.join(process.cwd(), ".data", "pglite")), "uploads");
 
 const local: Store = {
   kind: "local",
@@ -42,7 +43,7 @@ const local: Store = {
 let cached: Promise<Store> | undefined;
 
 async function open(): Promise<Store> {
-  if (process.env.EOS_FORCE_LOCAL_DB === "1") return local;
+  if (config.db.forceLocal()) return local;
   try {
     const { getStore } = await import("@netlify/blobs");
     const blobs = getStore({ name: "eos-marketing-uploads", consistency: "strong" });

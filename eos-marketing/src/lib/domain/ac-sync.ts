@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { dealEntry, dealsUpdatedSince, normCareer, stageGroupMap } from "@/lib/integrations/activecampaign";
 import { logImport, setWeeklyLeads } from "./careers";
 import { formatWeekRange } from "@/lib/utils/dates";
+import { TIMEZONE } from "@/lib/config/shared";
 
 export type CareerAcLink = {
   career_id: number;
@@ -50,7 +51,7 @@ export async function lastSync(teamId: number): Promise<{ at: string | null; det
   return rows[0] ?? { at: null, detail: "" };
 }
 
-const TZ = process.env.EOS_TIMEZONE || "America/Guatemala";
+const TZ = TIMEZONE;
 /** Primera revisión de un embudo: tratos modificados en las últimas 27 semanas (cubre las 26 de la comparativa). */
 const HISTORY_DAYS = 27 * 7;
 const PAGE_SIZE = 25;

@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from "jose";
+import { config } from "@/lib/config/server";
 
 export const SESSION_COOKIE = "eos_session";
 
@@ -10,9 +11,9 @@ export type SessionPayload = {
   email: string;
 };
 
+/** Clave de firma. Sin AUTH_SECRET en producción lanza un error (falla segura): nunca se usa una clave conocida. */
 function secretKey() {
-  const secret = process.env.AUTH_SECRET || "dev-insecure-secret-change-me";
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(config.auth.secret());
 }
 
 export async function signSession(payload: SessionPayload): Promise<string> {

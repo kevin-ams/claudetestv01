@@ -10,7 +10,8 @@ import { MIGRATIONS } from "@/lib/db-migrations.generated";
  */
 
 export const BACKUP_FORMAT = "eos-marketing-respaldo";
-const SKIP = new Set(["_migrations", "backup_events", "password_tokens"]);
+// La bitácora de seguridad y los intentos de acceso no viajan en el respaldo ni se pisan al restaurar (ISO 27001 8.15).
+const SKIP = new Set(["_migrations", "backup_events", "password_tokens", "security_events", "auth_attempts", "ai_answer_cache"]);
 const ident = (name: string) => `"${name.replace(/"/g, '""')}"`;
 
 type Backup = {

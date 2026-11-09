@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { getOrganization } from "./teams";
+import { config } from "@/lib/config/server";
 
 /** Modelos que se pueden elegir y su precio (USD por millón de tokens, tarifa de la API de Anthropic). */
 export const AI_MODELS = {
@@ -23,11 +24,10 @@ export function costUsd(model: string, u: TokenUsage): number {
 
 /** Tope mensual de toda la plataforma (todas las organizaciones), en USD. Variable AI_GLOBAL_MONTHLY_CAP_USD (por omisión 20). */
 export function globalMonthlyCap(): number {
-  const v = Number(process.env.AI_GLOBAL_MONTHLY_CAP_USD);
-  return Number.isFinite(v) && v > 0 ? v : 20;
+  return config.ai.globalMonthlyCapUsd();
 }
 
-export const aiConfigured = () => Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+export const aiConfigured = () => Boolean(config.ai.anthropicKey());
 
 export type AiSettings = { organizationId: number; monthlyCapUsd: number; userDailyLimit: number; model: AiModel };
 

@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/config/server";
 
 /**
  * Integración con ClickUp (API v2) para enviar To-Dos e Issues como tareas.
@@ -30,16 +31,16 @@ export class ClickUpNotConfiguredError extends Error {
 }
 
 export function isClickUpConfigured(): boolean {
-  return Boolean(process.env.CLICKUP_API_TOKEN);
+  return Boolean(config.clickUp.token());
 }
 
-const BASE = () => (process.env.CLICKUP_API_URL || "https://api.clickup.com/api/v2").replace(/\/$/, "");
+const BASE = () => config.clickUp.url();
 
 async function cu<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   if (!isClickUpConfigured()) throw new ClickUpNotConfiguredError();
   const res = await fetch(`${BASE()}/${path}`, {
     method: init?.method ?? "GET",
-    headers: { Authorization: process.env.CLICKUP_API_TOKEN!, "Content-Type": "application/json" },
+    headers: { Authorization: config.clickUp.token()!, "Content-Type": "application/json" },
     body: init?.body ? JSON.stringify(init.body) : undefined,
     cache: "no-store",
     signal: AbortSignal.timeout(15000),
@@ -61,11 +62,11 @@ export function clickUpOptions(): Promise<ClickUpOptions> {
   if (!cache || Date.now() - cache.at > 5 * 60 * 1000) {
     const value = (async () => {
       const { teams } = await cu<{ teams: Team[] }>("team");
-      const wanted = (process.env.CLICKUP_SPACE_NAME || "Marketing").trim().toLowerCase();
+      const wanted = config.clickUp.spaceName().toLowerCase();
       for (const team of teams) {
         const { spaces } = await cu<{ spaces: { id: string; name: string }[] }>(`team/${team.id}/space?archived=false`);
         const space =
-          spaces.find((s) => s.id === process.env.CLICKUP_SPACE_ID) ?? spaces.find((s) => s.name.trim().toLowerCase() === wanted);
+          spaces.find((s) => s.id === config.clickUp.spaceId()) ?? spaces.find((s) => s.name.trim().toLowerCase() === wanted);
         if (!space) continue;
         const [folderless, folders] = await Promise.all([
           cu<{ lists: { id: string; name: string }[] }>(`space/${space.id}/list?archived=false`),
@@ -80,7 +81,7 @@ export function clickUpOptions(): Promise<ClickUpOptions> {
           .sort((a, b) => a.name.localeCompare(b.name, "es"));
         return { space: space.name, spaceId: String(space.id), workspaceId: String(team.id), lists, members };
       }
-      throw new Error(`No se encontró el espacio “${process.env.CLICKUP_SPACE_NAME || "Marketing"}” en ClickUp.`);
+      throw new Error(`No se encontró el espacio “${config.clickUp.spaceName()}” en ClickUp.`);
     })();
     cache = { at: Date.now(), value };
     value.catch(() => (cache = undefined));

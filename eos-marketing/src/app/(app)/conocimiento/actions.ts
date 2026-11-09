@@ -31,6 +31,7 @@ import {
   type SaveResult,
 } from "@/lib/domain/vault";
 import { applyTemplate, cleanFolder, type MeaningHit, type Note, type NoteSummary, type TextHit } from "@/lib/domain/vault-shared";
+import { recordSecurityEvent } from "@/lib/security/events";
 
 const MAX_CONTENT = 400_000;
 const fail = (e: unknown, fallback: string) => {
@@ -236,7 +237,9 @@ export async function createTokenAction(input: { label: string; scope: TokenScop
     const canWrite = Boolean(input.canWrite) && access?.level("conocimiento") === "edit";
     const scope: TokenScope = input.scope === "eos" ? "eos" : "vault";
     const { token } = await createApiToken({ teamId: session.teamId, userId: session.userId, label, scope, canWrite });
-    await logActivity(session, "conocimiento", "Creó token de Claude (MCP)", `${label} · ${scope === "eos" ? "EOS completo" : "solo vault"} · ${canWrite ? "lectura y escritura" : "solo lectura"}`);
+    const detail = `${label} · ${scope === "eos" ? "EOS completo" : "solo vault"} · ${canWrite ? "lectura y escritura" : "solo lectura"}`;
+    await logActivity(session, "conocimiento", "Creó token de Claude (MCP)", detail);
+    await recordSecurityEvent({ type: "token_created", userId: session.userId, teamId: session.teamId, email: session.email, detail });
     return { ok: true, message: "Token creado. Cópialo ahora: no se vuelve a mostrar.", token };
   } catch (e) {
     return { ok: false, message: fail(e, "No se pudo crear el token.") };
@@ -250,6 +253,7 @@ export async function revokeTokenAction(id: number): Promise<{ ok: boolean; mess
     const done = await revokeApiToken(session.teamId, Number(id), session.userId, Boolean(access?.isAdmin));
     if (!done) return { ok: false, message: "No se pudo revocar (ya estaba revocado o no es tuyo)." };
     await logActivity(session, "conocimiento", "Revocó token de Claude (MCP)", `#${id}`);
+    await recordSecurityEvent({ type: "token_revoked", userId: session.userId, teamId: session.teamId, email: session.email, detail: `#${id}` });
     return { ok: true, message: "Token revocado: deja de funcionar de inmediato." };
   } catch (e) {
     return { ok: false, message: fail(e, "No se pudo revocar el token.") };

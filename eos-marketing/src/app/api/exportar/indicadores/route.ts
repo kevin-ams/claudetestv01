@@ -4,6 +4,7 @@ import { getAccess } from "@/lib/auth/access";
 import { fileResponse, parseFormat, workbookFile } from "@/lib/export/excel";
 import { careerWorkbook } from "@/lib/export/workbooks";
 import { lastClosedWeek, shiftWeek } from "@/lib/utils/dates";
+import { recordSecurityEvent } from "@/lib/security/events";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -18,5 +19,6 @@ export async function GET(request: NextRequest) {
   if (from > to) return new Response("El rango de fechas no es válido", { status: 400 });
   const format = parseFormat(q.get("formato"));
   const wb = await careerWorkbook(session.teamId, from, to);
+  await recordSecurityEvent({ type: "export_downloaded", userId: session.userId, teamId: session.teamId, email: session.email, detail: `Indicadores ${from} a ${to}` });
   return fileResponse(await workbookFile(wb, format), `indicadores_carrera_${from}_${to}`, format);
 }

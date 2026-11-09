@@ -1,6 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { db } from "@/lib/db";
+import { config } from "@/lib/config/server";
 
 /**
  * Dueño de la plataforma: quien puede asignar el rol "Administrador Premium" y abrir módulos premium a otros roles.
@@ -9,10 +10,7 @@ import { db } from "@/lib/db";
  * 3) Si ninguna está marcada, la primera cuenta creada (quien configuró la app).
  */
 export const platformOwnerIds = cache(async (): Promise<number[]> => {
-  const emails = (process.env.PLATFORM_OWNER_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
+  const emails = config.auth.platformOwnerEmails();
   if (emails.length) {
     const rows = (await db().sql`SELECT id FROM users WHERE lower(email) = ANY(${emails}::text[])`) as { id: number }[];
     return rows.map((r) => r.id);

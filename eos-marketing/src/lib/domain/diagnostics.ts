@@ -3,6 +3,7 @@ import { databaseKind, db } from "@/lib/db";
 import { MIGRATIONS } from "@/lib/db-migrations.generated";
 import { storage } from "@/lib/storage";
 import { imageKey } from "./announcements";
+import { isProduction } from "@/lib/config/server";
 
 export type Check = { name: string; ok: boolean; detail: string };
 
@@ -78,7 +79,7 @@ export async function runDiagnostics(teamId: number): Promise<Check[]> {
   checks.push({
     name: "Entorno",
     ok: true,
-    detail: `Base de datos ${await databaseKind()} · Node ${process.version} · ${process.platform} · ${process.env.NODE_ENV}`,
+    detail: `Base de datos ${await databaseKind()} · Node ${process.version} · ${process.platform} · ${isProduction() ? "producción" : "desarrollo"}`,
   });
   return checks;
 }

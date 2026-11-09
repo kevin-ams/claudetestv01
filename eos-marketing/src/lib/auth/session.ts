@@ -1,13 +1,14 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { SESSION_COOKIE, signSession, verifySession, type SessionPayload } from "./token";
+import { isProduction } from "@/lib/config/server";
 
 export async function createSessionCookie(payload: SessionPayload) {
   const token = await signSession(payload);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction(),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30,

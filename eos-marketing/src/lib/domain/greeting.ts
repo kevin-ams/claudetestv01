@@ -1,3 +1,4 @@
+import { TIMEZONE } from "@/lib/config/shared";
 /**
  * Saludo del Dashboard: cambia según la hora (zona del equipo) y rota entre
  * varias opciones en cada visita.
@@ -39,7 +40,7 @@ export function greetingFor(name: string, date = new Date()): { salute: string; 
     new Intl.DateTimeFormat("en-US", {
       hour: "numeric",
       hourCycle: "h23",
-      timeZone: process.env.EOS_TIMEZONE || "America/Guatemala",
+      timeZone: TIMEZONE,
     }).format(date)
   );
   const h = hour < 5 ? hour + 24 : hour; // la madrugada cuenta como "noche"

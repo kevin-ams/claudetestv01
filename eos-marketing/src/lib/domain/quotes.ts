@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { QUOTES_CATALOG } from "./quotes-catalog";
+import { TIMEZONE } from "@/lib/config/shared";
 
 export type Quote = {
   id: number;
@@ -72,7 +73,7 @@ function gcd(a: number, b: number): number {
 
 /** Días transcurridos (en la zona del equipo) desde 1970-01-01. */
 export function dayNumber(date = new Date()): number {
-  const local = new Date(date.toLocaleString("en-US", { timeZone: process.env.EOS_TIMEZONE || "America/Guatemala" }));
+  const local = new Date(date.toLocaleString("en-US", { timeZone: TIMEZONE }));
   return Math.floor(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()) / 86400000);
 }
 

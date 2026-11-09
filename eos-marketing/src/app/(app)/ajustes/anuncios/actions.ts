@@ -6,7 +6,7 @@ import { canEdit } from "@/lib/auth/access";
 import { requireSession } from "@/lib/auth/session";
 import {
   clearSlot,
-  imageMime,
+  imageMime, sniffImage,
   MAX_IMAGE_BYTES,
   saveAnnouncementSettings,
   setSlotDetails,
@@ -48,7 +48,8 @@ export async function uploadAdImageAction(slot: number, formData: FormData): Pro
     const session = await requireAdmin();
     const file = formData.get("image");
     if (!(file instanceof File) || file.size === 0) return { ok: false, message: "Elige una imagen." };
-    const mime = imageMime(file);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const mime = imageMime(file) && sniffImage(bytes);
     if (!mime) {
       return {
         ok: false,
@@ -58,7 +59,7 @@ export async function uploadAdImageAction(slot: number, formData: FormData): Pro
       };
     }
     if (file.size > MAX_IMAGE_BYTES) return { ok: false, message: "La imagen pesa más de 5 MB." };
-    await setSlotImage(session.teamId, checkSlot(slot), new Uint8Array(await file.arrayBuffer()), mime);
+    await setSlotImage(session.teamId, checkSlot(slot), bytes, mime);
     await logActivity(session, "ajustes", "Subió imagen de anuncio", `Espacio ${slot}`);
     refresh();
     return { ok: true, message: "Imagen guardada." };

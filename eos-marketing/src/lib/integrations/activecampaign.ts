@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/lib/config/server";
 
 /**
  * Integración con ActiveCampaign (API v3) para los leads calificados por carrera.
@@ -20,7 +21,7 @@ export class ActiveCampaignNotConfiguredError extends Error {
 }
 
 export function isActiveCampaignConfigured(): boolean {
-  return Boolean(process.env.ACTIVECAMPAIGN_API_URL && process.env.ACTIVECAMPAIGN_API_KEY);
+  return config.activeCampaign.configured();
 }
 
 /** Campo personalizado del trato con el nombre de la carrera. */
@@ -41,11 +42,11 @@ async function throttle() {
 
 export async function acGet<T>(path: string): Promise<T> {
   if (!isActiveCampaignConfigured()) throw new ActiveCampaignNotConfiguredError();
-  const base = process.env.ACTIVECAMPAIGN_API_URL!.replace(/\/$/, "");
+  const base = config.activeCampaign.url()!;
   for (let attempt = 0; ; attempt++) {
     await throttle();
     const res = await fetch(`${base}/api/3/${path}`, {
-      headers: { "Api-Token": process.env.ACTIVECAMPAIGN_API_KEY!, Accept: "application/json" },
+      headers: { "Api-Token": config.activeCampaign.apiKey()!, Accept: "application/json" },
       cache: "no-store",
       signal: AbortSignal.timeout(20000),
     });
@@ -259,9 +260,9 @@ export const normCareer = norm;
 /** Respuesta cruda (sin lanzar error) para la prueba de Diagnóstico. */
 async function acRaw(path: string): Promise<{ path: string; status: number; body: unknown }> {
   if (!isActiveCampaignConfigured()) throw new ActiveCampaignNotConfiguredError();
-  const base = process.env.ACTIVECAMPAIGN_API_URL!.replace(/\/$/, "");
+  const base = config.activeCampaign.url()!;
   const res = await fetch(`${base}/api/3/${path}`, {
-    headers: { "Api-Token": process.env.ACTIVECAMPAIGN_API_KEY!, Accept: "application/json" },
+    headers: { "Api-Token": config.activeCampaign.apiKey()!, Accept: "application/json" },
     cache: "no-store",
     signal: AbortSignal.timeout(20000),
   });

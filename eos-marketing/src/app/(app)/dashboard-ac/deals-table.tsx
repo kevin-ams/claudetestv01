@@ -3,15 +3,12 @@
 import { Button, Chip } from "@heroui/react";
 import { useMemo, useState } from "react";
 import { STATUS_LABEL, fmtDate, fmtDays, fmtHours, type Deal } from "@/lib/domain/deals-shared";
+import { csvCell } from "@/lib/csv";
 
 type SortKey = "createdAt" | "daysInStage" | "notesCount" | "hoursToFirstNote" | "lastNoteAt";
 const PAGE = 50;
 const STATUS_COLOR = { open: "default", won: "success", lost: "danger" } as const;
 
-function csvCell(v: string | number | null) {
-  const s = v === null ? "" : String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 
 const PRINT_MAX = 300;
 

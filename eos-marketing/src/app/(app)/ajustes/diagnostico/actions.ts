@@ -6,12 +6,15 @@ import { parseBackup, recordBackupEvent, restoreBackup } from "@/lib/backup";
 import { logActivity } from "@/lib/domain/activity";
 import { probeDealHistory } from "@/lib/integrations/activecampaign";
 import { appUrl, emailFrom, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
+import { isPlatformOwner } from "@/lib/auth/platform";
+import { alertOwners, recordSecurityEvent } from "@/lib/security/events";
 
 export type RestoreResult = { ok: boolean; message: string };
 
 export async function restoreBackupAction(formData: FormData): Promise<RestoreResult> {
   const access = await getAccess();
-  if (!access?.isAdmin) return { ok: false, message: "Solo un administrador puede restaurar un respaldo." };
+  // Restaurar reemplaza la base de TODAS las organizaciones: solo el dueño de la plataforma.
+  if (!access || !(await isPlatformOwner(access.session.userId))) return { ok: false, message: "Solo el dueño de la plataforma puede restaurar un respaldo." };
   if (String(formData.get("confirm") ?? "").trim().toUpperCase() !== "RESTAURAR") {
     return { ok: false, message: 'Escribe RESTAURAR para confirmar.' };
   }
@@ -24,6 +27,8 @@ export async function restoreBackupAction(formData: FormData): Promise<RestoreRe
     await recordBackupEvent("restore", access.session, detail);
     // La bitácora restaurada es la del respaldo; se agrega la restauración si el equipo sigue existiendo.
     await logActivity(access.session, "ajustes", "Restauró respaldo", detail);
+    await recordSecurityEvent({ type: "backup_restored", userId: access.session.userId, teamId: access.session.teamId, email: access.session.email, detail });
+    await alertOwners("backup_restored", "Se restauró un respaldo", `${access.session.name} restauró ${detail}.`);
     revalidatePath("/", "layout");
     return { ok: true, message: `Respaldo restaurado: ${rows} registros. Si tu usuario no existía en esa copia, tendrás que volver a entrar.` };
   } catch (e) {

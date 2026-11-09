@@ -10,6 +10,7 @@ import {
 } from "@/lib/domain/editorial-shared";
 import { formatShortDate, formatWeekRange } from "@/lib/utils/dates";
 import { clean, H, hexToRgb, INK, Layout, LINE, M, MUTED, SOFT, W } from "./kit";
+import { TIMEZONE } from "@/lib/config/shared";
 
 export type WeekPlan = {
   teamName: string;
@@ -20,7 +21,7 @@ export type WeekPlan = {
   memberName: (id: number | null) => string;
 };
 
-const DATE = new Intl.DateTimeFormat("es", { dateStyle: "long", timeZone: process.env.EOS_TIMEZONE || "America/Guatemala" });
+const DATE = new Intl.DateTimeFormat("es", { dateStyle: "long", timeZone: TIMEZONE });
 
 /** PDF de la planificación de una semana del calendario editorial (para enviar a jefatura). */
 export async function buildWeekPlanPdf(plan: WeekPlan, brandColor: string): Promise<Uint8Array> {

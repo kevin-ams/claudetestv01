@@ -2,11 +2,13 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
 import { avatarUrl, getProfile, PRONOUNS } from "@/lib/domain/profile";
 import { ProfileForm } from "./profile-form";
+import { MfaPanel } from "./mfa-panel";
+import { getMfaMode, mfaStatus } from "@/lib/security/mfa";
 
 export default async function PerfilPage() {
   const session = await getSession();
   if (!session) redirect("/login");
-  const profile = await getProfile(session.userId);
+  const [profile, mode, mfa] = await Promise.all([getProfile(session.userId), getMfaMode(session.teamId), mfaStatus(session.userId)]);
   if (!profile) redirect("/salir");
 
   return (
@@ -19,6 +21,7 @@ export default async function PerfilPage() {
         profile={{ ...profile, avatarSrc: avatarUrl(profile) }}
         pronouns={PRONOUNS.map((p) => ({ key: p.key, label: p.label }))}
       />
+      <MfaPanel available={mode === "optional"} enabled={mfa.enabled} enabledAt={mfa.enabledAt} recoveryLeft={mfa.recoveryLeft} />
     </div>
   );
 }

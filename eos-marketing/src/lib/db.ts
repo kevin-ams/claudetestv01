@@ -2,6 +2,7 @@ import "server-only";
 import { mkdirSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import type { PGlite } from "@electric-sql/pglite";
+import { config, isProduction } from "@/lib/config/server";
 
 /**
  * Base de datos de la app.
@@ -47,7 +48,7 @@ function toQuery(strings: TemplateStringsArray, params: unknown[]) {
 
 /** URL de Netlify Database si estamos en Netlify; si no, null. */
 async function cloudConnectionString(): Promise<string | null> {
-  if (process.env.EOS_FORCE_LOCAL_DB === "1") return null;
+  if (config.db.forceLocal()) return null;
   try {
     const { getConnectionString } = await import("@netlify/database");
     return getConnectionString();
@@ -163,7 +164,7 @@ async function migrateCloud(
 
 // ---------------- PGlite (local) ----------------
 
-const DATA_DIR = process.env.EOS_DATA_DIR || path.join(process.cwd(), ".data", "pglite");
+const DATA_DIR = config.db.dataDir() || path.join(process.cwd(), ".data", "pglite");
 const MIGRATIONS_DIR = path.join(process.cwd(), "db", "migrations");
 
 async function migrateLocal(pg: PGlite) {
@@ -202,7 +203,7 @@ async function openLocal(): Promise<Backend> {
     async query(text, params) {
       // En desarrollo la conexión sobrevive a las recargas del código: si se
       // copiaron archivos nuevos con migraciones, se aplican sin reiniciar.
-      if (process.env.NODE_ENV !== "production" && migrationCount() !== known) {
+      if (!isProduction() && migrationCount() !== known) {
         migrating ??= migrateLocal(pg).finally(() => {
           known = migrationCount();
           migrating = undefined;

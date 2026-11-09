@@ -14,7 +14,7 @@ export default async function RestablecerPage({ searchParams }: PageProps<"/rest
         <Card.Header>
           <Card.Title className="text-xl font-bold">{valid?.purpose === "invite" ? "Crea tu contraseña" : "Nueva contraseña"}</Card.Title>
           <Card.Description>
-            {valid ? `Para ${valid.name} (${valid.email}). Mínimo 8 caracteres.` : "Este enlace venció o ya se usó."}
+            {valid ? `Para ${valid.name} (${valid.email}). Mínimo 10 caracteres.` : "Este enlace venció o ya se usó."}
           </Card.Description>
         </Card.Header>
         <Card.Content>

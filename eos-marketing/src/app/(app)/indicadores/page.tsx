@@ -12,11 +12,12 @@ import { lastSync, pendingSyncSince } from "@/lib/domain/ac-sync";
 const AC_WHEN = new Intl.DateTimeFormat("es", {
   dateStyle: "medium",
   timeStyle: "short",
-  timeZone: process.env.EOS_TIMEZONE || "America/Guatemala",
+  timeZone: TIMEZONE,
 });
 import { Toolbar } from "./toolbar";
 import { ExportButton } from "@/components/export-button";
 import { LoadCatalogButton } from "./load-catalog-button";
+import { TIMEZONE } from "@/lib/config/shared";
 
 export default async function IndicadoresPage({
   searchParams,

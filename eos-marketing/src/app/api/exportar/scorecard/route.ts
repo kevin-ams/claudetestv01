@@ -5,6 +5,7 @@ import { weeksBetween } from "@/lib/domain/careers";
 import { fileResponse, parseFormat, workbookFile } from "@/lib/export/excel";
 import { scorecardWorkbook } from "@/lib/export/workbooks";
 import { lastNWeeks } from "@/lib/utils/dates";
+import { recordSecurityEvent } from "@/lib/security/events";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -19,5 +20,6 @@ export async function GET(request: NextRequest) {
   const weeks = DATE.test(from) && DATE.test(to) ? weeksBetween(from, to) : lastNWeeks(12);
   const format = parseFormat(q.get("formato"));
   const wb = await scorecardWorkbook(session.teamId, weeks);
+  await recordSecurityEvent({ type: "export_downloaded", userId: session.userId, teamId: session.teamId, email: session.email, detail: `Scorecard ${weeks[0]} a ${weeks.at(-1)}` });
   return fileResponse(await workbookFile(wb, format), `scorecard_${weeks[0]}_${weeks.at(-1)}`, format);
 }

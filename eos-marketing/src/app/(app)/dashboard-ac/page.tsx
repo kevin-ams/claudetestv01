@@ -12,8 +12,10 @@ import type { Career } from "@/lib/domain/types";
 import { RANGE_OPTIONS } from "@/lib/domain/deals-shared";
 import { DealsDashboard } from "./dashboard";
 import { DealsSyncButton } from "./sync-button";
+import { TIMEZONE } from "@/lib/config/shared";
+import { config } from "@/lib/config/server";
 
-const TZ = process.env.EOS_TIMEZONE || "America/Guatemala";
+const TZ = TIMEZONE;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function today(offsetDays = 0, now: number) {
@@ -51,7 +53,7 @@ function resolveRange(range: string, desde: string | undefined, hasta: string | 
 /** https://cuenta.api-us1.com → https://cuenta.activehosted.com/app/deals/ */
 function dealUrlBase(): string | null {
   try {
-    const account = new URL(process.env.ACTIVECAMPAIGN_API_URL ?? "").hostname.split(".")[0];
+    const account = new URL(config.activeCampaign.url() ?? "").hostname.split(".")[0];
     return account ? `https://${account}.activehosted.com/app/deals/` : null;
   } catch {
     return null;

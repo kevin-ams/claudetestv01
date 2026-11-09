@@ -121,6 +121,12 @@ const SECTIONS = [
     description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
   },
   {
+    href: "/ajustes/seguridad",
+    Icon: ShieldKeyhole,
+    title: "Seguridad",
+    description: "Doble factor, revisión de accesos (último ingreso, rol, tokens) y bitácora de eventos de seguridad.",
+  },
+  {
     href: "/ajustes/asistente",
     Icon: Comment,
     title: "Asistente IA",
@@ -172,6 +178,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
     "/ajustes/roles": `${roles.length} roles`,
     "/ajustes/log": "Solo administradores",
+    "/ajustes/seguridad": "Solo administradores",
     "/ajustes/asistente": aiConfigured() ? "Solo administradores" : "Sin configurar",
     "/perfil": "Para cada persona",
     "/ajustes/listas": `${options.facultad.length} facultades · ${options.pilar.length} pilares`,

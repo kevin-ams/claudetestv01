@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Access } from "@/lib/auth/access";
 import { cachedAnswer, checkBudget, recordUsage, storeAnswer } from "@/lib/domain/ai-usage";
 import { getTeam } from "@/lib/domain/teams";
+import { config } from "@/lib/config/server";
 import { runAssistant, type AnthropicLike, type AssistantEvent, type ChatTurn } from "./assistant";
 
 /** Eventos que recibe la pantalla (una línea JSON cada uno). */
@@ -28,7 +29,7 @@ function cacheKey(teamId: number, roleId: number | null, model: string, question
 }
 
 let sharedClient: Anthropic | null = null;
-const defaultClient = (): AnthropicLike => (sharedClient ??= new Anthropic({ timeout: 55_000, maxRetries: 1 }));
+const defaultClient = (): AnthropicLike => (sharedClient ??= new Anthropic({ apiKey: config.ai.anthropicKey(), timeout: 55_000, maxRetries: 1 }));
 
 /**
  * Una pregunta al asistente: revisa topes, usa la caché si aplica, consulta a Claude con las herramientas de EOS y

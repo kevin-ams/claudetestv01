@@ -152,6 +152,7 @@ export function GraphView({
       });
       sigmaRef.current = sigma;
       // Solo en desarrollo: acceso para las pruebas automáticas.
+      // eslint-disable-next-line no-restricted-properties -- NODE_ENV lo sustituye Next al compilar (no es secreto)
       if (process.env.NODE_ENV !== "production") (window as unknown as Record<string, unknown>)[local ? "__vaultLocalGraph" : "__vaultGraph"] = sigma;
       handle?.({ center: () => sigma.getCamera().animatedReset({ duration: 400 }) });
 

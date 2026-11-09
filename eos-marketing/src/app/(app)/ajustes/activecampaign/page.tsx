@@ -10,11 +10,12 @@ import { LinksEditor } from "./links-editor";
 import { BackfillPanel } from "./backfill-panel";
 import { formatWeekRange, lastNWeeks, lastClosedWeek } from "@/lib/utils/dates";
 import { StatusIcon } from "@/components/status-icon";
+import { TIMEZONE } from "@/lib/config/shared";
 
 const WHEN = new Intl.DateTimeFormat("es", {
   dateStyle: "medium",
   timeStyle: "short",
-  timeZone: process.env.EOS_TIMEZONE || "America/Guatemala",
+  timeZone: TIMEZONE,
 });
 
 export default async function ActiveCampaignPage() {

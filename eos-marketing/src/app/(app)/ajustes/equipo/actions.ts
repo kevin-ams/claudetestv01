@@ -20,6 +20,8 @@ import { getTeam, renameTeam, setTeamReplyTo } from "@/lib/domain/teams";
 import { EMAIL_RE } from "@/lib/email";
 import { sendAccessEmail } from "@/lib/domain/account-emails";
 import { randomBytes } from "node:crypto";
+import { passwordProblem } from "@/lib/auth/password-policy";
+import { recordSecurityEvent } from "@/lib/security/events";
 
 export type FormState = { error: string | null; success?: string | null };
 
@@ -51,7 +53,10 @@ export async function addTeammateAction(
   if (!user) {
     if (name.length < 2) return { error: "El nombre es muy corto" };
     // Con correo de acceso la persona crea su propia contraseña con el enlace.
-    if (!(sendInvite && !password) && password.length < 8) return { error: "La contraseña debe tener al menos 8 caracteres" };
+    if (!(sendInvite && !password)) {
+      const weak = passwordProblem(password, email);
+      if (weak) return { error: weak };
+    }
     const created = await createUser({ name, email, password: password || randomBytes(24).toString("hex"), role: "member" });
     user = { ...created, password_hash: "" };
   } else if (await isUserInTeam(user.id, session.teamId)) {
@@ -110,14 +115,16 @@ export async function updateAccessAction(
 
   if (name.length < 2) return { error: "El nombre es muy corto" };
   if (!email.includes("@")) return { error: "Correo inválido" };
-  if (password && password.length < 8) {
-    return { error: "La contraseña debe tener al menos 8 caracteres" };
+  if (password) {
+    const weak = passwordProblem(password, email);
+    if (weak) return { error: weak };
   }
   const other = await getUserByEmail(email);
   if (other && other.id !== userId) return { error: "Ya existe una cuenta con ese correo" };
 
   await updateUserAccess(userId, { name, email, password: password || null });
   await logActivity(session, "equipo", "Editó acceso de una persona", `${name} <${email}>${password ? " · contraseña cambiada" : ""}`);
+  await recordSecurityEvent({ type: "access_changed", userId, actorId: session.userId, teamId: session.teamId, email, detail: password ? "Correo/nombre y contraseña" : "Correo/nombre" });
   revalidatePath("/ajustes/equipo");
   return { error: null, success: "Acceso actualizado." };
 }
@@ -141,6 +148,7 @@ export async function setMemberRoleAction(userId: number, roleId: number): Promi
     return { ok: false, message: "El equipo necesita al menos un administrador." };
   }
   await setMemberRole(session.teamId, userId, roleId);
+  await recordSecurityEvent({ type: "role_changed", userId, actorId: session.userId, teamId: session.teamId, email: member.email, detail: `${current?.name ?? "—"} → ${target.name}` });
   await logActivity(session, "equipo", "Cambió rol de una persona", `${member.name}: ${target.name}`);
   revalidatePath("/", "layout");
   return { ok: true, message: `${member.name} ahora es ${target.name}.` };
@@ -152,6 +160,7 @@ export async function removeMemberAction(userId: number): Promise<MemberResult> 
   if (userId === session.userId) return { ok: false, message: "No puedes quitarte a ti mismo del equipo." };
   const removed = (await listTeamMembersDetailed(session.teamId)).find((m) => m.id === userId);
   await removeTeamMember(session.teamId, userId);
+  await recordSecurityEvent({ type: "member_removed", userId, actorId: session.userId, teamId: session.teamId, email: removed?.email ?? null, detail: removed?.name ?? "" });
   await logActivity(session, "equipo", "Quitó a una persona del equipo", removed?.name ?? `#${userId}`);
   revalidatePath("/ajustes/equipo");
   return { ok: true, message: "Persona quitada del equipo." };

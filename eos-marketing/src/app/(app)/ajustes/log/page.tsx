@@ -5,6 +5,7 @@ import { listActivity } from "@/lib/domain/activity";
 import { listTeamMembers } from "@/lib/domain/users";
 import { SettingsHeader } from "../settings-header";
 import { LogFilters } from "./log-filters";
+import { TIMEZONE } from "@/lib/config/shared";
 
 const EXTRA_LABELS: Record<string, string> = { equipo: "Equipo", roles: "Roles y accesos", equipos: "Equipos", ajustes: "Ajustes" };
 const LOG_MODULES = [
@@ -18,7 +19,7 @@ const WHEN = new Intl.DateTimeFormat("es", {
   month: "short",
   hour: "2-digit",
   minute: "2-digit",
-  timeZone: process.env.EOS_TIMEZONE || "America/Guatemala",
+  timeZone: TIMEZONE,
 });
 
 export default async function LogPage({ searchParams }: PageProps<"/ajustes/log">) {

@@ -16,6 +16,7 @@ import {
   type ProfileResult,
 } from "./actions";
 import { StatusIcon } from "@/components/status-icon";
+import { PASSWORD_MIN } from "@/lib/auth/password-policy";
 
 const SIDE = 512;
 
@@ -217,11 +218,11 @@ export function ProfileForm({
         </Card.Header>
         <Card.Content className="gap-2">
           <Input type="password" aria-label="Contraseña actual" placeholder="Contraseña actual" value={current} onChange={(e) => setCurrent(e.target.value)} className="max-w-sm" />
-          <Input type="password" aria-label="Nueva contraseña" placeholder="Nueva contraseña (mínimo 8)" value={next} onChange={(e) => setNext(e.target.value)} className="max-w-sm" />
+          <Input type="password" aria-label="Nueva contraseña" placeholder={`Nueva contraseña (mínimo ${PASSWORD_MIN})`} value={next} onChange={(e) => setNext(e.target.value)} className="max-w-sm" />
           <Button
             variant="outline"
             className="self-start"
-            isDisabled={!current || next.length < 8}
+            isDisabled={!current || next.length < PASSWORD_MIN}
             onPress={() =>
               startTransition(async () => {
                 const res = await changePasswordAction(current, next);

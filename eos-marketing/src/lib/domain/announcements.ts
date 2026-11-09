@@ -16,6 +16,20 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 /** Tipo de imagen por el tipo que manda el navegador o, si viene vacío, por la extensión. */
+/**
+ * Tipo real de una imagen por sus primeros bytes (ISO 27001 8.7; OWASP ASVS 5.2). Así un archivo HTML o un
+ * script renombrado como .png no se guarda ni se sirve como imagen.
+ */
+export function sniffImage(bytes: Uint8Array): string | null {
+  const b = bytes;
+  const at = (i: number, ...sig: number[]) => sig.every((v, k) => b[i + k] === v);
+  if (at(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return "image/png";
+  if (at(0, 0xff, 0xd8, 0xff)) return "image/jpeg";
+  if (at(0, 0x47, 0x49, 0x46, 0x38)) return "image/gif";
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return "image/webp";
+  return null;
+}
+
 export function imageMime(file: { type: string; name: string }): string | null {
   if (ALLOWED_IMAGE_TYPES.includes(file.type)) return file.type;
   const ext = file.name.toLowerCase().split(".").pop() ?? "";
