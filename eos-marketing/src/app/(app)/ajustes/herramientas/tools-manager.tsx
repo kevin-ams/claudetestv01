@@ -1,0 +1,360 @@
+"use client";
+
+import { Button, Card, Chip, Input, TextArea } from "@heroui/react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { AppCheckbox } from "@/components/ui/checkbox";
+import { Segmented } from "@/components/ui/segmented";
+import { ArrowDown, ArrowUp } from "@gravity-ui/icons";
+import { ToolIcon, ToolIconByName } from "@/components/tool-icon";
+import { KIND_LABEL, SUGGESTED_CATEGORIES, TOOL_ICONS, defaultToolIcon, isToolIcon, type Tool, type ToolAccess, type ToolIconName, type ToolKind } from "@/lib/domain/tools-shared";
+import { deleteToolAction, moveToolAction, saveToolAction, toggleToolAction, type ToolResult } from "./actions";
+
+type Option = { id: number; name: string; isAdmin?: boolean };
+
+function toggle(list: number[], id: number, on: boolean) {
+  return on ? [...new Set([...list, id])] : list.filter((x) => x !== id);
+}
+
+function ToolForm({
+  tool,
+  roles,
+  members,
+  categories,
+  onDone,
+}: {
+  tool?: Tool;
+  roles: Option[];
+  members: Option[];
+  categories: string[];
+  onDone: () => void;
+}) {
+  const router = useRouter();
+  const [name, setName] = useState(tool?.name ?? "");
+  const [icon, setIcon] = useState<ToolIconName | null>(tool && isToolIcon(tool.icon) ? tool.icon : null);
+  const [description, setDescription] = useState(tool?.description ?? "");
+  const [category, setCategory] = useState(tool?.category ?? "");
+  const [kind, setKind] = useState<ToolKind>(tool?.kind ?? "link");
+  const [url, setUrl] = useState(tool?.url ?? "");
+  const [access, setAccess] = useState<ToolAccess>(tool?.access ?? "all");
+  const [roleIds, setRoleIds] = useState<number[]>(tool?.role_ids ?? []);
+  const [userIds, setUserIds] = useState<number[]>(tool?.user_ids ?? []);
+  const [result, setResult] = useState<ToolResult | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        start(async () => {
+          const r = await saveToolAction(tool?.id ?? null, {
+            name,
+            icon: icon ?? defaultToolIcon(kind),
+            description,
+            category,
+            kind,
+            url,
+            access,
+            roleIds,
+            userIds,
+          });
+          setResult(r);
+          if (r.ok) {
+            router.refresh();
+            onDone();
+          }
+        });
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+          title="Ícono elegido"
+        >
+          <ToolIconByName name={icon ?? defaultToolIcon(kind)} />
+        </span>
+        <Input
+          aria-label="Nombre de la herramienta"
+          placeholder="Nombre (p. ej. Canva, Tablero de pauta, Drive del equipo)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="min-w-60 flex-1"
+          required
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted">Ícono {icon ? `· ${TOOL_ICONS[icon]}` : "· si no eliges, se usa el del tipo"}</span>
+        <div role="radiogroup" aria-label="Ícono" className="flex flex-wrap gap-1">
+          {(Object.keys(TOOL_ICONS) as ToolIconName[]).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={icon === k}
+              aria-label={TOOL_ICONS[k]}
+              title={TOOL_ICONS[k]}
+              onClick={() => setIcon(icon === k ? null : k)}
+              className={`flex size-9 items-center justify-center rounded-lg border transition ${
+                icon === k ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted hover:border-primary hover:text-primary"
+              }`}
+            >
+              <ToolIconByName name={k} size={18} />
+            </button>
+          ))}
+        </div>
+      </div>
+      <TextArea
+        fullWidth
+        aria-label="Descripción"
+        placeholder="Para qué sirve (opcional)"
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className="min-h-14"
+      />
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted">Categoría (agrupa las herramientas en el índice)</span>
+        <Input
+          aria-label="Categoría"
+          placeholder="Análisis, Marketing, Documentos… (opcional)"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          list={`tool-categories-${tool?.id ?? "new"}`}
+          className="max-w-sm"
+        />
+        <datalist id={`tool-categories-${tool?.id ?? "new"}`}>
+          {categories.map((c) => (
+            <option key={c} value={c} />
+          ))}
+        </datalist>
+        <div className="flex flex-wrap gap-1">
+          {categories.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCategory(c)}
+              className={`rounded-full border px-2 py-0.5 text-xs transition ${
+                category === c ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted hover:border-primary hover:text-primary"
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs text-muted">Tipo</span>
+        <Segmented
+          aria-label="Tipo de herramienta"
+          options={[
+            {
+              id: "link" as const,
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <ToolIconByName name="Link" size={14} /> Enlace directo
+                </span>
+              ),
+            },
+            {
+              id: "embed" as const,
+              label: (
+                <span className="flex items-center gap-1.5">
+                  <ToolIconByName name="Puzzle" size={14} /> Sitio dentro de la app
+                </span>
+              ),
+            },
+          ]}
+          value={kind}
+          onChange={setKind}
+        />
+        <p className="text-xs text-muted">
+          {kind === "link"
+            ? "Se abre en una pestaña nueva."
+            : "El sitio se muestra dentro de la app. Algunos sitios no lo permiten (por ejemplo Gmail o Facebook); en ese caso queda el botón para abrirlo aparte. Los enlaces de YouTube y de Google Docs, Sheets, Slides o Drive se convierten solos a su versión para insertar."}
+        </p>
+      </div>
+      <Input
+        aria-label="Dirección (URL)"
+        placeholder="https://…"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        type="url"
+        required
+      />
+      <div className="flex flex-col gap-2">
+        <span className="text-xs text-muted">¿Quién la ve?</span>
+        <Segmented
+          aria-label="Acceso"
+          options={[
+            { id: "all" as const, label: "Todo el equipo" },
+            { id: "restricted" as const, label: "Solo roles o personas elegidas" },
+          ]}
+          value={access}
+          onChange={setAccess}
+        />
+        {access === "restricted" && (
+          <div className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Roles</p>
+              {roles.map((r) => (
+                <AppCheckbox
+                  key={r.id}
+                  checked={r.isAdmin || roleIds.includes(r.id)}
+                  disabled={r.isAdmin}
+                  onChange={(e) => setRoleIds((l) => toggle(l, r.id, e.target.checked))}
+                >
+                  {r.name}
+                  {r.isAdmin ? " (siempre)" : ""}
+                </AppCheckbox>
+              ))}
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Personas</p>
+              {members.map((m) => (
+                <AppCheckbox key={m.id} checked={userIds.includes(m.id)} onChange={(e) => setUserIds((l) => toggle(l, m.id, e.target.checked))}>
+                  {m.name}
+                </AppCheckbox>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="submit" variant="primary" size="sm" isDisabled={pending}>
+          {pending ? "Guardando…" : tool ? "Guardar cambios" : "Agregar herramienta"}
+        </Button>
+        <Button type="button" variant="outline" size="sm" onPress={onDone}>
+          Cancelar
+        </Button>
+        {result && !result.ok && <span className="text-sm text-red">{result.message}</span>}
+      </div>
+    </form>
+  );
+}
+
+function audience(tool: Tool, roles: Option[], members: Option[]) {
+  if (tool.access === "all") return "Todo el equipo";
+  const names = [
+    ...roles.filter((r) => tool.role_ids.includes(r.id)).map((r) => r.name),
+    ...members.filter((m) => tool.user_ids.includes(m.id)).map((m) => m.name),
+  ];
+  return `Solo: ${names.join(", ") || "nadie"} · y administradores`;
+}
+
+export function ToolsManager({ tools, roles, members }: { tools: Tool[]; roles: Option[]; members: Option[] }) {
+  // Sugeridas + las que ya se usan.
+  const categories = [...new Set([...SUGGESTED_CATEGORIES, ...tools.map((t) => t.category).filter(Boolean)])];
+  const router = useRouter();
+  const [editing, setEditing] = useState<number | "new" | null>(null);
+  const [pending, start] = useTransition();
+  const run = (fn: () => Promise<void>) =>
+    start(async () => {
+      await fn();
+      router.refresh();
+    });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted">
+          {tools.length} herramienta(s) ·{" "}
+          <Link prefetch={false} href="/herramientas" className="text-primary underline">
+            ver “Otras herramientas”
+          </Link>
+        </p>
+        {editing !== "new" && (
+          <Button variant="primary" size="sm" onPress={() => setEditing("new")}>
+            + Nueva herramienta
+          </Button>
+        )}
+      </div>
+
+      {editing === "new" && (
+        <Card className="p-4">
+          <ToolForm roles={roles} members={members} categories={categories} onDone={() => setEditing(null)} />
+        </Card>
+      )}
+
+      {tools.length === 0 && editing !== "new" && (
+        <p className="card card--default p-6 text-sm text-muted">
+          Todavía no hay herramientas. Agrega un enlace directo (Canva, Drive, un tablero) o un sitio para ver dentro de la app.
+        </p>
+      )}
+
+      <ul className="flex flex-col gap-2">
+        {tools.map((t, i) => (
+          <li key={t.id}>
+            <Card className={`p-4 ${t.active ? "" : "opacity-60"}`}>
+              {editing === t.id ? (
+                <ToolForm tool={t} roles={roles} members={members} categories={categories} onDone={() => setEditing(null)} />
+              ) : (
+                <div className="flex flex-wrap items-start gap-3">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <ToolIcon name={t.icon} kind={t.kind} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">
+                      {t.name}{" "}
+                      {t.category && (
+                        <Chip size="sm" variant="soft" color="accent" className="ml-1">
+                          {t.category}
+                        </Chip>
+                      )}
+                      <Chip size="sm" variant="soft" className="ml-1">
+                        {KIND_LABEL[t.kind]}
+                      </Chip>
+                      {!t.active && (
+                        <Chip size="sm" variant="soft" color="warning" className="ml-1">
+                          Oculta
+                        </Chip>
+                      )}
+                    </p>
+                    {t.description && <p className="text-sm text-muted">{t.description}</p>}
+                    <p className="truncate text-xs text-muted" title={t.url}>
+                      {t.url}
+                    </p>
+                    <p className="text-xs">
+                      <span className="text-muted">Acceso:</span> {audience(t, roles, members)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    <Button size="sm" variant="ghost" aria-label={`Subir ${t.name}`} isDisabled={pending || i === 0} onPress={() => run(() => moveToolAction(t.id, -1))}>
+                      <ArrowUp aria-hidden />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Bajar ${t.name}`}
+                      isDisabled={pending || i === tools.length - 1}
+                      onPress={() => run(() => moveToolAction(t.id, 1))}
+                    >
+                      <ArrowDown aria-hidden />
+                    </Button>
+                    <Button size="sm" variant="ghost" isDisabled={pending} onPress={() => run(() => toggleToolAction(t.id, !t.active))}>
+                      {t.active ? "Ocultar" : "Mostrar"}
+                    </Button>
+                    <Button size="sm" variant="outline" onPress={() => setEditing(t.id)}>
+                      Editar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red"
+                      isDisabled={pending}
+                      onPress={() => {
+                        if (confirm(`¿Quitar “${t.name}” de la caja de herramientas?`)) run(() => deleteToolAction(t.id, t.name));
+                      }}
+                    >
+                      Quitar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Copia independiente para marketing (tiene su propio lint).
+    "eos-marketing/**",
+    // Skill de HeroUI para el agente (scripts de consulta de documentación).
+    ".claude/**",
   ]),
 ]);
 

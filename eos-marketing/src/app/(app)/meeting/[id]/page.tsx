@@ -1,0 +1,117 @@
+import { notFound } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getMeeting, listAttendance, listHeadlines, listRatings } from "@/lib/domain/meetings";
+import { isTeamAdmin } from "@/lib/auth/access";
+import { listOwners, listMetrics, listTargets, listEntries } from "@/lib/domain/scorecard";
+import { buildScorecardGrid } from "@/lib/domain/scorecard-shared";
+import { listRocks, listMilestonesForRocks } from "@/lib/domain/rocks";
+import { listIssues } from "@/lib/domain/issues";
+import { listTodos } from "@/lib/domain/todos";
+import { listTeamMembers } from "@/lib/domain/users";
+import { listCareers, listWeekly, weeklyGoals } from "@/lib/domain/careers";
+import { mergeWeekly } from "@/lib/domain/careers-shared";
+import { lastNWeeks, currentQuarter, lastClosedWeek, formatWeekRange } from "@/lib/utils/dates";
+import { isClickUpConfigured } from "@/lib/integrations/clickup";
+import { MeetingRunner } from "./meeting-runner";
+import { listMeetingEvents, listPastEvents, listPendingEvents } from "@/lib/domain/l10-events";
+import { listShareableTeams } from "@/lib/domain/scorecard";
+import { listAgenda } from "@/lib/domain/team-agenda";
+import { canEdit } from "@/lib/auth/access";
+import { weekStartISO } from "@/lib/utils/dates";
+
+export default async function MeetingPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const session = await getSession();
+  if (!session) return null;
+
+  const { id } = await params;
+  const meetingId = Number(id);
+  const meeting = await getMeeting(session.teamId, meetingId);
+  if (!meeting) notFound();
+
+  const weeks = lastNWeeks(4);
+  // Agenda del equipo: la semana de la reunión.
+  const agendaWeek = weekStartISO(new Date(meeting.started_at ?? meeting.created_at));
+  const careerWeek = lastClosedWeek();
+  const { quarter, year } = currentQuarter();
+
+  const [
+    owners,
+    metrics,
+    targets,
+    entries,
+    rocks,
+    members,
+    openIssues,
+    todos,
+    headlines,
+    ratings,
+    careers,
+    careerWeekly,
+    careerGoals,
+    attendance,
+    admin,
+    events,
+    agenda,
+    issuesEditable,
+    pastEvents,
+    shareTeams,
+  ] = await Promise.all([
+    listOwners(session.teamId),
+    listMetrics(session.teamId),
+    listTargets(session.teamId),
+    listEntries(session.teamId, weeks),
+    listRocks(session.teamId, quarter, year),
+    listTeamMembers(session.teamId),
+    listIssues(session.teamId, "open"),
+    listTodos(session.teamId),
+    listHeadlines(meetingId),
+    listRatings(meetingId),
+    listCareers(session.teamId),
+    listWeekly(session.teamId, careerWeek),
+    weeklyGoals(session.teamId, careerWeek),
+    listAttendance(meetingId, session.teamId),
+    isTeamAdmin(),
+    // En curso: los eventos pendientes; terminada: los que se leyeron en ella.
+    meeting.status === "completed" ? listMeetingEvents(session.teamId, meetingId) : listPendingEvents(session.teamId),
+    listAgenda(session.teamId, agendaWeek),
+    canEdit("issues"),
+    listPastEvents(session.teamId),
+    listShareableTeams(session.teamId),
+  ]);
+  const milestones = await listMilestonesForRocks(rocks.map((r) => r.id));
+  const milestonesByRock: Record<number, typeof milestones> = {};
+  for (const m of milestones) {
+    milestonesByRock[m.rock_id] = [...(milestonesByRock[m.rock_id] ?? []), m];
+  }
+
+  const grid = Object.fromEntries(buildScorecardGrid(metrics, owners, targets, entries, weeks));
+
+  return (
+    <MeetingRunner
+      meeting={meeting}
+      session={session}
+      scorecard={{ owners, metrics, targets, grid, weeks }}
+      careerIndicators={{
+        rows: mergeWeekly(careers, careerWeekly, careerGoals),
+        week: careerWeek,
+        weekLabel: formatWeekRange(careerWeek),
+      }}
+      rocks={rocks}
+      milestonesByRock={milestonesByRock}
+      members={members}
+      openIssues={openIssues}
+      todos={todos}
+      headlines={headlines}
+      events={{ pending: events, past: pastEvents, teams: shareTeams, currentWeek: weekStartISO() }}
+      agenda={{ week: agendaWeek, weekLabel: formatWeekRange(agendaWeek), items: agenda, canRaiseIssues: issuesEditable }}
+      ratings={ratings}
+      clickupConfigured={isClickUpConfigured()}
+      attendance={attendance}
+      canLead={admin || meeting.leader_id === session.userId}
+    />
+  );
+}

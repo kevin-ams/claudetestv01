@@ -1,0 +1,172 @@
+import "server-only";
+import { config } from "@/lib/config/server";
+
+/**
+ * Integración con ClickUp (API v2) para enviar To-Dos e Issues como tareas.
+ *
+ * Al enviar se elige la lista (del espacio de ClickUp configurado, por defecto "Marketing")
+ * y la persona a quien se asigna. Variables:
+ *   CLICKUP_API_TOKEN  token personal (ClickUp › Settings › Apps › API Token), secreto.
+ *   CLICKUP_SPACE_NAME nombre del espacio (opcional, por defecto "Marketing"), o
+ *   CLICKUP_SPACE_ID   id del espacio (opcional, tiene prioridad).
+ */
+
+export type ClickUpTaskInput = {
+  listId: string;
+  name: string;
+  description: string;
+  dueDate: string | null; // yyyy-mm-dd
+  assigneeId: number | null;
+};
+
+export type ClickUpTaskResult = { id: string; url: string };
+export type ClickUpList = { id: string; name: string; folder: string };
+export type ClickUpMember = { id: number; name: string; email: string };
+export type ClickUpOptions = { space: string; spaceId: string; workspaceId: string; lists: ClickUpList[]; members: ClickUpMember[] };
+
+export class ClickUpNotConfiguredError extends Error {
+  constructor() {
+    super("La conexión con ClickUp no está configurada (falta CLICKUP_API_TOKEN en Netlify). La tarea queda guardada aquí.");
+  }
+}
+
+export function isClickUpConfigured(): boolean {
+  return Boolean(config.clickUp.token());
+}
+
+const BASE = () => config.clickUp.url();
+
+async function cu<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
+  if (!isClickUpConfigured()) throw new ClickUpNotConfiguredError();
+  const res = await fetch(`${BASE()}/${path}`, {
+    method: init?.method ?? "GET",
+    headers: { Authorization: config.clickUp.token()!, "Content-Type": "application/json" },
+    body: init?.body ? JSON.stringify(init.body) : undefined,
+    cache: "no-store",
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    const hint = res.status === 401 ? " (revisa CLICKUP_API_TOKEN)" : "";
+    throw new Error(`ClickUp respondió ${res.status}${hint}: ${text.slice(0, 160)}`);
+  }
+  return (await res.json()) as T;
+}
+
+type Team = { id: string; name: string; members: { user: { id: number; username: string | null; email: string } }[] };
+
+let cache: { at: number; value: Promise<ClickUpOptions> } | undefined;
+
+/** Listas del espacio (con y sin carpeta) y personas del workspace. Se guarda 5 minutos. */
+export function clickUpOptions(): Promise<ClickUpOptions> {
+  if (!cache || Date.now() - cache.at > 5 * 60 * 1000) {
+    const value = (async () => {
+      const { teams } = await cu<{ teams: Team[] }>("team");
+      const wanted = config.clickUp.spaceName().toLowerCase();
+      for (const team of teams) {
+        const { spaces } = await cu<{ spaces: { id: string; name: string }[] }>(`team/${team.id}/space?archived=false`);
+        const space =
+          spaces.find((s) => s.id === config.clickUp.spaceId()) ?? spaces.find((s) => s.name.trim().toLowerCase() === wanted);
+        if (!space) continue;
+        const [folderless, folders] = await Promise.all([
+          cu<{ lists: { id: string; name: string }[] }>(`space/${space.id}/list?archived=false`),
+          cu<{ folders: { name: string; lists: { id: string; name: string }[] }[] }>(`space/${space.id}/folder?archived=false`),
+        ]);
+        const lists: ClickUpList[] = [
+          ...folderless.lists.map((l) => ({ id: String(l.id), name: l.name, folder: "" })),
+          ...folders.folders.flatMap((f) => f.lists.map((l) => ({ id: String(l.id), name: l.name, folder: f.name }))),
+        ];
+        const members = team.members
+          .map((m) => ({ id: m.user.id, name: m.user.username || m.user.email, email: m.user.email }))
+          .sort((a, b) => a.name.localeCompare(b.name, "es"));
+        return { space: space.name, spaceId: String(space.id), workspaceId: String(team.id), lists, members };
+      }
+      throw new Error(`No se encontró el espacio “${config.clickUp.spaceName()}” en ClickUp.`);
+    })();
+    cache = { at: Date.now(), value };
+    value.catch(() => (cache = undefined));
+  }
+  return cache.value;
+}
+
+export async function createClickUpTask(input: ClickUpTaskInput): Promise<ClickUpTaskResult> {
+  if (!/^\d+$/.test(input.listId)) throw new Error("Elige la lista de ClickUp.");
+  // Fecha límite al mediodía de Guatemala para que no cambie de día por la zona horaria.
+  const due = input.dueDate ? Date.parse(`${input.dueDate}T12:00:00-06:00`) : null;
+  const task = await cu<{ id: string; url: string }>(`list/${input.listId}/task`, {
+    method: "POST",
+    body: {
+      name: input.name,
+      markdown_description: input.description || undefined,
+      assignees: input.assigneeId ? [input.assigneeId] : [],
+      due_date: due ?? undefined,
+      due_date_time: false,
+    },
+  });
+  return { id: String(task.id), url: task.url };
+}
+
+type RawTask = {
+  id: string;
+  name: string;
+  url: string;
+  due_date: string | null;
+  status?: { status: string; type?: string };
+  list?: { id: string; name: string };
+};
+
+export type ClickUpTaskSummary = { id: string; name: string; url: string; list: string; status: string; dueDate: string | null; done: boolean };
+
+// Fechas de ClickUp (milisegundos) a yyyy-mm-dd en la hora de Guatemala.
+const TZ_OFFSET_MS = 6 * 60 * 60 * 1000;
+const toDay = (ms: string | null) => (ms ? new Date(Number(ms) - TZ_OFFSET_MS).toISOString().slice(0, 10) : null);
+const dayStart = (day: string) => Date.parse(`${day}T00:00:00-06:00`);
+
+/**
+ * Tareas asignadas a una persona en las listas elegidas (o en todo el espacio si no se elige ninguna):
+ * las que vencen en la semana [from, to) y, con `includeOverdue`, las abiertas que ya vencieron.
+ */
+export async function clickUpAssignedTasks(input: {
+  assigneeId: number;
+  listIds: string[];
+  from: string;
+  to: string;
+  includeOverdue: boolean;
+}): Promise<{ week: ClickUpTaskSummary[]; overdue: ClickUpTaskSummary[] }> {
+  const opts = await clickUpOptions();
+  const lists = input.listIds.filter((id) => opts.lists.some((l) => l.id === id));
+  const scope = lists.length ? lists.map((id) => `list_ids[]=${encodeURIComponent(id)}`) : [`space_ids[]=${encodeURIComponent(opts.spaceId)}`];
+  const base = [`assignees[]=${input.assigneeId}`, ...scope, "subtasks=true", "order_by=due_date", "reverse=true"];
+
+  const fetchAll = async (filters: string[]) => {
+    const out: RawTask[] = [];
+    for (let page = 0; page < 5; page++) {
+      const { tasks, last_page } = await cu<{ tasks: RawTask[]; last_page?: boolean }>(
+        `team/${opts.workspaceId}/task?${[...base, ...filters, `page=${page}`].join("&")}`
+      );
+      out.push(...tasks);
+      if (last_page !== false || tasks.length < 100) break;
+    }
+    return out;
+  };
+  const summary = (t: RawTask): ClickUpTaskSummary => ({
+    id: String(t.id),
+    name: t.name,
+    url: t.url,
+    list: t.list?.name ?? "",
+    status: t.status?.status ?? "",
+    dueDate: toDay(t.due_date),
+    done: t.status?.type === "done" || t.status?.type === "closed",
+  });
+
+  const from = dayStart(input.from);
+  const to = dayStart(input.to);
+  const [week, overdue] = await Promise.all([
+    fetchAll([`due_date_gt=${from - 1}`, `due_date_lt=${to}`, "include_closed=true"]),
+    input.includeOverdue ? fetchAll([`due_date_lt=${from}`, "include_closed=false"]) : Promise.resolve([]),
+  ]);
+  return {
+    week: week.map(summary),
+    overdue: overdue.map(summary).filter((t) => !t.done),
+  };
+}

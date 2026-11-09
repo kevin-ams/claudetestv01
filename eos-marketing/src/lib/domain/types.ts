@@ -1,0 +1,299 @@
+export type Role = "admin" | "member";
+
+export type User = {
+  id: number;
+  name: string;
+  email: string;
+  password_hash: string;
+  role: Role;
+  created_at: string;
+};
+
+export type PublicUser = Omit<User, "password_hash">;
+
+export type Team = {
+  id: number;
+  name: string;
+  created_at: string;
+  is_demo: boolean;
+  organization_id: number | null;
+  demo_owner_id: number | null;
+  theme_color: string;
+  logo_mime: string | null;
+  logo_updated_at: string | null;
+  planning_recipients: string;
+  weekly_report_recipients: string;
+  weekly_report_sections: string;
+  /** Correo para las respuestas de los correos del equipo ("" = quien envía). */
+  reply_to: string;
+};
+
+export type TeamMember = {
+  team_id: number;
+  user_id: number;
+  seat_title: string | null;
+  joined_at: string;
+};
+
+export type VTO = {
+  id: number;
+  team_id: number;
+  core_values: string[];
+  core_focus: { purpose?: string; niche?: string };
+  ten_year_target: string;
+  marketing_strategy: {
+    target_market?: string;
+    three_uniques?: string[];
+    proven_process?: string;
+    guarantee?: string;
+  };
+  three_year_picture: {
+    future_date?: string;
+    revenue?: string;
+    profit?: string;
+    measurables?: string;
+    looks_like?: string[];
+  };
+  one_year_plan: {
+    future_date?: string;
+    revenue?: string;
+    profit?: string;
+    measurables?: string;
+    goals?: string[];
+  };
+  updated_at: string;
+  updated_by: number | null;
+};
+
+export type Seat = {
+  id: number;
+  team_id: number;
+  parent_seat_id: number | null;
+  title: string;
+  user_id: number | null;
+  roles: string[];
+  sort_order: number;
+  created_at: string;
+  /** Personas en el puesto (puede haber varias). */
+  people: number[];
+};
+
+export type RockStatus = "on_track" | "off_track" | "done";
+
+export type Rock = {
+  id: number;
+  team_id: number;
+  owner_id: number | null;
+  title: string;
+  description: string;
+  is_company_rock: boolean;
+  quarter: number;
+  year: number;
+  due_date: string | null;
+  status: RockStatus;
+  sort_order: number;
+  created_at: string;
+};
+
+export type RockMilestone = {
+  id: number;
+  rock_id: number;
+  title: string;
+  done: boolean;
+  due_date: string | null;
+  sort_order: number;
+};
+
+export type Direction = "higher_better" | "lower_better";
+export type MetricFormat = "count" | "percentage" | "currency";
+export type Aggregation = "sum" | "average";
+
+export type ScorecardOwner = {
+  id: number;
+  team_id: number;
+  name: string;
+  user_id: number | null;
+  is_rollup: boolean;
+  sort_order: number;
+};
+
+export type ScorecardMetric = {
+  id: number;
+  team_id: number;
+  name: string;
+  predicts: string;
+  direction: Direction;
+  format: MetricFormat;
+  aggregation: Aggregation;
+  sort_order: number;
+  archived: boolean;
+  created_at: string;
+  shared_all: boolean;
+  /** Indicador calculado: numerador ÷ denominador (× 100 si es %). */
+  calc_numerator_id: number | null;
+  calc_denominator_id: number | null;
+  /** Fórmula del indicador calculado (variables → indicadores); null = se captura a mano. */
+  calc_formula: unknown;
+  archived_at?: string | null;
+};
+
+export type ScorecardTarget = {
+  metric_id: number;
+  owner_id: number;
+  target_value: number;
+};
+
+export type ScorecardEntry = {
+  id: number;
+  metric_id: number;
+  owner_id: number;
+  week_start: string;
+  value: number | null;
+  entered_by: number | null;
+  entered_at: string;
+};
+
+export type IssueStatus = "open" | "solved";
+export type IssueTerm = "short_term" | "long_term";
+
+export type Issue = {
+  id: number;
+  team_id: number;
+  title: string;
+  description: string;
+  raised_by: number | null;
+  owner_id: number | null;
+  status: IssueStatus;
+  term: IssueTerm;
+  sort_order: number;
+  /** Top 3 de la L10 (1, 2 o 3); null = no está en el top. */
+  top_rank: number | null;
+  created_at: string;
+  solved_at: string | null;
+  due_date: string | null;
+  clickup_task_id: string | null;
+  clickup_url: string | null;
+  clickup_sent_at: string | null;
+  /** Si llegó de otro equipo: de cuál y su Issue original. */
+  from_team_id?: number | null;
+  origin_issue_id?: number | null;
+  sent_by?: number | null;
+  from_team_name?: string | null;
+  sent_by_name?: string | null;
+  /** Equipos a los que se envió y si ya lo resolvieron. */
+  sent_to?: { team_id: number; team_name: string; done: boolean }[];
+};
+
+export type TodoStatus = "open" | "done";
+
+export type Todo = {
+  id: number;
+  team_id: number;
+  title: string;
+  owner_id: number | null;
+  due_date: string | null;
+  status: TodoStatus;
+  meeting_id: number | null;
+  created_at: string;
+  done_at: string | null;
+  description: string;
+  clickup_task_id: string | null;
+  clickup_url: string | null;
+  clickup_sent_at: string | null;
+  /** Si llegó de otro equipo: de cuál y su To-Do original. */
+  from_team_id?: number | null;
+  origin_todo_id?: number | null;
+  sent_by?: number | null;
+  from_team_name?: string | null;
+  sent_by_name?: string | null;
+  /** Equipos a los que se envió (To-Dos propios) y si ya lo completaron. */
+  sent_to?: { team_id: number; team_name: string; done: boolean }[];
+};
+
+export type MeetingStatus = "scheduled" | "in_progress" | "completed";
+
+export type Meeting = {
+  id: number;
+  team_id: number;
+  scheduled_at: string | null;
+  status: MeetingStatus;
+  current_segment: string | null;
+  segment_started_at: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  avg_rating: number | null;
+  created_by: number | null;
+  created_at: string;
+  cascade_notes: string;
+  leader_id: number | null;
+  /** Sección más avanzada a la que se llegó (se puede regresar a las anteriores). */
+  furthest_segment?: string | null;
+};
+
+export type MeetingHeadline = {
+  id: number;
+  meeting_id: number;
+  type: "customer" | "employee";
+  content: string;
+  created_by: number | null;
+  created_at: string;
+};
+
+export type CareerLevel = "Pregrado" | "Postgrado" | "Técnico" | "Diplomado";
+
+export type Career = {
+  id: number;
+  team_id: number;
+  program: string;
+  code: string;
+  name: string;
+  level: CareerLevel;
+  owner_id: number | null;
+  archived: boolean;
+  sort_order: number;
+  created_at: string;
+};
+
+export type LeadsSource = "manual" | "activecampaign";
+export type BudgetSource = "manual" | "csv";
+
+export type CareerWeekly = {
+  career_id: number;
+  week_start: string;
+  leads: number | null;
+  leads_source: LeadsSource | null;
+  budget_spent: number | null;
+  budget_source: BudgetSource | null;
+  updated_by: number | null;
+  updated_at: string;
+};
+
+export type CareerImport = {
+  id: number;
+  team_id: number;
+  kind: "budget_csv" | "activecampaign";
+  week_start: string;
+  file_name: string | null;
+  careers_updated: number;
+  total: number;
+  created_by: number | null;
+  created_at: string;
+};
+
+export type CareerMonthlyGoal = {
+  career_id: number;
+  month: string; // yyyy-mm-01
+  leads_goal: number;
+  budget_goal: number;
+};
+
+export type TrackStatus = "on_track" | "off_track";
+
+export type CareerTrack = {
+  career_id: number;
+  start_date: string;
+  status: TrackStatus;
+  labels: string[];
+  notes: string;
+  updated_at: string;
+};

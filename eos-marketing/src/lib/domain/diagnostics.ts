@@ -1,0 +1,85 @@
+import "server-only";
+import { databaseKind, db } from "@/lib/db";
+import { MIGRATIONS } from "@/lib/db-migrations.generated";
+import { storage } from "@/lib/storage";
+import { imageKey } from "./announcements";
+import { isProduction } from "@/lib/config/server";
+
+export type Check = { name: string; ok: boolean; detail: string };
+
+const message = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+async function check(name: string, fn: () => Promise<string>): Promise<Check> {
+  try {
+    return { name, ok: true, detail: await fn() };
+  } catch (err) {
+    return { name, ok: false, detail: message(err) };
+  }
+}
+
+/** Pruebas rápidas para encontrar por qué algo no guarda o no carga. */
+export async function runDiagnostics(teamId: number): Promise<Check[]> {
+  const checks: Check[] = [];
+
+  checks.push(
+    await check("Base de datos: lectura", async () => {
+      const rows = (await db().sql`SELECT COUNT(*)::int AS n FROM users`) as { n: number }[];
+      return `OK (${rows[0].n} usuarios)`;
+    })
+  );
+
+  checks.push(
+    await check("Base de datos: escritura", async () => {
+      const key = `__diagnostico_${Date.now()}`;
+      await db().sql`INSERT INTO _migrations (name) VALUES (${key})`;
+      const rows = await db().sql`SELECT 1 FROM _migrations WHERE name = ${key}`;
+      await db().sql`DELETE FROM _migrations WHERE name = ${key}`;
+      if (rows.length !== 1) throw new Error("Se escribió pero no se pudo leer de vuelta.");
+      return "OK";
+    })
+  );
+
+  checks.push(
+    await check("Actualizaciones de la base (migraciones)", async () => {
+      const files = MIGRATIONS.map((m) => m.name);
+      const applied = new Set(
+        ((await db().sql`SELECT name FROM _migrations`) as { name: string }[]).map((r) => r.name)
+      );
+      const missing = files.filter((f) => !applied.has(f));
+      if (missing.length) throw new Error(`Faltan: ${missing.join(", ")}. Reinicia la app para aplicarlas.`);
+      return `OK (${files.length} aplicadas)`;
+    })
+  );
+
+  checks.push(
+    await check("Almacenamiento de imágenes: escritura", async () => {
+      const store = await storage();
+      const key = `diagnostico/prueba-${Date.now()}`;
+      await store.put(key, new TextEncoder().encode("ok"));
+      const back = await store.get(key);
+      await store.remove(key);
+      if (!back || new TextDecoder().decode(back) !== "ok") throw new Error("Se escribió pero no se pudo leer de vuelta.");
+      return `OK (${store.where})`;
+    })
+  );
+
+  const slots = (await db().sql`
+    SELECT slot, mime, active, updated_at FROM announcement_slots WHERE team_id = ${teamId} ORDER BY slot
+  `.catch(() => [])) as { slot: number; mime: string | null; active: boolean }[];
+  for (const s of slots.filter((x) => x.mime)) {
+    checks.push(
+      await check(`Anuncio espacio ${s.slot}`, async () => {
+        const data = await (await storage()).get(imageKey(teamId, s.slot));
+        if (!data) throw new Error("Hay registro en la base pero falta el archivo de la imagen. Vuelve a subirla.");
+        return `OK (${s.mime}, ${Math.round(data.length / 1024)} KB${s.active ? "" : ", pausado"})`;
+      })
+    );
+  }
+
+  checks.push({
+    name: "Entorno",
+    ok: true,
+    detail: `Base de datos ${await databaseKind()} · Node ${process.version} · ${process.platform} · ${isProduction() ? "producción" : "desarrollo"}`,
+  });
+  return checks;
+}

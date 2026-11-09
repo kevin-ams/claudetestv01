@@ -1,0 +1,71 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/session";
+import { getAccess } from "@/lib/auth/access";
+import { MODULES } from "@/lib/auth/modules";
+import { avatarUrl, getProfile } from "@/lib/domain/profile";
+import { getTeam, teamLogoUrl } from "@/lib/domain/teams";
+import { getUserTeams, isUserInTeam } from "@/lib/domain/users";
+import { Sidebar } from "./sidebar";
+import { Topbar } from "./topbar";
+import { activeAnnouncements } from "@/lib/domain/announcements";
+import { AnnouncementPopup } from "@/components/announcement-popup";
+import { DemoBanner } from "./demo-banner";
+import { AppShell } from "./shell";
+import { countOpenIssues } from "@/lib/domain/issues";
+import { countOpenTodos } from "@/lib/domain/todos";
+import { brandStyleSheet, DEFAULT_THEME_COLOR, SIDEBAR_COOKIE } from "@/lib/theme";
+import { ClarityIdentify } from "@/components/clarity-identify";
+
+export default async function AppLayout({ children }: LayoutProps<"/">) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  // La sesión puede venir de una base de datos anterior (otra copia de la app
+  // o una base reiniciada): si el usuario ya no está en ese equipo, se cierra.
+  if (!(await isUserInTeam(session.userId, session.teamId))) redirect("/salir");
+
+  const [access, team, teams, announcements, openTodos, openIssues, cookieStore, profile] = await Promise.all([
+    getAccess(),
+    getTeam(session.teamId),
+    getUserTeams(session.userId),
+    activeAnnouncements(session.teamId),
+    countOpenTodos(session.teamId),
+    countOpenIssues(session.teamId),
+    cookies(),
+    getProfile(session.userId),
+  ]);
+  // Color de la plataforma: el personal si la persona lo eligió, si no el del equipo.
+  const themeColor =
+    profile?.use_color_theme && profile.color ? profile.color : (team?.theme_color ?? DEFAULT_THEME_COLOR);
+
+  return (
+    <AppShell initialCollapsed={cookieStore.get(SIDEBAR_COOKIE)?.value === "collapsed"}>
+      {/* Color del template del equipo (Ajustes > Apariencia). */}
+      <style>{brandStyleSheet(themeColor)}</style>
+      <Sidebar
+        teamName={team?.name ?? "Equipo"}
+        logoUrl={teamLogoUrl(team)}
+        counts={{ todos: openTodos, issues: openIssues }}
+        allowed={MODULES.filter((m) => access?.level(m.key) !== "none").map((m) => m.key)}
+      />
+      <div className="flex min-w-0 flex-1 flex-col transition-[padding] duration-200 md:pl-[252px] md:group-data-[collapsed=true]/shell:pl-[68px]">
+        <Topbar
+          session={session}
+          teams={teams}
+          avatar={profile ? { src: avatarUrl(profile), color: profile.color } : null}
+        />
+        {team?.is_demo && <DemoBanner />}
+        {/* Clarity oculta el texto del contenido (datos del equipo); se ven la navegación, clics y desplazamiento. */}
+        <main className="flex-1 px-4 py-6 md:px-8" data-clarity-mask="true">{children}</main>
+        <ClarityIdentify userId={session.userId} teamId={session.teamId} role={access?.roleName ?? "Usuario"} />
+        {announcements.ads.length > 0 && (
+          <AnnouncementPopup
+            teamId={session.teamId}
+            ads={announcements.ads}
+            intervalMinutes={announcements.intervalMinutes}
+          />
+        )}
+      </div>
+    </AppShell>
+  );
+}

@@ -1,0 +1,484 @@
+# EOS · Nivel 10 — Marketing
+
+App en línea para llevar Traction/EOS: **V/TO**, **Organigrama de Responsabilidad**,
+**Rocks**, **Scorecard**, **Issues (IDS)**, **To-Dos** y la **Reunión Level 10**
+con agenda, timer y calificación final.
+
+> Copia local del sistema EOS L10, **sin datos**, base para rediseñarlo para
+> un equipo de marketing. El sistema original sigue intacto en la raíz del repo.
+
+## Stack
+
+- [Next.js](https://nextjs.org) 16 (App Router, Server Actions) + TypeScript + Tailwind CSS v4
+- [PGlite](https://pglite.dev) — Postgres embebido en Node, guardado en disco (`.data/pglite`). No requiere servidor de base de datos ni cuenta en la nube.
+- En Netlify: Netlify Database (Postgres) y Netlify Blobs para imágenes (ver "Publicar en Netlify").
+- Autenticación propia con cookies firmadas (JWT vía `jose`) + `bcryptjs`
+
+## Uso local
+
+```bash
+cd eos-marketing
+npm install
+npm run dev        # http://localhost:3000
+```
+
+La primera vez la base se crea vacía y se aplican las migraciones de
+`db/migrations`. Abre la app y verás `/setup` para crear el equipo y la cuenta
+de administrador. Al terminar el setup se cargan automáticamente:
+
+- Las personas del equipo (Kevin, Lucero, Luis, Andrea, Patty, Miguel). Si tu
+  nombre coincide con uno de ellos, tu cuenta ocupa ese lugar. Los demás quedan
+  con un correo provisional `nombre@marketing.local` y sin acceso: asígnales
+  correo y contraseña desde **Equipo → Editar acceso**.
+- Las 117 carreras con su programa, nivel y responsable (`src/lib/domain/careers-catalog.ts`),
+  sin metas (se cargan en **Metas de carrera**).
+- El Rock de Kevin "Dashboard de Active" (Q4 2026) con sus hitos y fechas.
+
+**Volver a cero:** detén la app y borra la carpeta `.data/`.
+
+**Actualizar:** reemplaza los archivos (conserva `.data/`) y corre `npm install`. Las
+actualizaciones de la base (`db/migrations`) se aplican solas, incluso si `npm run dev`
+estaba corriendo.
+
+## Publicar en Netlify
+
+Sitio: **eos-nivel-10** (https://eos-nivel-10.netlify.app). `netlify.toml` está en esta carpeta.
+
+- **Base de datos:** si existe Netlify Database (`NETLIFY_DB_URL`), `src/lib/db.ts` la usa en
+  lugar de PGlite. Todas las tablas viven en el esquema **`eos_marketing`**, así no se
+  mezclan con tablas anteriores de esa base. Las migraciones de `db/migrations` se
+  empaquetan al compilar (`scripts/gen-migrations.mjs`, en `prebuild`) y se aplican solas
+  al arrancar, con candado para no aplicarse doble.
+- **Imágenes de anuncios:** Netlify Blobs (store `eos-marketing-uploads`) en vez de `.data/uploads`.
+- **Variables:** `AUTH_SECRET` (secreto, configurado en el sitio) y `EOS_TIMEZONE`
+  (`America/Guatemala`; las semanas se calculan en esa zona).
+- **Volver a publicar:** desde esta carpeta, con el comando de despliegue de Netlify
+  (`netlify deploy --build --prod` con la CLI enlazada al sitio).
+
+La primera vez, abre el sitio y verás `/setup` para crear el equipo y el administrador.
+
+## Variables de entorno (opcionales)
+
+| Variable       | Descripción                                                     |
+| -------------- | ---------------------------------------------------------------- |
+| `AUTH_SECRET`  | Secreto para firmar las cookies de sesión. Si falta, usa uno de desarrollo. |
+| `EOS_DATA_DIR` | Carpeta de la base de datos local (por defecto `.data/pglite`). |
+| `EOS_TIMEZONE` | Zona horaria para semanas y fechas (por defecto `America/Guatemala`). |
+| `ACTIVECAMPAIGN_API_URL`, `ACTIVECAMPAIGN_API_KEY` | Leads semanales desde ActiveCampaign (Ajustes › Leads desde ActiveCampaign). |
+| `CLICKUP_API_TOKEN` | Token personal de ClickUp (Settings › Apps › API Token), secreto. Activa "Enviar a ClickUp" en To-Dos e Issues. |
+| `CLICKUP_SPACE_NAME` / `CLICKUP_SPACE_ID` | Espacio de ClickUp cuyas listas se ofrecen al enviar (por defecto "Marketing"). |
+| `CRON_SECRET` | Protege `/api/cron/activecampaign`, que llama la función en segundo plano `ac-sync-background`, lanzada por el botón "Sincronizar ahora" o por la programada `netlify/functions/ac-weekly-sync.mts` (una vez por semana: lunes 7:07 de Guatemala). |
+
+## Leads desde ActiveCampaign
+
+En **Ajustes › Leads desde ActiveCampaign** cada carrera se vincula al **embudo** del director/carrera y, si el
+embudo tiene varias carreras, al valor del campo del trato **Nombre de la Carrera** (`%DEAL_NOMBRE_DE_LA_CARRERA%`;
+se sugiere el que coincide con el nombre).
+
+- **Lead calificado** = trato que **entra al embudo** (normalmente a "Interesado - Cola de Asesor"). La fecha de
+  entrada sale del historial del trato (`deals/{id}/dealActivities`, cambios `d_stageid`): si nació en una etapa
+  del embudo, su fecha de creación; si no, el primer cambio desde una etapa de otro embudo. Cada trato cuenta una
+  sola vez, en la semana (lunes a domingo, hora de Guatemala) en que entró, aunque después se mueva o se cierre.
+- Las fechas se guardan en `ac_deal_entries`; `ac_pipeline_scans` recuerda hasta dónde se revisó cada embudo. Solo
+  se vuelve a leer el historial de un trato si cambió. La primera revisión cubre los tratos modificados en las
+  últimas 27 semanas y puede tardar varios minutos (≈5 consultas por segundo a ActiveCampaign).
+- **Automático**: una vez por semana (lunes 7:07, hora de Guatemala) la función programada lanza la sincronización en segundo plano, que revisa lo nuevo y escribe la **semana en curso**; los lunes
+  también cierra la semana anterior. **Manual**: "Sincronizar ahora" en Ajustes o el botón de Indicadores (visible
+  en la semana en curso), con barra de avance.
+- **Semanas anteriores (solo administradores)**: se elige una semana cerrada (últimas 26) y "Ver comparativa"
+  muestra, por carrera, el dato guardado (manual o AC), el dato real del historial y la diferencia. Se marcan las
+  carreras y se confirma; avisa que sobrescribe.
+- **Ajustes › Diagnóstico › Historial de tratos** prueba (solo lectura) que la API entregue el historial.
+- El usuario de la API necesita permiso a todos los embudos (Settings › Users › Groups › Deals).
+
+## Dashboard AC (tratos de ActiveCampaign)
+
+**Reportes › Dashboard AC** (`/dashboard-ac`, módulo `dashboard_ac`, por ahora solo administradores) muestra los tratos de
+ActiveCampaign por embudo, etapa, facultad, carrera, asesor, UTM (source, medium, term, campaign) y clasificación del
+lead, con primera y última nota, tiempo de respuesta, tiempo en la etapa y tratos estancados.
+
+- **Interactivo**: clic en una facultad, carrera, etapa del embudo, asesor, UTM o rango de antigüedad filtra todo el
+  tablero (clic de nuevo para quitarlo). Con dos o más carreras o facultades elegidas aparece la comparación (una
+  línea por cada una). Los filtros quedan en la dirección (`?f=…`) para compartir el enlace; solo el periodo vuelve a
+  pedir datos al servidor.
+- **Embudos, carrera y facultad** salen solo de Ajustes › Leads desde ActiveCampaign: se sincronizan únicamente los embudos vinculados y cada trato toma la carrera del vínculo (embudo + *Nombre de la Carrera*) y la facultad (`program`) de esa carrera; los tratos que no coinciden con un vínculo no se cuentan.
+- **Conversión** = trato en una etapa de conversión (por defecto *Inscrito* y *Por inscribir*)
+  o más adelante en su embudo, o marcado como ganado. Se cambia en Ajustes › Dashboard AC.
+- **Datos**: copia local en `ac_deals` (migración `035`). Se actualiza **solo a mano**, con "Sincronizar" en el
+  dashboard (no hay función programada, para no gastar consultas a ActiveCampaign sin necesidad). La primera vez trae
+  los tratos creados en los últimos 6 meses; después, solo los modificados desde la última sincronización, y lee notas,
+  historial de etapas y contacto únicamente de los tratos nuevos o modificados (~3 consultas por trato, a ≈5 por
+  segundo). Si se interrumpe, retoma donde quedó. "Completa" vuelve a leer todo y quita los tratos borrados en AC.
+- Sin `ACTIVECAMPAIGN_API_URL`/`ACTIVECAMPAIGN_API_KEY` (p. ej. en local) muestra datos de ejemplo con las carreras
+  reales del equipo.
+- **Tiempo entre etapas**: del historial de cambios de etapa de cada trato. El embudo muestra cuánto tardan en avanzar
+  (mediana de los que ya salieron de cada etapa) y el indicador "Días a conversión" el tiempo desde la creación hasta la
+  primera etapa de conversión. **Estancado** = abierto 10 días o más en la misma etapa (se cambia en Ajustes).
+- **Tratos creados** por día, semana o mes; clic en una barra filtra ese periodo (se pueden elegir varias).
+- **Exportar PDF**: se eligen las secciones y se usa el diálogo de impresión del navegador (Guardar como PDF), con los
+  filtros actuales.
+- Código: `src/lib/domain/deals*.ts`, `src/app/(app)/dashboard-ac` y `src/app/(app)/ajustes/dashboard-ac`.
+
+## Correos (Resend)
+
+La app envía correos con [Resend](https://resend.com) por su API HTTP (sin dependencias extra):
+
+- **¿Olvidaste tu contraseña?** en el login: enlace de un solo uso, vence en 1 hora (`/recuperar` → `/restablecer`).
+- **Acceso por correo**: al agregar a alguien (Ajustes › Equipo) o con el botón "Enviar acceso", la persona
+  recibe un enlace (7 días) para crear su contraseña.
+- **Resumen de la Reunión L10** con el PDF adjunto, a quienes asistieron y a otros correos opcionales.
+- **Planificación semanal** del Calendario editorial con el PDF adjunto; recuerda los destinatarios del equipo.
+- **Correo de prueba** en Ajustes › Diagnóstico.
+
+Variables (en Netlify): `RESEND_API_KEY` (secreta), `RESEND_FROM` (p. ej. `Nombre <remitente@tudominio.com>`;
+sin ella se usa `onboarding@resend.dev`, que solo entrega al dueño de la cuenta de Resend) y `APP_URL`
+(dirección pública para los enlaces, p. ej. `https://eos.amscreativeint.com`). Los enlaces se guardan solo como
+hash (tabla `password_tokens`, fuera de los respaldos).
+
+## Interfaz (HeroUI v3)
+
+- **Íconos**: toda la interfaz usa `@gravity-ui/icons` (los mismos del menú), que toman el color del tema; no se usan
+  emojis. `StatusIcon` (`src/components/status-icon.tsx`) muestra correcto/error/aviso junto a un texto. Las
+  herramientas de la caja guardan el nombre del ícono elegido (catálogo `TOOL_ICONS` en `tools-shared.ts`).
+
+Toda la interfaz usa [HeroUI v3](https://heroui.com) (`@heroui/react`, Tailwind 4 + React
+Aria): botones, campos, selects, casillas, chips, tarjetas, pestañas, ventanas (Modal/Drawer),
+tooltips y barras de progreso. Íconos: `@gravity-ui/icons`. Los estilos de HeroUI se cargan en
+`src/app/globals.css` después de Tailwind, con el tema mapeado a los colores de la app.
+
+- `src/components/ui/select.tsx` (`AppSelect`) y `checkbox.tsx` (`AppCheckbox`): Select y
+  Checkbox de HeroUI con la misma forma de uso que los elementos nativos (`<option>` como hijos,
+  `name` para formularios, `onChange={(e) => e.target.value}`).
+- `src/components/ui/segmented.tsx`: control segmentado (ToggleButtonGroup).
+
+**Modo claro / oscuro:** cada persona elige Claro, Oscuro o Sistema (botón ☀/☾ de la barra
+superior o Ajustes › Apariencia). Se guarda en la cookie `eos-theme`; un script en el `<head>`
+lo aplica antes de pintar. Los colores oscuros están en `globals.css` (`.dark`).
+
+**Color del template:** Ajustes › Apariencia (solo administradores) guarda `teams.theme_color`
+(migración `008`). El layout lo inyecta como `--brand`; para el modo oscuro se calcula una
+versión más clara y el color de texto con mejor contraste (`src/lib/theme.ts`).
+
+**Moneda:** todos los montos se muestran en dólares (US$), p. ej. `$1,234.56`.
+
+Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el servidor MCP
+`heroui-react` en `.mcp.json` (raíz del repo); Claude Code pide aprobarlo la primera vez.
+
+## Estructura
+
+- `src/lib/db.ts` — conexión a PGlite y ejecución de migraciones.
+- `src/lib/domain/*` — acceso a datos (SQL), sin lógica de UI.
+- `src/lib/auth/*` — sesiones, contraseñas y acciones de login/registro.
+- `src/app/(app)/*` — módulos protegidos de la aplicación (un folder por módulo).
+- `db/migrations/*` — esquema SQL, se aplica automáticamente al arrancar.
+
+## Módulos
+
+- **L10 en curso: navegación libre** — la barra de secciones es clicable (ir a cualquiera) y hay botón "Anterior". Se
+  guarda la sección más avanzada (`meetings.furthest_segment`) para que las ya vistas sigan marcadas al regresar. El
+  cronómetro de la sección se reinicia al entrar y se detiene al finalizar la reunión.
+- **Conocimiento (Vault)** — `/conocimiento`, módulo premium. Un vault para toda la organización (tabla `vaults`, en el
+  equipo ancla). Notas en Markdown con carpetas (`path`), editor CodeMirror 6, `[[enlaces]]` con autocompletado,
+  Ctrl/Cmd+clic para abrir (o crear si no existe), `#tags` y frontmatter YAML, vista previa sanitizada (remark/rehype),
+  autoguardado (~1,5 s) con control de versión (aviso de conflicto, sin sobrescribir en silencio), historial
+  (`vault_note_versions`) con restaurar, renombrar actualiza los enlaces de las demás notas, plantillas (carpeta
+  `plantillas/`), buscador rápido Ctrl/Cmd+K, y enlaces a EOS `[[rock:…]]`, `[[issue:…]]`, `[[kpi:…]]` (por id o
+  nombre) con "Notas relacionadas" en Rocks, Issues y Scorecard. **PDF a nota**: pdf.js extrae el texto en el
+  navegador y lo convierte en Markdown (títulos por tamaño de letra, listas, sin encabezados/pies repetidos) para
+  revisarlo antes de crear la nota; el worker se copia a `public/` en `predev`/`prebuild`. Migración 037.
+- **Conocimiento › Búsqueda** — Ctrl/Cmd+K busca por **título** (al instante, tolera errores de dedo), **palabras**
+  (texto completo en Postgres: `search_*` plegados sin acentos + `search_vec` tsvector 'simple' con pesos título > tags >
+  contenido, por prefijo y sin palabras vacías) y **significado**, y combina los tres con Reciprocal Rank Fusion.
+  Significado: modelo `Xenova/multilingual-e5-small` (384 dimensiones, q8) con transformers.js en un Web Worker; se
+  activa por navegador y la primera vez descarga ~135 MB que quedan en caché. Elegido porque es multilingüe, pequeño y
+  está entrenado para pregunta→documento (prefijos `query: ` / `passage: `). Al guardar, las notas se dividen en
+  fragmentos de ~500–800 caracteres; solo se recalculan los fragmentos cuyo hash cambió (`vault_chunks`, `REAL[]`), y
+  la nota guarda el vector promedio. La comparación (coseno) la hace Postgres sin extensiones. "Notas relacionadas"
+  (5 más parecidas) en el panel derecho y botón "Reindexar vault". Sin APIs de pago. Migración 038.
+- **Conocimiento › Grafo** — pestaña "Grafo" (`?vista=grafo`) con sigma.js 3 (WebGL) + graphology; layout
+  ForceAtlas2 en un Web Worker y posiciones en caché del navegador (`localStorage`) para que abra al instante.
+  Nodos = notas (tamaño por enlaces entrantes, color por carpeta raíz), aristas = `[[enlaces]]`. Capas opcionales: notas
+  por crear (gris; clic para crearla), tags, rocks/issues/KPIs y relaciones por significado (líneas amarillas, umbral
+  configurable, máx. 3 por nota, calculadas en el servidor con los vectores de cada nota). Hover resalta vecinos con
+  tooltip, clic abre, arrastrar mueve, "Centrar", filtros por carpeta, tag y fecha, búsqueda que resalta y contador de
+  notas huérfanas. Grafo local (1–2 saltos) en el panel derecho de cada nota. Con 2 000 notas abre en ~0,6 s.
+- **Dashboard › Noticias** — solo las noticias de la L10 de los últimos 7 días (las nuevas arriba); cada persona puede
+  quitar una de su inicio con la X (`news_dismissed`, migración 040).
+- **Consumo de base de datos (cómputo)** — la base se apaga sola tras unos minutos sin consultas y solo cobra mientras
+  está encendida. Para no mantenerla despierta: el menú lateral y el perfil no precargan páginas (`prefetch={false}`;
+  cada precarga ejecutaba el layout con ~8 consultas por enlace visible), la L10 consulta cada pocos segundos solo una
+  "huella" de la reunión (`meetingPulseAction`, una consulta) y recarga la página únicamente si cambió, y la
+  sincronización automática de leads semanales corre una vez por semana (lunes 7:07) en segundo plano (antes cada hora,
+  24/7, y no alcanzaba a terminar); durante la semana solo con "Sincronizar ahora". El Dashboard AC es solo manual.
+- **Conectar con Claude (servidor MCP)** — `POST /api/mcp/<token>` (o `/api/mcp` con `Authorization: Bearer`).
+  Tokens personales desde Conocimiento › Conectar con Claude: alcance "Solo vault" o "Vault + EOS completo"
+  (Rocks, Scorecard, indicadores de carrera semanal/mensual, Issues, To-Dos, V/TO, organigrama, L10, agenda) y opción
+  de escritura (notas, Issues, To-Dos, estado de Rocks, valores del Scorecard). Actúa con los permisos del rol de quien
+  lo creó y exige acceso a Conocimiento (premium). Hash SHA-256, revocables, 120 peticiones/min. Botón opcional
+  "Preguntar a la IA (Claude)" (`vaults.claude_consultant_url`). Ver `docs/vault-mcp.md`. Migración 039.
+- **Rol Administrador Premium y módulos premium** — cada equipo tiene el rol de sistema "Administrador Premium"
+  (todo lo de Administrador + módulos premium; hoy: Conocimiento / Vault en `/conocimiento`). Los demás roles, incluido
+  Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el
+  dueño asigna o quita el rol Premium (también validado en el servidor). Dueño: correos en `PLATFORM_OWNER_EMAILS`
+  (opcional); si no, cuentas con `users.is_platform_owner`; si no, la primera cuenta creada. Migración 036.
+- **Seguridad (ISO 27001 / OWASP ASVS)** — informe y procedimientos en `docs/seguridad/`. Configuración solo por
+  `src/lib/config/server.ts` (lint prohíbe `process.env` fuera de ahí; sin `AUTH_SECRET` en producción no hay sesiones);
+  límite de intentos; doble factor opcional (Ajustes › Seguridad lo habilita el Administrador Premium; cada persona lo
+  activa en Mi perfil); bitácora de seguridad inmutable (1 año) y revisión de accesos; respaldos solo para el dueño de la
+  plataforma; encabezados de seguridad y CSP en modo reporte (`/api/csp-report`); retención semanal
+  (`maintenance-weekly`); aviso `/privacidad`; CI en `.github/workflows/eos-marketing-ci.yml`. Migración 043.
+- **Asistente IA (Etapa 8, premium)** — `/asistente`: preguntas en lenguaje natural sobre el EOS y el vault. Usa en el
+  servidor las mismas herramientas del MCP (solo lectura, con los permisos del rol) y Claude por la API de Anthropic
+  (`ANTHROPIC_API_KEY` en Netlify; sin ella queda apagado). Topes: mensual por organización (USD, por omisión $5), preguntas
+  por persona en 24 h (20) y tope global de la plataforma (`AI_GLOBAL_MONTHLY_CAP_USD`, por omisión $20). Caché de 30 min
+  para la misma primera pregunta (mismo equipo y rol). Panel en Ajustes › Asistente IA (consumo por persona y día); topes y
+  modelo solo los cambia el dueño de la plataforma. Código: `src/lib/ai/*`, `src/lib/domain/ai-usage.ts`. Migración 042.
+- **Analítica con Microsoft Clarity** — mapas de calor y grabaciones de sesión. Se activa solo con la variable
+  `CLARITY_PROJECT_ID` en Netlify (ID público del proyecto en clarity.microsoft.com; requiere un deploy para tomarla).
+  El texto del contenido (`<main>`) va enmascarado; las sesiones se etiquetan con `u<id>`, equipo y rol (sin nombres ni
+  correos). Código: `src/lib/analytics.ts`, `src/components/clarity-identify.tsx`.
+- **L10: quien dirige controla la vista** — solo quien dirige (o cualquiera si nadie dirige) cambia de sección, regresa o
+  finaliza; los demás ven la barra deshabilitada con el aviso "Dirige X" y se actualizan cada ~5 s. Un administrador
+  puede cambiar quién dirige y descartar la reunión. El servidor también lo valida.
+- **Reportes semanales › Agenda del equipo** — sección opcional en Planificación y Fin de semana: la nota de cada
+  persona de esa semana (con enlaces clicables), su semáforo, fecha e Issue ligado.
+- **Análisis › Exportar PDF** — se eligen las secciones y se guarda en A4 horizontal (mismo exportador que el
+  Dashboard AC, en `src/components/export-pdf.tsx`).
+- **Iniciar / descartar la L10**: "Iniciar reunión" pide confirmación. Al final de la página de una L10 en curso está
+  "Descartar reunión (no guardar)": borra la reunión sin dejar historial, resumen ni registro en reportes (para inicios
+  por error). Los To-Dos/Issues capturados se conservan y los eventos vuelven a quedar pendientes.
+- **L10 › Todas las carreras por persona**: dentro de cada persona, agrupadas por facultad (con subtotales); la tabla
+  tiene su propio scroll y el encabezado queda fijo.
+- **Scorecard › indicadores calculados con fórmula**: "Calcular" asigna variables (A, B, C…) a otros indicadores y una
+  fórmula con + − × ÷, números y paréntesis (p. ej. `A + B - C`, `(A + B) / C * 100`). Se evalúa sin `eval`
+  (`scorecard-formula.ts`), por dueño y semana (el rollup usa sus propios totales); puede usar otros calculados y se
+  bloquean los ciclos. Los calculados anteriores (numerador ÷ denominador) se migraron a `A / B` o `A / B * 100`.
+  Columna `scorecard_metrics.calc_formula`.
+- **Scorecard › ordenar y archivar**: flechas para subir/bajar; archivar pide confirmación y no se permite si la fórmula de
+  otro indicador lo usa. **Ajustes › Indicadores archivados** los lista y los restaura (al final, con sus datos).
+- **Organigrama y V/TO de toda la organización**: todos los equipos reales ven y editan el mismo (cada demo es su propia
+  organización). El V/TO se guarda en el primer equipo creado; la migración 033 le copió el V/TO con contenido más
+  reciente si estaba vacío. Los puestos aceptan varias personas (`accountability_seat_people`): con más de una se
+  muestra el número y la lista. Diseño de árbol con conectores, filtro de puesto superior, contraer, zoom, menú por
+  puesto (agregar debajo, mover, eliminar) y avisos EOS: unos 5 roles, LMA como primer rol y una sola persona en
+  puestos con otros debajo.
+- **Reportes semanales**: las piezas del calendario editorial llevan su nota y el nombre enlazado a su link.
+- **Metas de carrera › Importar desde Google Sheets** (manual, solo cuando se presiona): se pega el enlace de la hoja
+  (compartida como pública o publicada) y se leen las pestañas con "Meta del ciclo" y "Presupuesto del ciclo". Los
+  meses (OCT, NOV, DIC, ENE 27…) se cargan como metas mensuales y lo que ya se tenía antes del primer mes (ciclo −
+  "Faltaban / Presupuesto al inicio del mes") queda como **histórico** de la carrera (fila debajo de cada carrera,
+  editable a mano). "Total ciclo" = histórico + meses desde el primer mes; se muestra la meta del ciclo de la hoja para
+  comparar. Los códigos se cruzan por código, alias guardado o nombre; los que no coinciden se asignan a mano en la
+  vista previa (se recuerda). Tabla `career_goal_history`.
+- **Agenda del equipo** (Reunión L10 › antes de empezar y en el segmento de Noticias): bloc de notas con **una nota
+  por persona y semana** (texto libre, fecha opcional y semáforo On track / Off track). Se puede asignar a otra persona
+  si esa persona aún no tiene la suya. "Issue" pasa la nota a la lista de Issues (con la persona como dueña).
+  "Agregar tareas de ClickUp" busca las tareas asignadas a una persona (todo el espacio o listas elegidas) con fecha en
+  la semana, y opcionalmente las vencidas sin cerrar (la nota queda Off track), y las agrega como líneas al final de su
+  nota con su enlace; no repite las que ya están. Antes de la L10 se abre la semana de la próxima reunión y se puede
+  navegar a otras semanas (`/meeting?agenda=yyyy-mm-dd`). Tabla `team_agenda` (la migración 030 juntó las actividades
+  sueltas en una nota por persona).
+- **To-Dos para varias personas**: al crear un To-Do (página de To-Dos, lista de la L10 y botón "To-Do" de la barra de
+  captura) se pueden elegir varias personas; se crea un To-Do independiente para cada una.
+- **Eventos dentro de la L10**: el segmento de Noticias usa el mismo panel que la página de inicio de la L10 (agregar,
+  editar, enviar a otro equipo, reutilizar anteriores) más el botón "Issue".
+- **Correo para respuestas** (Ajustes › Equipo, solo administradores): "Responder a" de los correos del equipo
+  (reporte semanal, resumen L10, planificación de contenido, To-Do enviado a otro equipo y correo de acceso). Vacío =
+  responde a la persona que envió el correo. Columna `teams.reply_to`. El restablecimiento de contraseña no lo usa.
+- **To-Dos a otros equipos**: cada To-Do tiene "Enviar a otro equipo": se elige el equipo, su responsable allá
+  (se sugiere la misma persona si también está en ese equipo) y la fecha límite; opcionalmente se avisa por correo al
+  responsable y se puede mover (quitarlo del equipo propio). La copia muestra "De: equipo · persona" y el original
+  "Enviado a … · pendiente/hecho". No se envía dos veces mientras la copia siga pendiente. Columnas
+  `todos.from_team_id`, `origin_todo_id`, `sent_by`.
+- **Issues a otros equipos**: igual que los To-Dos ("Enviar a otro equipo" en cada Issue; la copia queda al final de la
+  lista del otro equipo con "De: …" y el original muestra "Enviado a … · abierto/resuelto"). Columnas
+  `issues.from_team_id`, `origin_issue_id`, `sent_by` (migración 035).
+- **Indicadores de carrera › Mensual**: el selector Semanal/Mensual muestra el mes (`?mes=2026-10`) sumando las semanas
+  cuyo lunes cae en el mes, contra la meta completa del mes. Es de solo lectura (los datos se capturan por semana).
+- **Reportes semanales: dos tipos** (`?tipo=planificacion|cierre`). *Planificación*: igual que abajo, pero el Scorecard
+  y los Indicadores de carrera muestran los resultados de la semana anterior (la semana en curso aún no tiene datos). *Fin de semana*: evolución de lo trabajado — piezas publicadas contra
+  planificadas (pendientes, reprogramadas), coberturas realizadas y horas reales contra estimadas, Scorecard de la
+  semana contra la anterior (cambio ▲▼ según la dirección de la meta), avance de los To-Dos de la L10, eventos desde la
+  próxima semana, leads y consumo contra la semana anterior por persona, e hitos de Rocks que vencían en la semana. Las
+  secciones elegidas se guardan por tipo (JSON en `teams.weekly_report_sections`). El HTML usa estilos cortos para
+  quedar bajo ~100 KB (Gmail recorta lo más largo); la pantalla avisa si se pasa.
+- **Reportes semanales** (`/reportes-semanales`, módulo controlable desde Roles y accesos): se elige la semana y, como
+  checklist, las secciones (Calendario editorial, Control de coberturas, Scorecard semanal, Resumen de la reunión L10
+  de esa semana, Eventos próximos, Indicadores de carrera por persona y Resumen de Rocks del trimestre con hitos
+  atrasados a esa semana). Solo se ofrecen las secciones a las que el rol tiene acceso y, para calendario, coberturas
+  e indicadores, si el equipo usa ese módulo. La vista previa es el mismo HTML del correo; se envía con Resend a los
+  correos escritos y, opcionalmente, a todo el equipo. Destinatarios y secciones se recuerdan por equipo
+  (`teams.weekly_report_recipients`, `teams.weekly_report_sections`). El estado de los Rocks es el actual (no hay
+  historial de estados).
+- **Issues**: Top 3 para la L10 (botón "Top 3", máximo 3, se ordenan 1-2-3 y salen primero en Issues y en el IDS),
+  edición de cada issue (título, detalle, dueño, plazo, fecha) y protección contra duplicados (el botón se bloquea al
+  guardar y el servidor ignora el mismo issue de la misma persona en los últimos 2 minutos; igual en To-Dos, 30 s).
+- **L10 › Scorecard › Indicadores de carrera**: además del resumen por persona, la vista "Todas las carreras por
+  persona" muestra cada carrera (leads, meta, consumo, plan, costo por lead) agrupada por responsable, con subtotales.
+- **Sincronización manual en segundo plano**: "Sincronizar ahora" lanza `netlify/functions/ac-sync-background.mts`
+  (función de fondo, hasta 15 min) que sigue aunque se cierre la página; la pantalla consulta el avance y lo retoma al
+  volver. Si no está disponible (local), la sincronización se hace desde la pantalla como antes.
+- **Enviar a ClickUp** (To-Dos e Issues): al presionar se elige la lista del espacio Marketing (con y sin carpeta) y a
+  quién se asigna (personas del workspace; se sugiere el dueño si su correo coincide). Se crea la tarea con fecha
+  límite y el enlace queda en el To-Do. Requiere `CLICKUP_API_TOKEN`.
+- **Eventos de la L10**: se pueden programar para la L10 de otra semana ("Leer en"), reenviar a otros equipos aunque ya
+  se hayan leído, y en "Eventos de L10 anteriores" reutilizarlos en la próxima L10 o en una semana elegida.
+- **Otras herramientas** tienen categoría (Análisis, Marketing, Documentos… o la que escribas); el índice las agrupa
+  y se filtra por categoría.
+- **Caja de herramientas**: en Ajustes › Caja de herramientas (solo administradores) se crean accesos directos
+  (enlace a otro sitio, abre pestaña nueva) o mini módulos con el sitio insertado (iframe, solo https; YouTube y
+  Google Docs/Sheets/Slides/Drive se convierten a su versión para insertar). Cada una es para todo el equipo o solo
+  para roles/personas elegidas (los administradores ven todas); se pueden ordenar y ocultar. Se ven en **Otras
+  herramientas** (`/herramientas`), módulo que también se controla desde Roles y accesos. Tablas `tools`,
+  `tool_roles`, `tool_users`.
+- **Calendario editorial › Importar desde Google Sheets**: se pega el enlace del Plan de contenido publicado en la
+  Web, se elige una sección "SEMANA …" y se ven los cambios antes de guardar (piezas nuevas, actualizadas por mismo
+  tema, sin cambios y las que solo están en la app, que se pueden quitar). Lo vacío en la hoja no borra lo capturado
+  en la app. Lee la pestaña con la columna "Pieza / Tema"; las filas después de "[+] … BUFFER" son de buffer.
+- **Eventos para la L10** (`/meeting`): antes de la reunión cada equipo agrega sus eventos (título, fecha
+  opcional y detalle). Se leen en el segmento de Noticias de la L10 y, al finalizarla, quedan ligados a esa
+  reunión (salen en el resumen PDF). "Enviar a otro equipo" copia el evento a la próxima L10 de los equipos
+  elegidos (aparece como "De: equipo"); el original muestra a quién se envió y si ya se leyó. Tabla `l10_events`.
+- **V/TO** (`/vto`): Vision/Traction Organizer editable por secciones.
+- **Organigrama** (`/accountability`): árbol de puestos con roles/responsabilidades. Cada
+  puesto tiene "Reporta a": cambiarlo solo mueve ese puesto (y a quienes dependen de él).
+  Al eliminar un puesto, sus dependientes no se borran: pasan a reportar al nivel de arriba.
+- **Rocks** (`/rocks`): prioridades trimestrales de la empresa y de cada persona, con hitos y fecha por hito.
+- **Metas de carrera** (`/metas`): meta mensual de leads y de presupuesto por carrera,
+  en una tabla editable con los 12 meses del año más enero y febrero del siguiente, con filtros y opción de copiar un mes a otro.
+- **Control de carrera** (`/control`): visualización de los 12 hitos del lanzamiento de cada
+  carrera (Definición, Producción, Activación, Mejora continua) y tablero Kanban: las
+  tarjetas se arrastran entre hitos, llevan etiquetas, responsable y estado on/off track.
+  Ruta crítica (CPM) con duraciones y dependencias por hito: fechas planeadas, holgura,
+  hitos atrasados y fecha de lanzamiento prevista.
+- **Calendario editorial** (`/calendario`): plan de contenido por mes y semana (cada semana
+  pertenece al mes de su lunes). Cada pieza tiene fecha, tema, pilar, capa (Hero/Hub/Hygiene),
+  asignación, frente, audiencia, facultad/carrera, CTA, estado y nota; el estado se cambia en la
+  misma fila. Resumen del mes: publicadas vs. total y por persona, mezcla por capa contra el
+  objetivo (Hero 10 %, Hub 50 %, Hygiene 35 %, piso SEO de Hygiene ≥ 25 %) y mezcla por pilar.
+  Por semana: piezas planificadas, buffer esporádico/reactivo (3 slots) y fechas clave (días
+  internacionales). Incluye banco de ideas (Banco Hygiene, piezas sin semana), filtros por persona,
+  estado, capa, facultad y texto. Cada pieza puede llevar el link de la publicación. Cada semana tiene
+  **Enviar planificación (PDF)**: resumen de la semana por persona, buffer, fechas clave y coberturas,
+  listo para mandar a jefatura.
+- **Control de coberturas** (`/coberturas`): registro de coberturas por fecha con facultad,
+  horario, asignación, tipo, estado, paquete (Express ≈2-3 h, Estándar ≈4-5 h, Ampliada ≈6-8 h,
+  Especial/Hero 2+ días), tiempo estimado y real, horas fuera de horario y horas repuestas. Muestra
+  por persona realizadas, agendadas y saldo de horas por reponer, más las coberturas realizadas
+  por semana. Navega por mes o ve todo el registro.
+- **Análisis de contenido** (`/analisis-contenido`): métricas del calendario y de las coberturas por
+  semana, mes, trimestre, año o rango de fechas, comparadas con el periodo anterior: publicadas,
+  cumplimiento, % Hygiene, Hero, buffer usado, reprogramadas/canceladas, coberturas y horas fuera de
+  horario; tendencia de publicadas por semana (o por mes en periodos largos) por capa, mezcla por capa
+  contra el objetivo, tabla por persona y desgloses por pilar, facultad, frente y estado.
+- **Listas de contenido** (Ajustes › Listas de contenido): facultades e institutos, pilares, estados,
+  frentes, tipos, estados y paquetes de cobertura (desplegables del calendario y de coberturas).
+- **Logo de la organización** (Ajustes › Apariencia): imagen que aparece arriba a la izquierda, por equipo.
+- **Plantilla Comunicación GES** (Ajustes › Equipos): crea el equipo "Comunicación GES" con quien
+  la usa como Administrador, más Cesar y David (correo provisional `@comunicacion-ges.local`: define
+  su acceso real en Ajustes › Equipo), e importa el plan de contenido (calendario Ago–Oct, banco
+  Hygiene, días internacionales, coberturas) y el Scorecard (16 indicadores, metas de Cesar, David
+  y General, y sus valores semanales). Los datos vienen de `src/lib/domain/ges-seed.json`.
+- **Análisis** (`/analisis`): gráficas de leads contra meta, consumo contra presupuesto y
+  costo por lead por semana; leads por responsable y por programa; tendencia de un
+  indicador del Scorecard contra su meta; y carreras más lejos de su meta. Filtros por
+  rango de fechas, programa, responsable, nivel y carrera; cada gráfica tiene vista en tabla.
+- **Mi perfil** (`/perfil`, desde el nombre en la barra superior): cada persona edita su
+  nombre, pronombre (él, ella, elle), foto (recortada a 512 px; en Netlify Blobs o
+  `.data/uploads`), color personal (en su avatar y, si quiere, como color de la plataforma
+  solo para ella) y contraseña.
+- **Ajustes** (`/ajustes`): índice de configuraciones (Equipo, Roles y accesos, Equipos, Apariencia, Hitos, Anuncios, Demo, Diagnóstico, Exportar).
+  - **Equipo** (`/ajustes/equipo`): personas, accesos, rol de cada persona y nombre del
+    equipo. Se puede agregar a alguien que ya tiene cuenta solo con su correo.
+  - **Roles y accesos** (`/ajustes/roles`): roles **Administrador** (todo, y es el único
+    que administra equipo, roles y equipos) y **Usuario** (todo editable menos Ajustes),
+    más roles propios. Por cada módulo: *Sin acceso*, *Solo ver* o *Ver y editar*. El menú
+    oculta lo que no tiene acceso; en *Solo ver* la página muestra un aviso y los controles
+    quedan deshabilitados; las acciones del servidor también lo validan.
+  - **Equipos** (`/ajustes/equipos`): crear equipos (cada uno con sus propios datos),
+    cambiar entre ellos. Los indicadores del Scorecard se pueden hacer **visibles para otros
+    equipos** (todos o elegidos) desde "Gestionar indicadores"; esos equipos los ven en
+    su Scorecard, sección "De otros equipos", en solo lectura.
+  - **Hitos de Control de carrera** (`/ajustes/hitos`, administradores): editar, renombrar,
+    eliminar, agregar y reordenar hitos; etapa, duración, dependencias y lanzamiento.
+  - **Anuncios** (`/ajustes/anuncios`, administradores): hasta 5 imágenes (PNG, JPG, WEBP o
+    GIF; las fotos grandes se reducen a 1920 px al subirlas) guardadas en `.data/uploads`, que aparecen como popup a todo el equipo cada N minutos (5 por
+    defecto), en rotación; se pueden activar/desactivar en general o por imagen.
+  - **Información demo** (`/ajustes/demo`, administradores): crea un equipo aparte
+    "… · DEMO" con datos de ejemplo en todos los módulos y cambia tu vista a él; tu
+    información real no se toca y el resto del equipo no la ve. "Desactivar" borra la
+    demo completa y regresa al equipo real.
+  - **Frases motivacionales** (`/ajustes/frases`): banco inicial de 155 frases
+    (`src/lib/domain/quotes-catalog.ts`, copiado a cada equipo la primera vez); agregar,
+    activar/desactivar, eliminar, filtrar y "Restaurar banco inicial".
+  - **Log** (`/ajustes/log`, administradores): bitácora de acciones importantes (metas,
+    valores y metas del Scorecard, hitos, Rocks, To-Dos, Issues, indicadores, Control de
+    carrera, V/TO, organigrama, reuniones, personas, roles, anuncios, color y respaldos),
+    con filtros por módulo y persona.
+  - **Diagnóstico** (`/ajustes/diagnostico`): prueba lectura y escritura de la base,
+    migraciones aplicadas, el almacenamiento de imágenes y cada anuncio guardado, y muestra el
+    error exacto si algo falla. **Respaldos** (administradores): alerta si no hay respaldo o
+    tiene 7 días o más; "Descargar respaldo" genera un `.json.gz` con toda la base (todos los
+    equipos; sin imágenes de anuncios); "Restaurar" reemplaza toda la información por la de
+    un respaldo (escribiendo RESTAURAR), en una sola transacción. Historial de respaldos.
+  - **Exportar datos** (`/ajustes/exportar`): Scorecard e Indicadores de carrera en Excel
+    `.xlsm` (libro habilitado para macros, sin macros incluidas) o `.xlsx`, por rango de
+    semanas. También desde los botones "Exportar Excel" de Scorecard e Indicadores.
+- **Indicadores de carrera** (`/indicadores`): leads y consumo de presupuesto de la
+  semana contra la meta (prorrateada desde la meta mensual según los días de la semana
+  en cada mes), con semáforo, costo por lead y totales. Filtros por
+  programa, carrera, nivel y responsable; vistas por responsable y por programa.
+  Los números se editan a mano en la tabla; el consumo se importa desde el CSV del
+  reporte de Meta (la carrera se reconoce por su código en el nombre de la campaña y
+  las asignaciones manuales se recuerdan); el botón de ActiveCampaign está listo para
+  conectarse. En la reunión L10 se muestran en modo resumen dentro del Scorecard
+  (última semana cerrada).
+- **Scorecard** (`/scorecard`): indicadores semanales por dueño, con meta, semáforo (verde en meta, rojo
+  por debajo, también en el promedio) y un dueño "rollup" calculado automáticamente (suma o promedio de los
+  demás). Muestra 13 semanas en orden cronológico (de la más antigua a la más nueva) con la semana en
+  curso resaltada y 3 semanas por delante; un slider permite ver semanas anteriores. Solo un
+  administrador cambia las metas. Hay indicadores **calculados** (numerador ÷ denominador, × 100 si es %),
+  p. ej. % Hygiene = Hygiene producidas ÷ Cadencia; en el rollup se calculan con los totales.
+- **Issues** (`/issues`): lista IDS priorizable, con fecha específica, conversión a To-Do
+  al resolver y botón "Enviar a ClickUp". Cada persona ve primero los suyos; filtros
+  "Solo míos", "Todos" (para reordenar prioridades) o los de una persona.
+- **To-Dos** (`/todos`): pendientes semanales con descripción, dueño, fecha límite y botón
+  "Enviar a ClickUp". Mismos filtros por persona que Issues.
+- **Dashboard** (`/`): saludo que cambia según la hora (y rota entre varias frases), las
+  Noticias compartidas en la reunión, indicadores rápidos y la **frase del día**: una frase
+  motivacional distinta cada día, sin repetir hasta recorrer todas las activas.
+- **V/TO** (`/vto`): ya no incluye la tarjeta de Issues (viven en su propio módulo).
+- **Reunión Level 10** (`/meeting`): agenda de 90 minutos (Buenas noticias, Scorecard, Rocks,
+  Noticias, To-Dos, IDS, Conclusión). Botones "+ To-Do" y "+ Issue" disponibles en
+  todos los pasos, y atajos por paso: "→ Issue" desde Scorecard, carreras a revisar,
+  Rocks, Noticias y To-Dos; "+ To-Do" desde cada Issue en IDS. Timer por segmento, conectada en vivo a Scorecard, Rocks, Issues y To-Dos, y calificación final 1–10.
+  Al iniciar, **lista de asistencia** (quien inicia queda presente y dirige; se puede cambiar
+  quién dirige). En **Conclusión**, quien dirige (o un administrador) captura la calificación
+  1–10 de cada asistente; los demás califican solo la suya.
+  En **Conclusión** se listan los To-Dos que estaban pendientes y los nuevos de la reunión,
+  y se registran los mensajes a cascadear. Al finalizar, **Generar resumen (PDF)** descarga
+  lo registrado (asistencia, quién dirigió, calificaciones, Scorecard fuera de meta, indicadores de carrera, Rocks,
+  noticias, To-Dos, IDS y mensajes); también desde el historial de reuniones.
+
+## Pruebas
+
+`npm test` (Vitest) corre las pruebas de `tests/` contra una base **PGlite temporal** (nunca la de Netlify):
+
+- `vault-shared.test.ts` — `[[enlaces]]` (alias, encabezados, EOS, código), `#tags` y frontmatter, renombrar enlaces,
+  claves/rutas, árbol de carpetas, texto plegado y fragmentos de búsqueda, palabras vacías, Reciprocal Rank Fusion y
+  división en fragmentos.
+- `graph-model.test.ts` — nodos/aristas, huérfanas, notas por crear, tags, EOS, grafo local, filtros y relaciones por
+  significado.
+- `vault-isolation.test.ts` — un vault por organización; otra organización no lista, busca, abre, enlaza, indexa ni
+  guarda notas ajenas (texto ni significado); conflicto de versiones; renombrar actualiza enlaces y backlinks.
+- `mcp.test.ts` — tokens (solo hash, formato, revocación, límite por minuto, quién puede revocar), herramientas según
+  alcance y escritura, exigencia de Premium, aislamiento entre organizaciones por MCP y bitácora "(vía Claude)".
+
+### Sin servicios de pago (Conocimiento, etapas 1–6)
+
+Todas las dependencias nuevas son de código abierto y gratuitas: CodeMirror 6, unified/remark/rehype, `yaml`,
+`pdfjs-dist`, `@huggingface/transformers`, `sigma` + `graphology`, `@modelcontextprotocol/sdk` y Vitest (solo
+desarrollo). Corren en Netlify y en la base de datos actual. Lo único externo es la descarga del modelo de significado
+en el navegador (Hugging Face) y sus archivos WebAssembly (jsDelivr), ambos gratuitos. No hay llamadas a APIs de LLM ni
+de embeddings; la IA de pago es la Etapa 8 (premium, con topes de gasto).
+

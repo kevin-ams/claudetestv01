@@ -1,0 +1,238 @@
+import Link from "next/link";
+import { Card, Chip } from "@heroui/react";
+import { getSession } from "@/lib/auth/session";
+import { getUserTeams, listTeamMembers } from "@/lib/domain/users";
+import { listRoles } from "@/lib/domain/roles";
+import { daysSinceLastBackup, lastBackupEvents } from "@/lib/backup";
+import { listQuotes } from "@/lib/domain/quotes";
+import { listOptions } from "@/lib/domain/editorial";
+import { lastSync, listLinks } from "@/lib/domain/ac-sync";
+import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
+import { listControlMilestones } from "@/lib/domain/control-milestones";
+import { getAnnouncementSettings, listAnnouncementSlots } from "@/lib/domain/announcements";
+import { getTeam } from "@/lib/domain/teams";
+import { listArchivedMetrics } from "@/lib/domain/scorecard";
+import { getDemoTeamFor } from "@/lib/domain/demo";
+import { THEME_PRESETS } from "@/lib/theme";
+import { aiConfigured } from "@/lib/domain/ai-usage";
+import {
+  Archive,
+  ArrowUpFromSquare,
+  Comment,
+  Cubes3,
+  FaceSmile,
+  FileText,
+  Flask,
+  Funnel,
+  Folders,
+  MapPin,
+  Megaphone,
+  Palette,
+  Persons,
+  PlugConnection,
+  ShieldKeyhole,
+  Stethoscope,
+  Wrench,
+} from "@gravity-ui/icons";
+
+const SECTIONS = [
+  {
+    href: "/perfil",
+    Icon: FaceSmile,
+    title: "Mi perfil",
+    description: "Tu nombre, pronombre (él, ella, elle), foto, color personal y contraseña.",
+  },
+  {
+    href: "/ajustes/equipo",
+    Icon: Persons,
+    title: "Equipo",
+    description: "Personas con acceso, correos, contraseñas y nombre del equipo.",
+  },
+  {
+    href: "/ajustes/roles",
+    Icon: ShieldKeyhole,
+    title: "Roles y accesos",
+    description: "Administrador, Usuario y roles propios: qué módulos puede ver o editar cada uno.",
+  },
+  {
+    href: "/ajustes/equipos",
+    Icon: Cubes3,
+    title: "Equipos",
+    description: "Crea otros equipos, cambia entre ellos y comparte indicadores entre equipos.",
+  },
+  {
+    href: "/ajustes/apariencia",
+    Icon: Palette,
+    title: "Apariencia",
+    description: "Modo claro u oscuro y color del template de la plataforma.",
+  },
+  {
+    href: "/ajustes/herramientas",
+    Icon: Wrench,
+    title: "Caja de herramientas",
+    description: "Accesos directos a otros sitios o mini módulos con un sitio insertado, y quién puede verlos.",
+  },
+  {
+    href: "/ajustes/listas",
+    Icon: Folders,
+    title: "Listas de contenido",
+    description: "Facultades e institutos, pilares, estados, frentes, tipos y paquetes de cobertura.",
+  },
+  {
+    href: "/ajustes/activecampaign",
+    Icon: PlugConnection,
+    title: "Leads desde ActiveCampaign",
+    description: "Vincula cada carrera a un embudo y etapa de tratos para actualizar sus leads cada semana.",
+  },
+  {
+    href: "/ajustes/dashboard-ac",
+    Icon: Funnel,
+    title: "Dashboard AC",
+    description: "Etapas que cuentan como conversión, campos de UTM y clasificación, y facultad de carreras sin vínculo.",
+  },
+  {
+    href: "/ajustes/scorecard",
+    Icon: Archive,
+    title: "Indicadores archivados",
+    description: "Ver los indicadores del Scorecard que se archivaron y restaurarlos con sus datos.",
+  },
+  {
+    href: "/ajustes/frases",
+    Icon: Comment,
+    title: "Frases motivacionales",
+    description: "Las frases que aparecen en el Dashboard, una distinta cada día. Agregar, desactivar o quitar.",
+  },
+  {
+    href: "/ajustes/hitos",
+    Icon: MapPin,
+    title: "Hitos de Control de carrera",
+    description: "Editar, renombrar, eliminar, agregar y reordenar hitos; duración y dependencias.",
+  },
+  {
+    href: "/ajustes/anuncios",
+    Icon: Megaphone,
+    title: "Anuncios",
+    description: "Hasta 5 imágenes que aparecen como popup cada cierto tiempo. Activar o desactivar.",
+  },
+  {
+    href: "/ajustes/demo",
+    Icon: Flask,
+    title: "Información demo",
+    description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
+  },
+  {
+    href: "/ajustes/seguridad",
+    Icon: ShieldKeyhole,
+    title: "Seguridad",
+    description: "Doble factor, revisión de accesos (último ingreso, rol, tokens) y bitácora de eventos de seguridad.",
+  },
+  {
+    href: "/ajustes/asistente",
+    Icon: Comment,
+    title: "Asistente IA",
+    description: "Consumo del mes, tope mensual, límite de preguntas por persona y modelo que responde (premium).",
+  },
+  {
+    href: "/ajustes/log",
+    Icon: FileText,
+    title: "Log",
+    description: "Bitácora de acciones importantes: quién cambió metas, indicadores, hitos y más.",
+  },
+  {
+    href: "/ajustes/diagnostico",
+    Icon: Stethoscope,
+    title: "Diagnóstico",
+    description: "Revisa la base de datos y las imágenes, y descarga o restaura respaldos de la información.",
+  },
+  {
+    href: "/ajustes/exportar",
+    Icon: ArrowUpFromSquare,
+    title: "Exportar datos",
+    description: "Descargar Scorecard e Indicadores de carrera en Excel (.xlsm o .xlsx).",
+  },
+] as const;
+
+export default async function AjustesIndexPage() {
+  const session = await getSession();
+  if (!session) return null;
+
+  const [team, demo, members, milestones, adSettings, slots, roles, userTeams, backups, quotes] = await Promise.all([
+    getTeam(session.teamId),
+    getDemoTeamFor(session.userId),
+    listTeamMembers(session.teamId),
+    listControlMilestones(session.teamId),
+    getAnnouncementSettings(session.teamId),
+    listAnnouncementSlots(session.teamId),
+    listRoles(session.teamId),
+    getUserTeams(session.userId),
+    lastBackupEvents().catch(() => []),
+    listQuotes(session.teamId),
+  ]);
+  const options = await listOptions(session.teamId);
+  const [acLinks, acLast, archived] = await Promise.all([listLinks(session.teamId), lastSync(session.teamId), listArchivedMetrics(session.teamId)]);
+  const backupDays = daysSinceLastBackup(backups);
+  const teamCount = userTeams.filter((t) => !t.is_demo).length;
+  const activeAds = slots.filter((s) => s.has_image && s.active).length;
+  const status: Record<string, string> = {
+    "/ajustes/equipo": `${members.length} personas`,
+    "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
+    "/ajustes/roles": `${roles.length} roles`,
+    "/ajustes/log": "Solo administradores",
+    "/ajustes/seguridad": "Solo administradores",
+    "/ajustes/asistente": aiConfigured() ? "Solo administradores" : "Sin configurar",
+    "/perfil": "Para cada persona",
+    "/ajustes/listas": `${options.facultad.length} facultades · ${options.pilar.length} pilares`,
+    "/ajustes/activecampaign": isActiveCampaignConfigured()
+      ? `${acLinks.length} carrera(s) vinculadas${acLast.at ? "" : " · sin sincronizar"}`
+      : "Sin configurar",
+    "/ajustes/dashboard-ac": "Solo administradores",
+    "/ajustes/scorecard": archived.length ? `${archived.length} archivado(s)` : "Ninguno archivado",
+    "/ajustes/frases": `${quotes.filter((q) => q.active).length} frases activas`,
+    "/ajustes/equipos": `${teamCount} equipo(s)`,
+    "/ajustes/hitos": `${milestones.length} hitos`,
+    "/ajustes/anuncios": adSettings.enabled
+      ? `Activos · ${activeAds} imagen(es) · cada ${adSettings.interval_minutes} min`
+      : "Desactivados",
+    "/ajustes/exportar": "Scorecard · Indicadores · Metas",
+    "/ajustes/diagnostico":
+      backupDays === null ? "Sin respaldos" : `Último respaldo: hace ${backupDays} día(s)`,
+    "/ajustes/demo": team?.is_demo ? "Estás viendo la demo" : demo ? "Demo creada" : "Desactivada",
+  };
+
+  const STATUS_COLOR: Record<string, "default" | "accent" | "success" | "warning"> = {
+    "/ajustes/anuncios": adSettings.enabled ? "success" : "default",
+    "/ajustes/demo": team?.is_demo ? "warning" : demo ? "accent" : "default",
+    "/ajustes/diagnostico": backupDays === null || backupDays >= 7 ? "warning" : "success",
+  };
+
+  return (
+    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-bold">Ajustes</h1>
+        <p className="text-sm text-muted">Configuración del sistema para tu equipo.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {SECTIONS.map((s) => (
+          <Link prefetch={false} key={s.href} href={s.href} className="group rounded-2xl focus-visible:outline-2 focus-visible:outline-primary">
+            <Card className="h-full transition group-hover:shadow-md group-hover:ring-1 group-hover:ring-primary/40">
+              <Card.Header className="flex-row items-start gap-3">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden>
+                  <s.Icon width={20} height={20} />
+                </span>
+                <span className="flex flex-col gap-1">
+                  <Card.Title>{s.title}</Card.Title>
+                  <Card.Description>{s.description}</Card.Description>
+                </span>
+              </Card.Header>
+              <Card.Footer>
+                <Chip size="sm" color={STATUS_COLOR[s.href] ?? "default"} variant="soft">
+                  {status[s.href]}
+                </Chip>
+              </Card.Footer>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}

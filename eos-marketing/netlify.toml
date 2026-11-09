@@ -1,0 +1,11 @@
+# Publicación en Netlify (sitio eos-nivel-10). En la nube usa Netlify Database
+# (esquema eos_marketing) y Netlify Blobs para las imágenes; ver README.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

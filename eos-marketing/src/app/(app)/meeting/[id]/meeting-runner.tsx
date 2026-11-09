@@ -1,0 +1,418 @@
+"use client";
+
+import { ArrowDownToLine, ArrowLeft, ArrowRight, Check, CircleCheck } from "@gravity-ui/icons";
+import { Button, Card } from "@heroui/react";
+import { buttonVariants } from "@heroui/styles";
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import type {
+  Meeting,
+  MeetingHeadline,
+  Rock,
+  RockMilestone,
+  PublicUser,
+  Issue,
+  Todo,
+  ScorecardOwner,
+  ScorecardMetric,
+  ScorecardTarget,
+} from "@/lib/domain/types";
+import type { SessionPayload } from "@/lib/auth/token";
+import { L10_AGENDA, segmentIndex, nextSegment } from "@/lib/domain/meeting-shared";
+import { ScorecardTable } from "../../scorecard/scorecard-table";
+import { RockCard } from "../../rocks/rock-card";
+import { IssueList } from "../../issues/issue-list";
+import { AddIssueForm } from "../../issues/add-issue-form";
+import { TodoList } from "../../todos/todo-list";
+import { CareerSummary } from "../../indicadores/career-summary";
+import { careerLabel, num, type CareerRow } from "@/lib/domain/careers-shared";
+import { QuickCreateBar, QuickCreateModal, type QuickDraft } from "./quick-create";
+import { SendEmailInline } from "@/components/send-email-button";
+import { advanceSegmentAction, sendMeetingSummaryAction, completeMeetingAction, discardMeetingAction } from "../actions";
+import type { AttendanceRow } from "@/lib/domain/meetings";
+import type { L10Event } from "@/lib/domain/l10-events";
+import { TeamAgendaPanel } from "../team-agenda";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import type { AgendaItem } from "@/lib/domain/team-agenda-shared";
+import { formatClock, useElapsed, useMeetingPulse } from "./meeting-hooks";
+import { AttendancePanel, CascadeNotes, ConclusionTodos, HeadlinesPanel, LeaderRatingPanel, RatingPanel } from "./meeting-panels";
+
+export function MeetingRunner({
+  meeting,
+  session,
+  scorecard,
+  careerIndicators,
+  rocks,
+  milestonesByRock,
+  members,
+  openIssues,
+  todos,
+  headlines,
+  events,
+  agenda,
+  ratings,
+  clickupConfigured,
+  attendance,
+  canLead,
+}: {
+  meeting: Meeting;
+  session: SessionPayload;
+  scorecard: {
+    owners: ScorecardOwner[];
+    metrics: ScorecardMetric[];
+    targets: ScorecardTarget[];
+    grid: Record<string, number | null>;
+    weeks: string[];
+  };
+  careerIndicators: { rows: CareerRow[]; week: string; weekLabel: string };
+  rocks: Rock[];
+  milestonesByRock: Record<number, RockMilestone[]>;
+  members: PublicUser[];
+  openIssues: Issue[];
+  todos: Todo[];
+  headlines: MeetingHeadline[];
+  events: { pending: L10Event[]; past: L10Event[]; teams: { id: number; name: string }[]; currentWeek: string };
+  agenda: { week: string; weekLabel: string; items: AgendaItem[]; canRaiseIssues: boolean };
+  ratings: { user_id: number; rating: number; user_name: string }[];
+  clickupConfigured: boolean;
+  attendance: AttendanceRow[];
+  canLead: boolean;
+}) {
+  const idx = segmentIndex(meeting.current_segment);
+  const segment = idx >= 0 ? L10_AGENDA[idx] : L10_AGENDA[0];
+  const upcoming = nextSegment(meeting.current_segment);
+  const stoppedAt = meeting.status === "completed" ? (meeting.ended_at ?? meeting.segment_started_at) : null;
+  const elapsed = useElapsed(meeting.segment_started_at, stoppedAt);
+  const totalElapsed = useElapsed(meeting.started_at, stoppedAt);
+  const remaining = segment.minutes * 60 - elapsed;
+  const [draft, setDraft] = useState<QuickDraft | null>(null);
+  // Sección más avanzada a la que se llegó: las anteriores quedan marcadas aunque se regrese.
+  const furthest = Math.max(idx, segmentIndex(meeting.furthest_segment ?? null));
+  const [navigating, startNav] = useTransition();
+  const [discarding, setDiscarding] = useState(false);
+  const [discardPending, startDiscard] = useTransition();
+  // Solo quien dirige cambia la sección de todos; los demás siguen su vista.
+  const drives = meeting.leader_id === null || meeting.leader_id === session.userId;
+  const leaderName = members.find((m) => m.id === meeting.leader_id)?.name ?? "quien dirige";
+  const goTo = (key: string) => drives && startNav(() => advanceSegmentAction(meeting.id, key));
+  const [toast, setToast] = useState<string | null>(null);
+  const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
+
+  useMeetingPulse(meeting.id, drives);
+
+  const totalMinutes = useMemo(
+    () => L10_AGENDA.reduce((a, s) => a + s.minutes, 0),
+    []
+  );
+
+  if (meeting.status === "completed") {
+    return (
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="text-2xl font-bold">Reunión #{meeting.id} completada</h1>
+        <p className="mt-2 text-sm text-muted">
+          Duró {formatClock(totalElapsed)} · Calificación promedio:{" "}
+          {meeting.avg_rating ? Number(meeting.avg_rating).toFixed(1) : "-"}/10
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <a href={`/api/reuniones/${meeting.id}/resumen`} className={buttonVariants({ variant: "primary" })}>
+            <ArrowDownToLine aria-hidden /> Generar resumen (PDF)
+          </a>
+          <Link prefetch={false} href="/meeting" className={buttonVariants({ variant: "outline" })}>
+            Volver al historial
+          </Link>
+        </div>
+        <div className="mt-4 flex justify-center">
+          <SendEmailInline
+            send={(extra) => sendMeetingSummaryAction(meeting.id, extra)}
+            hint="Se envía con el PDF adjunto a quienes asistieron (o a todo el equipo si no se pasó lista). Puedes agregar otros correos, p. ej. jefatura."
+          />
+        </div>
+        <p className="mt-3 text-xs text-muted">
+          Incluye calificación, Scorecard, indicadores, Rocks, noticias, To-Dos pendientes y nuevos, IDS y mensajes a cascadear.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold">Reunión Level 10 · en curso</h1>
+        <p className="text-sm text-muted">
+          Agenda de {totalMinutes} minutos · Tiempo total: {formatClock(totalElapsed)}
+        </p>
+      </div>
+
+      {/* Barra de secciones: quien dirige puede ir a cualquiera (adelante o atrás); los demás la ven. */}
+      {!drives && (
+        <p className="mb-2 text-xs text-muted" role="status">
+          Dirige {leaderName}: la sección cambia para todos cuando {leaderName} avanza.
+        </p>
+      )}
+      <nav aria-label="Secciones de la reunión" className="mb-6 flex flex-wrap gap-2 overflow-x-auto">
+        {L10_AGENDA.map((s, i) => (
+          <button
+            key={s.key}
+            type="button"
+            aria-current={i === idx ? "step" : undefined}
+            disabled={navigating || !drives}
+            title={i === idx ? "Sección actual" : drives ? `Ir a ${s.label}` : `Solo ${leaderName} cambia de sección`}
+            onClick={() => i !== idx && goTo(s.key)}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+              drives ? "disabled:opacity-60" : "cursor-default"
+            } ${
+              i === idx
+                ? "bg-primary text-primary-foreground"
+                : i <= furthest
+                ? `bg-green-bg text-green ${drives ? "hover:ring-1 hover:ring-green" : ""}`
+                : `bg-card border border-border text-muted ${drives ? "hover:border-primary hover:text-foreground" : ""}`
+            }`}
+          >
+            {i !== idx && i <= furthest && <Check width={12} height={12} className="mr-1 inline-block align-[-1px]" aria-hidden />}
+            {s.label} · {s.minutes}m
+          </button>
+        ))}
+      </nav>
+
+      <Card className="mb-6 flex flex-row flex-wrap items-center justify-between gap-4 p-5">
+        <div>
+          <h2 className="text-xl font-bold">{segment.label}</h2>
+          <p className="text-sm text-muted">{segment.description}</p>
+        </div>
+        <div className="flex items-center gap-4">
+          <span
+            className={`text-2xl font-bold tabular-nums ${
+              remaining < 0 ? "text-red" : "text-foreground"
+            }`}
+          >
+            {formatClock(remaining)}
+          </span>
+          {drives && idx > 0 && (
+            <Button variant="outline" isDisabled={navigating} onPress={() => goTo(L10_AGENDA[idx - 1].key)}>
+              <ArrowLeft aria-hidden /> Anterior
+            </Button>
+          )}
+          {!drives ? null : upcoming ? (
+            <Button variant="primary"
+              isDisabled={navigating}
+              onPress={() => goTo(upcoming.key)}
+            >
+              Siguiente: {upcoming.label} <ArrowRight aria-hidden />
+            </Button>
+          ) : (
+            <Button variant="primary"
+              onPress={() => completeMeetingAction(meeting.id)}
+            >
+              Finalizar reunión <Check aria-hidden />
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <QuickCreateBar onCreate={setDraft} />
+      {toast && (
+        <div className="mb-4 flex items-center justify-between gap-2 rounded-lg bg-green-bg px-3 py-2 text-sm text-green">
+          <span className="flex items-center gap-1.5"><CircleCheck aria-hidden /> {toast}</span>
+          <Button size="sm" variant="ghost" onPress={() => setToast(null)}>
+            Cerrar
+          </Button>
+        </div>
+      )}
+      {draft && (
+        <QuickCreateModal
+          key={JSON.stringify(draft)}
+          meetingId={meeting.id}
+          draft={draft}
+          members={members}
+          onClose={() => setDraft(null)}
+          onCreated={(message) => {
+            setDraft(null);
+            setToast(message);
+          }}
+        />
+      )}
+
+      <div className="mb-10">
+        {segment.key === "segue" && (
+          <div className="flex flex-col gap-4">
+          <AttendancePanel meetingId={meeting.id} attendance={attendance} leaderId={meeting.leader_id} canLead={canLead} />
+          <Card className="block gap-0 p-6 text-sm text-muted">
+            Cada persona comparte una buena noticia personal y una del negocio.
+            No hay datos que revisar en este segmento. Cuando terminen, avancen
+            al Scorecard.
+          </Card>
+          </div>
+        )}
+
+        {segment.key === "scorecard" && (
+          <div className="flex flex-col gap-8">
+            {scorecard.metrics.length > 0 && scorecard.owners.length > 0 && (
+              <ScorecardTable
+                owners={scorecard.owners}
+                metrics={scorecard.metrics}
+                targets={scorecard.targets}
+                grid={scorecard.grid}
+                weeks={scorecard.weeks}
+                onRaiseIssue={(metric, ownerName) =>
+                  setDraft({
+                    kind: "issue",
+                    title: `Indicador fuera de meta: ${metric.name} (${ownerName})`,
+                    description: metric.predicts ? `Predice: ${metric.predicts}` : "",
+                    source: "Scorecard",
+                  })
+                }
+              />
+            )}
+            <CareerSummary
+              rows={careerIndicators.rows}
+              members={members}
+              week={careerIndicators.week}
+              weekLabel={careerIndicators.weekLabel}
+              onRaiseIssue={(r) =>
+                setDraft({
+                  kind: "issue",
+                  title: `Leads bajo meta: ${careerLabel(r)}`,
+                  description: `Semana ${careerIndicators.weekLabel}: ${num(r.leads ?? 0)} leads de una meta de ${num(r.leads_goal)}.`,
+                  ownerId: r.owner_id,
+                  source: "Indicadores de carrera",
+                })
+              }
+            />
+          </div>
+        )}
+
+        {segment.key === "rocks" && (
+          <div className="grid gap-3 md:grid-cols-2">
+            {rocks.length === 0 && (
+              <p className="text-sm text-muted">No hay Rocks este trimestre.</p>
+            )}
+            {rocks.map((r) => (
+              <RockCard
+                key={r.id}
+                rock={r}
+                milestones={milestonesByRock[r.id] ?? []}
+                members={members}
+                onRaiseIssue={() =>
+                  setDraft({
+                    kind: "issue",
+                    title: `Rock ${r.status === "off_track" ? "off track" : "a revisar"}: ${r.title}`,
+                    description: r.description,
+                    ownerId: r.owner_id,
+                    source: "Rocks",
+                  })
+                }
+              />
+            ))}
+          </div>
+        )}
+
+        {segment.key === "headlines" && (
+          <div className="flex flex-col gap-6">
+          <Card className="block gap-0 p-4">
+            <TeamAgendaPanel
+              week={agenda.week}
+              weekLabel={agenda.weekLabel}
+              items={agenda.items}
+              members={members}
+              currentUserId={session.userId}
+              editable
+              canRaiseIssues={agenda.canRaiseIssues}
+              clickupConfigured={clickupConfigured}
+            />
+          </Card>
+          <HeadlinesPanel
+            meetingId={meeting.id}
+            headlines={headlines}
+            events={events}
+            onRaiseIssue={(h) => setDraft({ kind: "issue", title: h.content, description: h.detail, source: "Noticias" })}
+          />
+          </div>
+        )}
+
+        {segment.key === "todos" && (
+          <TodoList
+            todos={todos}
+            members={members}
+            clickupConfigured={clickupConfigured}
+            onRaiseIssue={(t) =>
+              setDraft({
+                kind: "issue",
+                title: `To-Do no cumplido: ${t.title}`,
+                description: t.description,
+                ownerId: t.owner_id,
+                source: "To-Do List",
+              })
+            }
+          />
+        )}
+
+        {segment.key === "ids" && (
+          <div className="flex flex-col gap-4">
+            <div>
+              <AddIssueForm members={members} />
+            </div>
+            <IssueList
+              openIssues={openIssues}
+              solvedIssues={[]}
+              members={members}
+              clickupConfigured={clickupConfigured}
+              onCreateTodo={(issue) =>
+                setDraft({
+                  kind: "todo",
+                  title: issue.title,
+                  description: issue.description
+                    ? `${issue.description}\n\nSale del Issue: ${issue.title}`
+                    : `Sale del Issue: ${issue.title}`,
+                  ownerId: issue.owner_id,
+                  source: `IDS · dueño del issue: ${memberName(issue.owner_id)}`,
+                })
+              }
+            />
+          </div>
+        )}
+
+        {segment.key === "conclude" && (
+          <div className="flex flex-col gap-4">
+            <ConclusionTodos todos={todos} members={members} startedAt={meeting.started_at} />
+            <CascadeNotes meetingId={meeting.id} initial={meeting.cascade_notes ?? ""} />
+            <AttendancePanel meetingId={meeting.id} attendance={attendance} leaderId={meeting.leader_id} canLead={canLead} />
+            {canLead ? (
+              <LeaderRatingPanel meetingId={meeting.id} attendance={attendance} ratings={ratings} />
+            ) : (
+              <RatingPanel meetingId={meeting.id} session={session} ratings={ratings} />
+            )}
+            <Card className="block gap-0 p-4 text-sm text-muted">
+              Al finalizar la reunión podrás descargar el <b>resumen en PDF</b> con todo lo registrado. También puedes
+              generar uno ahora:{" "}
+              <a href={`/api/reuniones/${meeting.id}/resumen`} className="font-medium text-primary underline">
+                vista previa del resumen (PDF)
+              </a>
+            </Card>
+          </div>
+        )}
+      </div>
+      {/* Al final: descartar una L10 iniciada por error (no deja registro). */}
+      {canLead && (
+        <div className="mb-8 flex flex-col items-center gap-1 border-t border-border pt-6 text-center">
+          <Button size="sm" variant="ghost" className="text-red" onPress={() => setDiscarding(true)}>
+            Descartar reunión (no guardar)
+          </Button>
+          <p className="text-xs text-muted">Por si se inició por error: se borra sin quedar en el historial ni en los reportes.</p>
+        </div>
+      )}
+      {discarding && (
+        <ConfirmDialog
+          title="¿Descartar esta reunión?"
+          confirmLabel="Sí, descartar"
+          danger
+          pending={discardPending}
+          onConfirm={() => startDiscard(async () => void (await discardMeetingAction(meeting.id)))}
+          onClose={() => setDiscarding(false)}
+        >
+          La reunión #{meeting.id} se borra: no queda en el historial, en el resumen ni en los reportes semanales. Los To-Dos e
+          Issues que se capturaron se conservan y los eventos siguen pendientes para la próxima L10.
+        </ConfirmDialog>
+      )}
+    </div>
+  );
+}

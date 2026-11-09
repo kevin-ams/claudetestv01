@@ -1,0 +1,346 @@
+"use client";
+
+import { ArrowLeft, ArrowRight } from "@gravity-ui/icons";
+import { Segmented } from "@/components/ui/segmented";
+import { Button, Card, Input } from "@heroui/react";
+import { AppSelect } from "@/components/ui/select";
+import Link from "next/link";
+import { Fragment, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import type { Career, CareerMonthlyGoal, PublicUser } from "@/lib/domain/types";
+import { money, normalizeText, num } from "@/lib/domain/careers-shared";
+import { copyMonthAction, setGoalHistoryAction, setMonthlyGoalAction, type GoalField } from "./actions";
+import type { GoalHistory } from "@/lib/domain/goals-shared";
+
+const MONTH_LABELS = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+/** "Mar", o "Ene 27" para los meses del año siguiente. */
+function monthLabel(month: string, year: number) {
+  const y = Number(month.slice(0, 4));
+  const label = MONTH_LABELS[Number(month.slice(5, 7)) - 1];
+  return y === year ? label : `${label} ${String(y).slice(2)}`;
+}
+
+function GoalCell({
+  value,
+  onSave,
+  label,
+}: {
+  value: number;
+  onSave: (value: number | null) => Promise<void>;
+  label?: string;
+}) {
+  const router = useRouter();
+  const [local, setLocal] = useState(value ? String(value) : "");
+  const [synced, setSynced] = useState(value);
+  const [pending, startTransition] = useTransition();
+
+  if (value !== synced) {
+    setSynced(value);
+    setLocal(value ? String(value) : "");
+  }
+
+  function commit() {
+    const trimmed = local.trim().replace(",", ".");
+    const parsed = trimmed === "" ? 0 : Number(trimmed);
+    if (Number.isNaN(parsed) || parsed < 0) {
+      setLocal(value ? String(value) : "");
+      return;
+    }
+    if (parsed === value) return;
+    startTransition(async () => {
+      await onSave(parsed);
+      router.refresh();
+    });
+  }
+
+  return (
+    <Input
+      inputMode="decimal"
+      className={`shadow-none w-full min-w-14 rounded border border-transparent bg-transparent px-1 py-1 text-right text-sm tabular-nums outline-none hover:border-border focus:border-primary ${
+        pending ? "opacity-50" : ""
+      }`}
+      value={local}
+      aria-label={label}
+      placeholder="·"
+      onChange={(e) => setLocal(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+    />
+  );
+}
+
+function CopyMonthForm({ months, year }: { months: string[]; year: number }) {
+  const router = useRouter();
+  const [from, setFrom] = useState(months[0]);
+  const [to, setTo] = useState(months[1]);
+  const [scope, setScope] = useState<GoalField | "both">("both");
+  const [message, setMessage] = useState<{ ok: boolean; message: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-muted">Copiar metas de</span>
+      <AppSelect className="w-auto" value={from} onChange={(e) => setFrom(e.target.value)} aria-label="Mes de origen">
+        {months.map((m) => (
+          <option key={m} value={m}>
+            {monthLabel(m, year)}
+          </option>
+        ))}
+      </AppSelect>
+      <span className="text-muted">a</span>
+      <AppSelect className="w-auto" value={to} onChange={(e) => setTo(e.target.value)} aria-label="Mes de destino">
+        {months.map((m) => (
+          <option key={m} value={m}>
+            {monthLabel(m, year)}
+          </option>
+        ))}
+      </AppSelect>
+      <AppSelect className="w-auto" value={scope} onChange={(e) => setScope(e.target.value as GoalField | "both")} aria-label="Qué copiar">
+        <option value="both">Leads y presupuesto</option>
+        <option value="leads">Solo leads</option>
+        <option value="budget">Solo presupuesto</option>
+      </AppSelect>
+      <Button variant="outline"
+        isDisabled={pending}
+        onPress={() =>
+          startTransition(async () => {
+            if (!confirm("Esto reemplaza las metas del mes de destino. ¿Continuar?")) return;
+            setMessage(await copyMonthAction(from, to, scope));
+            router.refresh();
+          })
+        }
+      >
+        Copiar
+      </Button>
+      {message && <span className={message.ok ? "text-green" : "text-red"}>{message.message}</span>}
+    </div>
+  );
+}
+
+export function GoalsGrid({
+  year,
+  months,
+  careers,
+  goals,
+  members,
+  history,
+}: {
+  year: number;
+  months: string[];
+  careers: Career[];
+  goals: CareerMonthlyGoal[];
+  members: PublicUser[];
+  history: GoalHistory[];
+}) {
+  const [field, setField] = useState<GoalField>("leads");
+  const [program, setProgram] = useState("");
+  const [owner, setOwner] = useState("");
+  const [query, setQuery] = useState("");
+
+  const goalMap = useMemo(() => new Map(goals.map((g) => [`${g.career_id}:${g.month}`, g])), [goals]);
+  const valueOf = (careerId: number, month: string) => {
+    const g = goalMap.get(`${careerId}:${month}`);
+    return g ? (field === "leads" ? g.leads_goal : g.budget_goal) : 0;
+  };
+  const fmt = field === "leads" ? num : money;
+  const historyOf = useMemo(() => new Map(history.map((h) => [h.career_id, h])), [history]);
+  const histValue = (h: GoalHistory | undefined) => (h ? (field === "leads" ? h.leads : h.budget) : null);
+  /** Total del ciclo: histórico + meses desde el primer mes con distribución (incluye ene–feb del año siguiente). */
+  const cycleTotal = (careerId: number) => {
+    const h = historyOf.get(careerId);
+    const hv = histValue(h);
+    if (!h || hv === null) return null;
+    return hv + months.reduce((sum, m) => sum + (m >= h.from_month ? valueOf(careerId, m) : 0), 0);
+  };
+  const anyHistory = history.some((h) => histValue(h) !== null);
+
+  const programs = useMemo(
+    () => [...new Set(careers.map((c) => c.program))].sort((a, b) => a.localeCompare(b, "es")),
+    [careers]
+  );
+
+  const filtered = careers.filter((c) => {
+    if (program && c.program !== program) return false;
+    if (owner === "none" ? c.owner_id !== null : owner && String(c.owner_id) !== owner) return false;
+    if (query && !normalizeText(`${c.code} ${c.name}`).includes(normalizeText(query))) return false;
+    return true;
+  });
+
+  const today = new Date();
+  const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+  const monthTotals = months.map((m) => filtered.reduce((sum, c) => sum + valueOf(c.id, m), 0));
+  // El total es solo del año; enero y febrero del siguiente se muestran aparte.
+  const inYear = (m: string) => m.startsWith(`${year}-`);
+  const yearTotal = monthTotals.reduce((a, t, i) => a + (inYear(months[i]) ? t : 0), 0);
+  const cycleSum = filtered.reduce((a, c) => a + (cycleTotal(c.id) ?? 0), 0);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Card className="flex flex-col gap-3 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+            <Link prefetch={false} href={`/metas?anio=${year - 1}`} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Año anterior">
+              <ArrowLeft aria-hidden />
+            </Link>
+            <span className="px-2 text-sm font-semibold">{year}</span>
+            <Link prefetch={false} href={`/metas?anio=${year + 1}`} className="rounded px-2 py-1 text-sm hover:bg-background" aria-label="Año siguiente">
+              <ArrowRight aria-hidden />
+            </Link>
+          </div>
+          <Segmented
+            aria-label="Qué editar"
+            options={[
+              { id: "leads" as GoalField, label: "Meta de leads" },
+              { id: "budget" as GoalField, label: "Presupuesto" },
+            ]}
+            value={field}
+            onChange={setField}
+          />
+          <AppSelect className="w-auto" value={program} onChange={(e) => setProgram(e.target.value)} aria-label="Programa">
+            <option value="">Todos los programas</option>
+            {programs.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
+          </AppSelect>
+          <AppSelect className="w-auto" value={owner} onChange={(e) => setOwner(e.target.value)} aria-label="Responsable">
+            <option value="">Todos los responsables</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+            <option value="none">Sin responsable</option>
+          </AppSelect>
+          <Input
+            className="w-auto"
+            type="search"
+            placeholder="Buscar carrera"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Buscar carrera"
+          />
+          <span className="text-sm text-muted">{filtered.length} carreras</span>
+        </div>
+        <CopyMonthForm months={months} year={year} />
+      </Card>
+
+      <Card className="block p-0 gap-0 overflow-x-auto">
+        <table className="w-full min-w-[1100px] text-sm">
+          <thead>
+            <tr className="border-b border-border text-xs uppercase tracking-wide text-muted">
+              <th className="sticky left-0 z-10 bg-card px-3 py-2 text-left">Carrera</th>
+              {months.map((m) => (
+                <th
+                  key={m}
+                  className={`px-1 text-right ${m === currentMonth ? "text-primary" : ""} ${inYear(m) ? "" : "bg-background/60"}`}
+                >
+                  {monthLabel(m, year)}
+                </th>
+              ))}
+              <th className="px-3 text-right">Total {year}</th>
+              {anyHistory && (
+                <th className="px-3 text-right" title="Histórico + meses desde el inicio de la distribución">
+                  Total ciclo
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((c) => {
+              const rowTotal = months.reduce((sum, m) => sum + (inYear(m) ? valueOf(c.id, m) : 0), 0);
+              const h = historyOf.get(c.id);
+              const hv = histValue(h);
+              const cycle = h ? (field === "leads" ? h.cycle_leads : h.cycle_budget) : null;
+              const ct = cycleTotal(c.id);
+              const before = h ? months.filter((m) => m < h.from_month).length : 0;
+              return (
+                <Fragment key={c.id}>
+                <tr className={`border-b border-border last:border-0 hover:bg-background/60 ${hv !== null ? "border-b-0" : ""}`}>
+                  <td className="sticky left-0 z-10 max-w-72 bg-card px-3 py-1.5">
+                    <div className="flex items-baseline gap-2">
+                      {c.code && <span className="font-mono text-xs font-semibold text-primary">{c.code}</span>}
+                      <span className="truncate font-medium" title={c.name}>
+                        {c.name}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted">
+                      {c.program} · {members.find((m) => m.id === c.owner_id)?.name ?? "Sin responsable"}
+                    </p>
+                  </td>
+                  {months.map((m) => (
+                    <td key={m} className={`px-1 ${m === currentMonth ? "bg-primary/5" : inYear(m) ? "" : "bg-background/60"}`}>
+                      <GoalCell
+                        key={field}
+                        value={valueOf(c.id, m)}
+                        onSave={(v) => setMonthlyGoalAction(c.id, m, field, v)}
+                      />
+                    </td>
+                  ))}
+                  <td className="whitespace-nowrap px-3 text-right font-semibold tabular-nums">
+                    {rowTotal ? fmt(rowTotal) : "—"}
+                  </td>
+                  {anyHistory && (
+                    <td className="whitespace-nowrap px-3 text-right font-semibold tabular-nums text-primary">
+                      {ct !== null ? fmt(ct) : "—"}
+                      {ct !== null && cycle !== null && (
+                        <span className={`block text-[10px] font-normal ${Math.abs(ct - cycle) > 0.011 ? "text-yellow" : "text-muted"}`}>
+                          ciclo {fmt(cycle)}
+                        </span>
+                      )}
+                    </td>
+                  )}
+                </tr>
+                {h && hv !== null && (
+                  <tr className="border-b border-border bg-background/40 text-xs last:border-0">
+                    <td className="sticky left-0 z-10 bg-card px-3 py-1 pl-6 text-muted">
+                      ↳ Histórico <span className="text-[11px]">(antes de {monthLabel(h.from_month, year)})</span>
+                    </td>
+                    {before > 0 && (
+                      <td colSpan={before} className="px-1">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-[11px] text-muted">ya se tenía</span>
+                          <div className="w-24">
+                            <GoalCell
+                              key={field}
+                              label={`Histórico de ${c.code || c.name}`}
+                              value={hv}
+                              onSave={(v) => setGoalHistoryAction(c.id, year, h.from_month, field, v)}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                    )}
+                    <td colSpan={months.length - before + 1 + (anyHistory ? 1 : 0)} className="px-3 text-[11px] text-muted">
+                      {before === 0 && `Histórico: ${fmt(hv)} · `}
+                      Total ciclo = histórico + meses desde {monthLabel(h.from_month, year)}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="border-t-2 border-border font-semibold">
+              <td className="sticky left-0 z-10 bg-card px-3 py-2">Total</td>
+              {monthTotals.map((t, i) => (
+                <td key={months[i]} className="whitespace-nowrap px-1 text-right text-xs tabular-nums">
+                  {t ? fmt(t) : "—"}
+                </td>
+              ))}
+              <td className="whitespace-nowrap px-3 text-right tabular-nums">{yearTotal ? fmt(yearTotal) : "—"}</td>
+              {anyHistory && <td className="whitespace-nowrap px-3 text-right tabular-nums text-primary">{cycleSum ? fmt(cycleSum) : "—"}</td>}
+            </tr>
+          </tfoot>
+        </table>
+      </Card>
+      <p className="text-xs text-muted">
+        Haz clic en una celda para escribir la meta del mes y presiona Enter. Las metas son totales
+        mensuales; la semana que cruza dos meses toma la parte proporcional de cada uno.
+      </p>
+    </div>
+  );
+}
