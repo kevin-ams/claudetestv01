@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Issue, PublicUser } from "@/lib/domain/types";
+import { SectionTitle } from "@/components/page-header";
 import {
   moveIssueAction,
   solveIssueAction,
@@ -61,16 +62,21 @@ export function IssueList({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-          Abiertos ({openIssues.length})
-        </h2>
+        <SectionTitle count={openIssues.length}>Abiertos</SectionTitle>
         {openIssues.length === 0 ? (
-          <p className="text-sm text-muted">No hay issues abiertos. 🎉</p>
+          <p className="tile p-6 text-center text-sm text-muted">No hay issues abiertos. 🎉</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="stagger flex flex-col gap-2">
             {openIssues.map((issue, idx) => (
-              <li key={issue.id} className="card flex flex-wrap items-center gap-3 p-3">
-                <span className="w-6 text-center text-xs font-semibold text-muted">
+              <li
+                key={issue.id}
+                className={`${issue.term === "long_term" ? "tone-vto" : "tone-issues"} card lift accent-left flex flex-wrap items-center gap-3 p-3`}
+              >
+                <span
+                  className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
+                    idx < 3 ? "icon-chip-solid" : "bg-tone-soft text-tone"
+                  }`}
+                >
                   {idx + 1}
                 </span>
                 <div className="flex flex-col">
@@ -94,9 +100,11 @@ export function IssueList({
                   {issue.description && (
                     <p className="text-xs text-muted">{issue.description}</p>
                   )}
-                  <p className="mt-0.5 text-[11px] text-muted">
-                    {members.find((m) => m.id === issue.owner_id)?.name ?? "Sin dueño"} ·{" "}
-                    {TERM_LABEL[issue.term]}
+                  <p className="mt-1 flex items-center gap-2 text-[11px] text-muted">
+                    {members.find((m) => m.id === issue.owner_id)?.name ?? "Sin dueño"}
+                    <span className="bg-tone-soft text-tone rounded-full px-2 py-0.5 font-semibold">
+                      {TERM_LABEL[issue.term]}
+                    </span>
                   </p>
                 </div>
                 <ResolveRow issue={issue} />
@@ -122,7 +130,7 @@ export function IssueList({
         {showSolved && (
           <ul className="mt-3 flex flex-col gap-2">
             {solvedIssues.map((issue) => (
-              <li key={issue.id} className="card flex items-center gap-3 p-3 opacity-70">
+              <li key={issue.id} className="tone-green card accent-left flex items-center gap-3 p-3 opacity-70">
                 <div className="flex-1">
                   <p className="font-medium line-through">{issue.title}</p>
                 </div>

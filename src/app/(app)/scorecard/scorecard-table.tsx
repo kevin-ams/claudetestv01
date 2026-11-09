@@ -23,7 +23,9 @@ function statusClass(
 ) {
   if (value === null || target === null) return "";
   const ok = direction === "higher_better" ? value >= target : value <= target;
-  return ok ? "bg-green-bg" : "bg-red-bg";
+  return ok
+    ? "bg-emerald-100 text-emerald-800 font-semibold"
+    : "bg-rose-100 text-rose-800 font-semibold";
 }
 
 function EditableCell({
@@ -122,10 +124,10 @@ export function ScorecardTable({
           <button
             key={o.id}
             onClick={() => setActiveOwnerId(o.id)}
-            className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`tone-scorecard rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
               activeOwner.id === o.id
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-muted hover:text-foreground"
+                ? "icon-chip-solid"
+                : "bg-card border border-border text-muted hover:-translate-y-0.5 hover:text-foreground"
             }`}
           >
             {o.name}
@@ -137,7 +139,7 @@ export function ScorecardTable({
       <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full min-w-[900px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-background/60">
+            <tr className="border-b border-border bg-gradient-to-r from-emerald-50 to-sky-50">
               <th className="min-w-[220px] px-3 py-2 text-left font-semibold">
                 Indicador
               </th>
@@ -161,7 +163,7 @@ export function ScorecardTable({
                   : null;
 
               return (
-                <tr key={m.id} className="border-b border-border last:border-0">
+                <tr key={m.id} className="border-b border-border transition-colors last:border-0 hover:bg-emerald-50/40">
                   <td className="px-3 py-2">
                     <p className="font-medium">{m.name}</p>
                     {m.predicts && <p className="text-xs text-muted">{m.predicts}</p>}

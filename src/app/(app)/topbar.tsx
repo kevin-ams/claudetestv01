@@ -1,5 +1,8 @@
-import { logoutAction, switchTeamAction } from "@/lib/auth/actions";
+import { LogOut } from "lucide-react";
+import { logoutAction } from "@/lib/auth/actions";
 import type { SessionPayload } from "@/lib/auth/token";
+import { initials } from "@/lib/ui/modules";
+import { TeamSwitcher } from "./team-switcher";
 
 export function Topbar({
   session,
@@ -11,38 +14,29 @@ export function Topbar({
   teams: { id: number; name: string }[];
 }) {
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-8">
-      <div className="ml-10 flex items-center gap-2 md:ml-0">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border/70 bg-card/75 px-4 backdrop-blur-md md:px-8">
+      <div className="ml-12 flex items-center gap-2 md:ml-0">
+        <span className="h-2 w-2 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500" aria-hidden />
         <span className="font-semibold">{teamName}</span>
         {teams.length > 1 && (
-          <form
-            action={async (fd) => {
-              "use server";
-              await switchTeamAction(Number(fd.get("teamId")));
-            }}
-          >
-            <select
-              name="teamId"
-              defaultValue={session.teamId}
-              className="input ml-2 !w-auto text-xs"
-              onChange={(e) => e.currentTarget.form?.requestSubmit()}
-            >
-              {teams.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </form>
+          <TeamSwitcher currentTeamId={session.teamId} teams={teams} />
         )}
       </div>
       <div className="flex items-center gap-3">
-        <span className="hidden text-sm text-muted sm:inline">
-          {session.name}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="avatar h-8 w-8 text-xs" aria-hidden>
+            {initials(session.name)}
+          </span>
+          <span className="hidden text-sm font-medium sm:inline">{session.name}</span>
+        </div>
         <form action={logoutAction}>
-          <button type="submit" className="btn btn-secondary !px-3 !py-1.5 text-xs">
-            Salir
+          <button
+            type="submit"
+            className="btn btn-secondary !px-2.5 !py-1.5 text-xs"
+            aria-label="Cerrar sesión"
+          >
+            <LogOut size={14} aria-hidden />
+            <span className="hidden sm:inline">Salir</span>
           </button>
         </form>
       </div>

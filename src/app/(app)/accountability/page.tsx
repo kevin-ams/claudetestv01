@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth/session";
 import { listSeats } from "@/lib/domain/accountability";
 import { listTeamMembers } from "@/lib/domain/users";
 import { SeatTree } from "./seat-tree";
+import { PageHeader } from "@/components/page-header";
 
 export default async function AccountabilityPage() {
   const session = await getSession();
@@ -13,14 +14,12 @@ export default async function AccountabilityPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Organigrama de Responsabilidad</h1>
-        <p className="text-sm text-muted">
-          Quién es dueño de qué. Cada asiento tiene una persona y de 3 a 5
-          roles/responsabilidades claras.
-        </p>
-      </div>
+    <div className="tone-accountability mx-auto max-w-6xl">
+      <PageHeader
+        module="accountability"
+        title="Organigrama de Responsabilidad"
+        description="Quién es dueño de qué. Cada asiento tiene una persona y de 3 a 5 roles/responsabilidades claras."
+      />
       <SeatTree seats={seats} members={members} />
     </div>
   );

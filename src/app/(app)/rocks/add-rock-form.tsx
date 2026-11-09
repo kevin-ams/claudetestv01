@@ -29,7 +29,7 @@ export function AddRockForm({
         await createRockAction(fd);
         setOpen(false);
       }}
-      className="card flex w-full max-w-xl flex-col gap-2 p-4"
+      className="tile animate-in flex w-full max-w-xl flex-col gap-2 p-4 pt-5"
     >
       <input type="hidden" name="quarter" value={quarter} />
       <input type="hidden" name="year" value={year} />

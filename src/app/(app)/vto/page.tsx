@@ -10,6 +10,7 @@ import {
   saveThreeYearPicture,
   saveOneYearPlan,
 } from "./actions";
+import { PageHeader } from "@/components/page-header";
 
 function Bullets({ items }: { items: string[] }) {
   if (items.length === 0)
@@ -44,17 +45,18 @@ export default async function VTOPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Vision/Traction Organizer (V/TO)</h1>
-        <p className="text-sm text-muted">
-          El documento de una página que resume hacia dónde va tu empresa y cómo va a llegar.
-        </p>
-      </div>
+    <div className="tone-vto mx-auto max-w-6xl">
+      <PageHeader
+        module="vto"
+        title="Vision/Traction Organizer (V/TO)"
+        description="El documento de una página que resume hacia dónde va tu empresa y cómo va a llegar."
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="flex flex-col gap-6">
-          <h2 className="text-lg font-bold text-primary">VISIÓN</h2>
+        <section className="tone-vto stagger flex flex-col gap-6">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-wide text-tone">
+            <span className="h-5 w-1.5 rounded-full bg-tone" aria-hidden /> VISIÓN
+          </h2>
 
           <EditableSection
             title="Valores Centrales"
@@ -216,8 +218,10 @@ export default async function VTOPage() {
           />
         </section>
 
-        <section className="flex flex-col gap-6">
-          <h2 className="text-lg font-bold text-accent">TRACCIÓN</h2>
+        <section className="tone-orange stagger flex flex-col gap-6">
+          <h2 className="flex items-center gap-2 text-lg font-extrabold tracking-wide text-tone">
+            <span className="h-5 w-1.5 rounded-full bg-tone" aria-hidden /> TRACCIÓN
+          </h2>
 
           <EditableSection
             title="Plan a 1 año"
@@ -272,7 +276,7 @@ export default async function VTOPage() {
             }
           />
 
-          <div className="card p-5">
+          <div className="tone-rocks tile lift p-5">
             <h3 className="font-semibold">Rocks trimestrales</h3>
             <p className="mt-1 text-sm text-muted">
               Los Rocks de la organización y de cada persona viven en su propio
@@ -283,7 +287,7 @@ export default async function VTOPage() {
             </Link>
           </div>
 
-          <div className="card p-5">
+          <div className="tone-issues tile lift p-5">
             <h3 className="font-semibold">Issues List</h3>
             <p className="mt-1 text-sm text-muted">
               La lista maestra de obstáculos y oportunidades de la organización

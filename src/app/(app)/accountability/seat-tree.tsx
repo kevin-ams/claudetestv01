@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Seat } from "@/lib/domain/types";
 import type { PublicUser } from "@/lib/domain/types";
 import { createSeatAction, updateSeatAction, deleteSeatAction } from "./actions";
+import { initials } from "@/lib/ui/modules";
 
 type Props = {
   seats: Seat[];
@@ -103,7 +104,7 @@ function SeatNode({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="card w-72 p-4 text-center">
+      <div className="tone-accountability tile lift w-72 p-4 pt-5 text-center">
         {editing ? (
           <SeatForm
             members={members}
@@ -113,8 +114,11 @@ function SeatNode({
           />
         ) : (
           <>
+            <span className="avatar mx-auto mb-2 h-11 w-11 text-sm" aria-hidden>
+              {seat.user_id ? initials(userName(members, seat.user_id)) : "?"}
+            </span>
             <p className="font-semibold">{seat.title}</p>
-            <p className="text-sm text-primary">{userName(members, seat.user_id)}</p>
+            <p className="text-tone text-sm font-medium">{userName(members, seat.user_id)}</p>
             {seat.roles.length > 0 && (
               <ul className="mt-2 space-y-0.5 text-left text-xs text-muted">
                 {seat.roles.map((r, i) => (

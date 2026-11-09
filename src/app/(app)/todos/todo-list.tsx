@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import type { Todo, PublicUser } from "@/lib/domain/types";
+import { SectionTitle } from "@/components/page-header";
 import { completeTodoAction, deleteTodoAction, createTodoAction } from "./actions";
 
 function isOverdue(todo: Todo) {
@@ -25,7 +26,7 @@ export function TodoList({
 
   return (
     <div className="flex flex-col gap-6">
-      <form action={createTodoAction} className="card flex flex-wrap items-center gap-2 p-4">
+      <form action={createTodoAction} className="tile animate-in flex flex-wrap items-center gap-2 p-4 pt-5">
         <input name="title" required className="input flex-1 min-w-[200px]" placeholder="Nuevo to-do" />
         <select name="ownerId" defaultValue="none" className="input !w-auto">
           <option value="none">Sin dueño</option>
@@ -42,15 +43,16 @@ export function TodoList({
       </form>
 
       <div>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-          Pendientes ({open.length})
-        </h2>
+        <SectionTitle count={open.length}>Pendientes</SectionTitle>
         {open.length === 0 ? (
-          <p className="text-sm text-muted">No hay to-dos pendientes.</p>
+          <p className="tile p-6 text-center text-sm text-muted">🎉 No hay to-dos pendientes.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
+          <ul className="stagger flex flex-col gap-2">
             {open.map((t) => (
-              <li key={t.id} className="card flex items-center gap-3 p-3">
+              <li
+                key={t.id}
+                className={`${isOverdue(t) ? "tone-red" : "tone-todos"} card lift accent-left flex items-center gap-3 p-3`}
+              >
                 <input
                   type="checkbox"
                   onChange={(e) =>
@@ -64,7 +66,9 @@ export function TodoList({
                     {t.due_date && ` · Vence ${t.due_date}`}
                   </p>
                 </div>
-                {isOverdue(t) && <span className="badge bg-red-bg text-red">Vencido</span>}
+                {isOverdue(t) && (
+                  <span className="badge bg-rose-100 text-rose-700">Vencido</span>
+                )}
                 <button className="text-xs text-red" onClick={() => deleteTodoAction(t.id)}>
                   ✕
                 </button>
@@ -75,12 +79,10 @@ export function TodoList({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-          Completados ({done.length})
-        </h2>
+        <SectionTitle count={done.length}>Completados</SectionTitle>
         <ul className="flex flex-col gap-2">
           {done.map((t) => (
-            <li key={t.id} className="card flex items-center gap-3 p-3 opacity-70">
+            <li key={t.id} className="tone-green card accent-left flex items-center gap-3 p-3 opacity-70">
               <input
                 type="checkbox"
                 defaultChecked

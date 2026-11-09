@@ -18,7 +18,7 @@ export function EditableSection({
   const [editing, setEditing] = useState(false);
 
   return (
-    <div className="card p-5">
+    <div className="tile lift p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{title}</h3>
@@ -26,7 +26,7 @@ export function EditableSection({
         </div>
         <button
           type="button"
-          className="shrink-0 text-xs font-medium text-primary underline"
+          className="bg-tone-soft text-tone shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-transform hover:scale-105"
           onClick={() => setEditing((e) => !e)}
         >
           {editing ? "Cancelar" : "Editar"}

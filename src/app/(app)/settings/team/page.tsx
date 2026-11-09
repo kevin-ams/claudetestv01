@@ -3,6 +3,10 @@ import { listTeamMembersDetailed } from "@/lib/domain/users";
 import { getTeam } from "@/lib/domain/teams";
 import { AddTeammateForm } from "./add-teammate-form";
 import { renameTeamAction } from "./actions";
+import { initials } from "@/lib/ui/modules";
+import { PageHeader } from "@/components/page-header";
+
+const AVATAR_TONES = ["tone-dashboard", "tone-scorecard", "tone-rocks", "tone-issues", "tone-accountability", "tone-meeting"];
 
 export default async function TeamSettingsPage() {
   const session = await getSession();
@@ -14,13 +18,12 @@ export default async function TeamSettingsPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Equipo</h1>
-        <p className="text-sm text-muted">
-          Administra quién tiene acceso a {team?.name ?? "tu equipo"}.
-        </p>
-      </div>
+    <div className="tone-team mx-auto max-w-2xl">
+      <PageHeader
+        module="team"
+        title="Equipo"
+        description={`Administra quién tiene acceso a ${team?.name ?? "tu equipo"}.`}
+      />
 
       {session.role === "admin" && (
         <form action={renameTeamAction} className="card mb-6 flex items-center gap-2 p-4">
@@ -40,17 +43,25 @@ export default async function TeamSettingsPage() {
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
           Miembros ({members.length})
         </h2>
-        <ul className="flex flex-col gap-2">
-          {members.map((m) => (
-            <li key={m.id} className="flex items-center justify-between text-sm">
-              <div>
+        <ul className="stagger flex flex-col gap-1">
+          {members.map((m, i) => (
+            <li
+              key={m.id}
+              className="flex items-center justify-between rounded-lg p-2 text-sm transition-colors hover:bg-background"
+            >
+              <div className="flex items-center gap-3">
+                <span className={`${AVATAR_TONES[i % AVATAR_TONES.length]} avatar h-9 w-9 text-xs`} aria-hidden>
+                  {initials(m.name)}
+                </span>
+                <div>
                 <p className="font-medium">{m.name}</p>
                 <p className="text-xs text-muted">
                   {m.email}
                   {m.seat_title && ` · ${m.seat_title}`}
                 </p>
+                </div>
               </div>
-              <span className="badge bg-background text-muted">
+              <span className={`badge ${m.role === "admin" ? "bg-indigo-100 text-indigo-700" : "bg-background text-muted"}`}>
                 {m.role === "admin" ? "Admin" : "Miembro"}
               </span>
             </li>

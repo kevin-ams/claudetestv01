@@ -3,8 +3,10 @@ import { getSession } from "@/lib/auth/session";
 import { listRocks, listMilestonesForRocks } from "@/lib/domain/rocks";
 import { listTeamMembers } from "@/lib/domain/users";
 import { currentQuarter } from "@/lib/utils/dates";
+import { initials } from "@/lib/ui/modules";
 import { RockCard } from "./rock-card";
 import { AddRockForm } from "./add-rock-form";
+import { PageHeader, SectionTitle } from "@/components/page-header";
 
 function quarterHref(quarter: number, year: number) {
   return `/rocks?quarter=${quarter}&year=${year}`;
@@ -57,26 +59,40 @@ export default async function RocksPage({
   const next = shiftQuarter(quarter, year, 1);
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Rocks</h1>
-          <p className="text-sm text-muted">
-            Prioridades de 90 días: de la empresa y de cada persona.
-          </p>
+    <div className="tone-rocks mx-auto max-w-5xl">
+      <PageHeader
+        module="rocks"
+        title="Rocks"
+        description="Prioridades de 90 días: de la empresa y de cada persona."
+        actions={
+          <>
+            <Link href={quarterHref(prev.quarter, prev.year)} className="btn btn-secondary">
+              ← Q{prev.quarter} {prev.year}
+            </Link>
+            <span className="bg-tone rounded-full px-3 py-1 text-sm font-bold text-white shadow-sm">
+              Q{quarter} {year}
+            </span>
+            <Link href={quarterHref(next.quarter, next.year)} className="btn btn-secondary">
+              Q{next.quarter} {next.year} →
+            </Link>
+          </>
+        }
+      />
+
+      {rocks.length > 0 && (
+        <div className="stagger mb-6 grid grid-cols-3 gap-3">
+          {[
+            { label: "Completados", n: rocks.filter((r) => r.status === "done").length, tone: "tone-green" },
+            { label: "On track", n: rocks.filter((r) => r.status === "on_track").length, tone: "tone-accountability" },
+            { label: "Off track", n: rocks.filter((r) => r.status === "off_track").length, tone: "tone-red" },
+          ].map((s) => (
+            <div key={s.label} className={`${s.tone} tile p-4`}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{s.label}</p>
+              <p className="text-tone mt-1 text-3xl font-extrabold">{s.n}</p>
+            </div>
+          ))}
         </div>
-        <div className="flex items-center gap-3">
-          <Link href={quarterHref(prev.quarter, prev.year)} className="btn btn-secondary">
-            ← Q{prev.quarter} {prev.year}
-          </Link>
-          <span className="font-semibold">
-            Q{quarter} {year}
-          </span>
-          <Link href={quarterHref(next.quarter, next.year)} className="btn btn-secondary">
-            Q{next.quarter} {next.year} →
-          </Link>
-        </div>
-      </div>
+      )}
 
       <div className="mb-6">
         <AddRockForm members={members} quarter={quarter} year={year} />
@@ -84,13 +100,11 @@ export default async function RocksPage({
 
       <div className="flex flex-col gap-8">
         <div>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-            Rocks de la empresa
-          </h2>
+          <SectionTitle count={companyRocks.length}>Rocks de la empresa</SectionTitle>
           {companyRocks.length === 0 ? (
             <p className="text-sm text-muted">Sin Rocks de empresa este trimestre.</p>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="stagger grid gap-3 md:grid-cols-2">
               {companyRocks.map((r) => (
                 <RockCard
                   key={r.id}
@@ -104,19 +118,20 @@ export default async function RocksPage({
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-            Rocks individuales
-          </h2>
+          <SectionTitle count={individualRocks.length}>Rocks individuales</SectionTitle>
           {individualRocks.length === 0 ? (
             <p className="text-sm text-muted">Sin Rocks individuales este trimestre.</p>
           ) : (
             <div className="flex flex-col gap-6">
               {Array.from(byOwner.entries()).map(([ownerId, ownerRocks]) => (
                 <div key={ownerId ?? "none"}>
-                  <p className="mb-2 text-sm font-semibold">
+                  <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
+                    <span className="avatar h-6 w-6 text-[10px]" aria-hidden>
+                      {initials(members.find((m) => m.id === ownerId)?.name ?? "?")}
+                    </span>
                     {members.find((m) => m.id === ownerId)?.name ?? "Sin dueño"}
                   </p>
-                  <div className="grid gap-3 md:grid-cols-2">
+                  <div className="stagger grid gap-3 md:grid-cols-2">
                     {ownerRocks.map((r) => (
                       <RockCard
                         key={r.id}
