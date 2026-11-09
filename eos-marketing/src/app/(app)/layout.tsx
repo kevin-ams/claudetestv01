@@ -48,7 +48,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         counts={{ todos: openTodos, issues: openIssues }}
         allowed={MODULES.filter((m) => access?.level(m.key) !== "none").map((m) => m.key)}
       />
-      <div className="flex min-w-0 flex-1 flex-col transition-[padding] duration-200 md:pl-64 md:group-data-[collapsed=true]/shell:pl-16">
+      <div className="flex min-w-0 flex-1 flex-col transition-[padding] duration-200 md:pl-[252px] md:group-data-[collapsed=true]/shell:pl-[68px]">
         <Topbar
           session={session}
           teams={teams}

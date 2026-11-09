@@ -138,6 +138,126 @@ body {
   color: var(--foreground);
 }
 
+/* ------------------------------------------------------------------ */
+/* Superficies de vidrio (liquid glass) y acentos.                    */
+/* Solo para lo que flota: menú, barra superior y avisos. El color    */
+/* sale del equipo (--primary), así funciona en claro, oscuro y con   */
+/* cualquier color de Ajustes > Apariencia.                           */
+/* ------------------------------------------------------------------ */
+:root {
+  --glass-bg: color-mix(in oklab, var(--card) 62%, transparent);
+  --glass-bg-strong: color-mix(in oklab, var(--card) 80%, transparent);
+  --glass-border: rgb(255 255 255 / 0.75);
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.85) inset, 0 8px 28px -16px rgb(16 24 40 / 0.18);
+  --glass-active: rgb(255 255 255 / 0.92);
+  --glass-active-shadow: 0 1px 0 #fff inset, 0 2px 10px -5px rgb(16 24 40 / 0.2);
+  --ambient: color-mix(in oklab, var(--primary) 16%, transparent);
+  --ambient-2: color-mix(in oklab, var(--primary) 9%, transparent);
+  --lift-shadow: 0 12px 26px -18px rgb(16 24 40 / 0.35);
+}
+.dark,
+[data-theme="dark"] {
+  --glass-bg: color-mix(in oklab, var(--card) 58%, transparent);
+  --glass-bg-strong: color-mix(in oklab, var(--card) 82%, transparent);
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-shadow: 0 1px 0 rgb(255 255 255 / 0.05) inset, 0 10px 30px -16px rgb(0 0 0 / 0.7);
+  --glass-active: rgb(255 255 255 / 0.09);
+  --glass-active-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset;
+  --ambient: color-mix(in oklab, var(--primary) 14%, transparent);
+  --ambient-2: color-mix(in oklab, var(--primary) 7%, transparent);
+  --lift-shadow: 0 12px 26px -18px rgb(0 0 0 / 0.8);
+}
+
+/* Luz de fondo muy tenue del color del equipo: le da algo que "refractar" al vidrio. */
+.ambient-bg {
+  position: relative;
+  isolation: isolate;
+}
+.ambient-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(560px 420px at 100% -8%, var(--ambient), transparent 70%),
+    radial-gradient(480px 380px at 18% 108%, var(--ambient-2), transparent 70%);
+}
+
+.glass,
+.glass-strong {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.glass-strong {
+  background: var(--glass-bg-strong);
+}
+/* Sin soporte de desenfoque o con "reducir transparencia": superficie sólida. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .glass-strong { background: var(--card); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .glass-strong { background: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+/* Elemento activo del menú: pastilla en relieve. */
+.nav-active {
+  background: var(--glass-active);
+  box-shadow: var(--glass-active-shadow);
+}
+
+/* Tarjeta enlazada: sube 2px al pasar el cursor. */
+.lift {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lift-shadow);
+}
+
+/* La única tarjeta destacada del Dashboard: color del equipo con un brillo suave. */
+.surface-hero {
+  color: var(--brand-foreground);
+  background:
+    radial-gradient(240px 150px at 100% 0%, rgb(255 255 255 / 0.2), transparent 70%),
+    linear-gradient(160deg, color-mix(in oklab, var(--brand) 86%, white), var(--brand) 55%, color-mix(in oklab, var(--brand) 82%, black));
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.22) inset, 0 6px 16px -12px color-mix(in oklab, var(--brand) 70%, transparent);
+}
+.dark .surface-hero,
+[data-theme="dark"] .surface-hero {
+  background:
+    radial-gradient(240px 150px at 100% 0%, rgb(255 255 255 / 0.1), transparent 70%),
+    linear-gradient(160deg, color-mix(in oklab, var(--brand) 92%, white), var(--brand) 55%, color-mix(in oklab, var(--brand) 70%, black));
+  border: 1px solid rgb(255 255 255 / 0.1);
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.12) inset;
+}
+.surface-hero-chip {
+  background: rgb(255 255 255 / 0.18);
+  border: 1px solid rgb(255 255 255 / 0.25);
+  color: inherit;
+}
+
+/* Punto que late (reunión en curso). */
+.pulse-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: var(--primary);
+  animation: pulse-dot 1.6s ease-out infinite;
+}
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 50%, transparent); }
+  100% { box-shadow: 0 0 0 9px transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+  .lift, .lift:hover { transition: none; transform: none; }
+}
+
 /* Organigrama: líneas que unen cada puesto con los puestos que le reportan
    (solo los nodos del árbol, no las listas dentro de las tarjetas). */
 .ac-children {

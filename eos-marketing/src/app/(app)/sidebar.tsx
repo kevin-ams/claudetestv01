@@ -44,8 +44,8 @@ function NavLink({
       aria-label={collapsed ? item.label : undefined}
       className={`relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-sm transition-colors outline-none focus-visible:ring-2 focus-visible:ring-focus ${
         active
-          ? "bg-accent-soft font-medium text-foreground"
-          : "text-foreground/80 hover:bg-default hover:text-foreground"
+          ? "nav-active font-semibold text-foreground"
+          : "text-foreground/80 hover:bg-foreground/5 hover:text-foreground"
       } ${collapsed ? "md:justify-center md:px-0" : ""}`}
     >
       <Icon className={`size-4 shrink-0 ${active ? "text-accent" : "text-muted"}`} aria-hidden />
@@ -112,9 +112,9 @@ export function Sidebar({
 
       <aside
         aria-label="Menú principal"
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-sidebar transition-[width,transform] duration-200 md:translate-x-0 ${
-          mobileOpen ? "translate-x-0 shadow-xl" : "-translate-x-full"
-        } ${narrow ? "md:w-16" : ""}`}
+        className={`glass-strong fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-hidden rounded-r-2xl transition-[width,transform] duration-200 md:inset-y-3 md:left-3 md:translate-x-0 md:rounded-2xl ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        } ${narrow ? "md:w-14" : "md:w-60"}`}
       >
         <div className={`flex h-16 shrink-0 items-center gap-2.5 px-3 ${narrow ? "md:justify-center md:px-0" : ""}`}>
           {logoUrl ? (
@@ -182,7 +182,7 @@ export function Sidebar({
         </nav>
 
         {showSettings && (
-          <div className="border-t border-border p-2">
+          <div className="border-t border-foreground/10 p-2">
             <NavLink
               item={SETTINGS_ITEM}
               active={isActive(pathname, SETTINGS_ITEM.href)}
