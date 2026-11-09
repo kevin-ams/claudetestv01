@@ -17,7 +17,7 @@ export function Topbar({
   avatar: { src: string | null; color: string } | null;
 }) {
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-border bg-background/85 px-3 backdrop-blur md:px-6">
+    <header className="glass sticky top-2 z-20 mx-2 mt-2 flex h-14 items-center justify-between gap-2 rounded-2xl px-1.5 md:top-3 md:ml-3 md:mr-4 md:mt-3 md:gap-3 md:px-3">
       <SidebarToggle />
       <div className="flex items-center gap-2">
         {teams.length > 1 && <TeamSwitcher currentTeamId={session.teamId} teams={teams} />}

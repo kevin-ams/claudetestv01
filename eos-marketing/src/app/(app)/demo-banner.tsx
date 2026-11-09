@@ -14,7 +14,7 @@ export function DemoBanner() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="border-b border-yellow/30 bg-yellow-bg px-4 py-2 text-sm text-yellow md:px-8">
+    <div className="mx-2 mt-2 rounded-xl md:mt-3 border border-yellow/30 bg-yellow-bg px-4 py-2 text-sm text-yellow md:ml-3 md:mr-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span>
           <b>Modo demo:</b> estás viendo información de ejemplo. Nada de lo que hagas aquí afecta tus datos reales.

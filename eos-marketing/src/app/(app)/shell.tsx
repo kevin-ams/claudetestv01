@@ -37,7 +37,7 @@ export function AppShell({ initialCollapsed, children }: { initialCollapsed: boo
 
   return (
     <ShellContext value={{ collapsed, mobileOpen, setMobileOpen, toggleSidebar }}>
-      <div className="group/shell flex min-h-screen flex-1 bg-background" data-collapsed={collapsed}>
+      <div className="ambient-bg group/shell flex min-h-screen flex-1 bg-background" data-collapsed={collapsed}>
         {children}
       </div>
     </ShellContext>
