@@ -15,6 +15,7 @@ import { AppShell } from "./shell";
 import { countOpenIssues } from "@/lib/domain/issues";
 import { countOpenTodos } from "@/lib/domain/todos";
 import { brandStyleSheet, DEFAULT_THEME_COLOR, SIDEBAR_COOKIE } from "@/lib/theme";
+import { ClarityIdentify } from "@/components/clarity-identify";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await getSession();
@@ -54,7 +55,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           avatar={profile ? { src: avatarUrl(profile), color: profile.color } : null}
         />
         {team?.is_demo && <DemoBanner />}
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+        {/* Clarity oculta el texto del contenido (datos del equipo); se ven la navegación, clics y desplazamiento. */}
+        <main className="flex-1 px-4 py-6 md:px-8" data-clarity-mask="true">{children}</main>
+        <ClarityIdentify userId={session.userId} teamId={session.teamId} role={access?.roleName ?? "Usuario"} />
         {announcements.ads.length > 0 && (
           <AnnouncementPopup
             teamId={session.teamId}

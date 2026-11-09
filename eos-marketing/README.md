@@ -221,6 +221,10 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el
   dueño asigna o quita el rol Premium (también validado en el servidor). Dueño: correos en `PLATFORM_OWNER_EMAILS`
   (opcional); si no, cuentas con `users.is_platform_owner`; si no, la primera cuenta creada. Migración 036.
+- **Analítica con Microsoft Clarity** — mapas de calor y grabaciones de sesión. Se activa solo con la variable
+  `CLARITY_PROJECT_ID` en Netlify (ID público del proyecto en clarity.microsoft.com; requiere un deploy para tomarla).
+  El texto del contenido (`<main>`) va enmascarado; las sesiones se etiquetan con `u<id>`, equipo y rol (sin nombres ni
+  correos). Código: `src/lib/analytics.ts`, `src/components/clarity-identify.tsx`.
 - **L10: quien dirige controla la vista** — solo quien dirige (o cualquiera si nadie dirige) cambia de sección, regresa o
   finaliza; los demás ven la barra deshabilitada con el aviso "Dirige X" y se actualizan cada ~5 s. Un administrador
   puede cambiar quién dirige y descartar la reunión. El servidor también lo valida.

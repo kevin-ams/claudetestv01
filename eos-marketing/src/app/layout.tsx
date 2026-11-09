@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { THEME_COOKIE, THEME_INIT_SCRIPT, parseMode } from "@/lib/theme";
+import { clarityProjectId, clarityScript } from "@/lib/analytics";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   // Con "sistema" el servidor no sabe si el equipo está en oscuro: lo decide
   // el script del <head> antes de pintar.
   const resolved = mode === "system" ? undefined : mode;
+  const clarity = clarityProjectId();
 
   return (
     <html
@@ -29,6 +31,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         {/* Va al inicio del <body> (no en <head>): Netlify inserta un comentario en el
             <head> y React se quejaría al hidratar un <head> propio. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Clarity: solo si está configurado (CLARITY_PROJECT_ID en Netlify). */}
+        {clarity && <script dangerouslySetInnerHTML={{ __html: clarityScript(clarity) }} />}
         {children}
       </body>
     </html>
