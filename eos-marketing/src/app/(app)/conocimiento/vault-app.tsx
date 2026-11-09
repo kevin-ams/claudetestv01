@@ -114,10 +114,20 @@ export function VaultApp({
   );
 
   // Abre la nota del enlace (?nota=) al entrar.
+  // ?nota=<id> abre esa nota; ?abrir=<título o ruta> la busca por nombre (enlaces del Asistente IA).
   const initial = useRef(params.get("nota"));
+  const byName = useRef(params.get("abrir"));
   useEffect(() => {
-    if (initial.current) openNote(Number(initial.current), false);
-  }, [openNote]);
+    if (initial.current) {
+      openNote(Number(initial.current), false);
+      initial.current = null;
+    } else if (byName.current) {
+      const hit = byKey.get(normalizeKey(byName.current));
+      if (hit) openNote(hit.id);
+      else setFilter(byName.current);
+      byName.current = null;
+    }
+  }, [openNote, byKey]);
 
   const save = useCallback(
     async (force = false) => {

@@ -221,6 +221,12 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el
   dueño asigna o quita el rol Premium (también validado en el servidor). Dueño: correos en `PLATFORM_OWNER_EMAILS`
   (opcional); si no, cuentas con `users.is_platform_owner`; si no, la primera cuenta creada. Migración 036.
+- **Asistente IA (Etapa 8, premium)** — `/asistente`: preguntas en lenguaje natural sobre el EOS y el vault. Usa en el
+  servidor las mismas herramientas del MCP (solo lectura, con los permisos del rol) y Claude por la API de Anthropic
+  (`ANTHROPIC_API_KEY` en Netlify; sin ella queda apagado). Topes: mensual por organización (USD, por omisión $5), preguntas
+  por persona en 24 h (20) y tope global de la plataforma (`AI_GLOBAL_MONTHLY_CAP_USD`, por omisión $20). Caché de 30 min
+  para la misma primera pregunta (mismo equipo y rol). Panel en Ajustes › Asistente IA (consumo por persona y día); topes y
+  modelo solo los cambia el dueño de la plataforma. Código: `src/lib/ai/*`, `src/lib/domain/ai-usage.ts`. Migración 042.
 - **Analítica con Microsoft Clarity** — mapas de calor y grabaciones de sesión. Se activa solo con la variable
   `CLARITY_PROJECT_ID` en Netlify (ID público del proyecto en clarity.microsoft.com; requiere un deploy para tomarla).
   El texto del contenido (`<main>`) va enmascarado; las sesiones se etiquetan con `u<id>`, equipo y rol (sin nombres ni

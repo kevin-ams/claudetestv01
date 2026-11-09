@@ -14,6 +14,7 @@ import { getTeam } from "@/lib/domain/teams";
 import { listArchivedMetrics } from "@/lib/domain/scorecard";
 import { getDemoTeamFor } from "@/lib/domain/demo";
 import { THEME_PRESETS } from "@/lib/theme";
+import { aiConfigured } from "@/lib/domain/ai-usage";
 import {
   Archive,
   ArrowUpFromSquare,
@@ -120,6 +121,12 @@ const SECTIONS = [
     description: "Ver la plataforma con datos de ejemplo para presentaciones, y desactivarlos.",
   },
   {
+    href: "/ajustes/asistente",
+    Icon: Comment,
+    title: "Asistente IA",
+    description: "Consumo del mes, tope mensual, límite de preguntas por persona y modelo que responde (premium).",
+  },
+  {
     href: "/ajustes/log",
     Icon: FileText,
     title: "Log",
@@ -165,6 +172,7 @@ export default async function AjustesIndexPage() {
     "/ajustes/apariencia": THEME_PRESETS.find((p) => p.color === team?.theme_color)?.name ?? "Color personalizado",
     "/ajustes/roles": `${roles.length} roles`,
     "/ajustes/log": "Solo administradores",
+    "/ajustes/asistente": aiConfigured() ? "Solo administradores" : "Sin configurar",
     "/perfil": "Para cada persona",
     "/ajustes/listas": `${options.facultad.length} facultades · ${options.pilar.length} pilares`,
     "/ajustes/activecampaign": isActiveCampaignConfigured()

@@ -21,7 +21,7 @@ export default async function RolesPage() {
       />
       <p className="rounded-lg border border-border bg-card px-3 py-2 text-sm text-muted">
         <b className="text-foreground">Premium:</b> el rol <b>Administrador Premium</b> incluye todo lo de Administrador más los módulos
-        premium (Conocimiento / Vault). Solo el dueño de la plataforma ({ownerName}
+        premium (Conocimiento / Vault y Asistente IA). Solo el dueño de la plataforma ({ownerName}
         {owner ? ", tú" : ""}) puede asignarlo a una persona o abrir un módulo premium a otro rol.
       </p>
       <RolesEditor roles={roles} canEdit={access.isAdmin} isOwner={owner} />

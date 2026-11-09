@@ -19,6 +19,7 @@ export const MODULES = [
   { key: "reportes_semanales", label: "Reportes semanales", href: "/reportes-semanales" },
   { key: "herramientas", label: "Otras herramientas", href: "/herramientas" },
   { key: "conocimiento", label: "Conocimiento (Vault)", href: "/conocimiento" },
+  { key: "asistente", label: "Asistente IA", href: "/asistente" },
   { key: "ajustes", label: "Ajustes (apariencia, hitos, anuncios, demo, exportar)", href: "/ajustes" },
 ] as const;
 
@@ -41,7 +42,7 @@ export const ADMIN_ONLY_MODULES: readonly ModuleKey[] = ["dashboard_ac"];
  * Módulos premium: incluidos en el rol "Administrador Premium". Los demás roles (incluido Administrador) no los tienen,
  * salvo que el dueño de la plataforma los active en Ajustes › Roles.
  */
-export const PREMIUM_MODULES: readonly ModuleKey[] = ["conocimiento"];
+export const PREMIUM_MODULES: readonly ModuleKey[] = ["conocimiento", "asistente"];
 
 export function levelFor(permissions: Permissions, isAdmin: boolean, module: ModuleKey, isPremium = false): AccessLevel {
   if (PREMIUM_MODULES.includes(module)) return isPremium ? "edit" : (permissions[module] ?? "none");

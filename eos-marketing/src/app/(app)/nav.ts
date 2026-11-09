@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Comments,
   Calendar,
   Camera,
   ChartColumn,
@@ -75,7 +76,10 @@ export const NAV_GROUPS: { label: string | null; items: NavItem[] }[] = [
   },
   {
     label: "Conocimiento",
-    items: [{ href: "/conocimiento", label: "Vault", Icon: BookOpen }],
+    items: [
+      { href: "/conocimiento", label: "Vault", Icon: BookOpen },
+      { href: "/asistente", label: "Asistente IA", Icon: Comments },
+    ],
   },
   {
     label: "Herramientas",
