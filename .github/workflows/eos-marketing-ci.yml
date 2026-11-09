@@ -1,0 +1,58 @@
+# CI de EOS Nivel 10 (ISO 27001 8.8, 8.25, 8.29, 8.32): cada push y PR que toca eos-marketing pasa por
+# tipos, lint, pruebas (incluidas las de seguridad y aislamiento), dependencias vulnerables y búsqueda de secretos.
+name: eos-marketing CI
+
+on:
+  push:
+    paths: ["eos-marketing/**", ".github/workflows/eos-marketing-ci.yml"]
+  pull_request:
+    paths: ["eos-marketing/**", ".github/workflows/eos-marketing-ci.yml"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: eos-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: eos-marketing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: eos-marketing/package-lock.json
+      - run: npm ci
+      - name: Tipos de rutas
+        run: npx next typegen
+      - name: TypeScript
+        run: npx tsc --noEmit -p .
+      - name: Lint (incluye la regla de variables de entorno)
+        run: npx eslint src tests scripts
+      - name: Pruebas
+        run: npm test
+      - name: Dependencias (falla con avisos altos o críticos)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Build sin secretos en el navegador
+        run: npm run build && node scripts/check-client-secrets.mjs
+        env:
+          EOS_FORCE_LOCAL_DB: "1"
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Búsqueda de secretos en el historial (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

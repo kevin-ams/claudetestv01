@@ -1,9 +1,9 @@
-import { timingSafeEqual } from "node:crypto";
 import { finishSync, scanStep, writeWeek } from "@/lib/domain/ac-sync";
 import { isActiveCampaignConfigured } from "@/lib/integrations/activecampaign";
 import { shiftWeek, weekStartISO } from "@/lib/utils/dates";
 import { TIMEZONE } from "@/lib/config/shared";
 import { config } from "@/lib/config/server";
+import { cronAuthorized } from "@/lib/security/cron-auth";
 
 const TZ = TIMEZONE;
 
@@ -16,13 +16,8 @@ const TZ = TIMEZONE;
  * anterior (para incluir los tratos que entraron en sus últimas horas).
  */
 export async function POST(request: Request) {
-  const secret = config.app.cronSecret() ?? "";
-  const given = (request.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const ok = secret.length >= 16 && given.length === secret.length && timingSafeEqual(Buffer.from(given), Buffer.from(secret));
-  if (!ok) {
-    // Sin revelar el secreto: indica si falta configurarlo en el servidor.
-    return Response.json({ error: secret.length < 16 ? "CRON_SECRET no está configurado en el servidor" : "No autorizado" }, { status: 401 });
-  }
+  const auth = cronAuthorized(request);
+  if (!auth.ok) return auth.response;
   if (!isActiveCampaignConfigured()) {
     const missing = [
       ...(config.activeCampaign.url() ? [] : ["ACTIVECAMPAIGN_API_URL"]),

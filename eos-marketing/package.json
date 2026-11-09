@@ -10,7 +10,8 @@
     "prebuild": "node scripts/gen-migrations.mjs && node scripts/copy-pdf-worker.mjs && node scripts/migrate.mjs",
     "migrate": "node scripts/migrate.mjs",
     "predev": "node scripts/copy-pdf-worker.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:secrets": "node scripts/check-client-secrets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",

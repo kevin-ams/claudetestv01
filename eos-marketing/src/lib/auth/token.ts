@@ -27,8 +27,10 @@ export async function signSession(payload: SessionPayload): Promise<string> {
 export async function verifySession(
   token: string
 ): Promise<SessionPayload | null> {
+  // Fuera del try: si falta AUTH_SECRET en producción es un error de configuración y debe verse (no "sesión inválida").
+  const key = secretKey();
   try {
-    const { payload } = await jwtVerify(token, secretKey());
+    const { payload } = await jwtVerify(token, key);
     if (
       typeof payload.userId !== "number" ||
       typeof payload.teamId !== "number"

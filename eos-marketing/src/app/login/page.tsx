@@ -41,6 +41,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             <Link prefetch={false} href="/setup" className="font-medium text-primary underline">
               Configura tu equipo
             </Link>
+            {" · "}
+            <Link prefetch={false} href="/privacidad" className="text-primary underline">
+              Privacidad
+            </Link>
           </span>
         </Card.Footer>
       </Card>

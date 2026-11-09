@@ -1,0 +1,17 @@
+# Actualizaciones de dependencias (ISO 27001 8.8). Las de seguridad llegan como PR en cuanto se publican;
+# las normales, una vez por semana y agrupadas para no llenar de PRs.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /eos-marketing
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      menores:
+        update-types: ["minor", "patch"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

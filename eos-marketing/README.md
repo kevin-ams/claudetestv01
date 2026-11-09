@@ -221,6 +221,12 @@ Para el agente de IA: el skill `heroui-react` está en `.claude/skills/` y el se
   Administrador, no ven los módulos premium salvo que el **dueño de la plataforma** los active en Ajustes › Roles. Solo el
   dueño asigna o quita el rol Premium (también validado en el servidor). Dueño: correos en `PLATFORM_OWNER_EMAILS`
   (opcional); si no, cuentas con `users.is_platform_owner`; si no, la primera cuenta creada. Migración 036.
+- **Seguridad (ISO 27001 / OWASP ASVS)** — informe y procedimientos en `docs/seguridad/`. Configuración solo por
+  `src/lib/config/server.ts` (lint prohíbe `process.env` fuera de ahí; sin `AUTH_SECRET` en producción no hay sesiones);
+  límite de intentos; doble factor opcional (Ajustes › Seguridad lo habilita el Administrador Premium; cada persona lo
+  activa en Mi perfil); bitácora de seguridad inmutable (1 año) y revisión de accesos; respaldos solo para el dueño de la
+  plataforma; encabezados de seguridad y CSP en modo reporte (`/api/csp-report`); retención semanal
+  (`maintenance-weekly`); aviso `/privacidad`; CI en `.github/workflows/eos-marketing-ci.yml`. Migración 043.
 - **Asistente IA (Etapa 8, premium)** — `/asistente`: preguntas en lenguaje natural sobre el EOS y el vault. Usa en el
   servidor las mismas herramientas del MCP (solo lectura, con los permisos del rol) y Claude por la API de Anthropic
   (`ANTHROPIC_API_KEY` en Netlify; sin ella queda apagado). Topes: mensual por organización (USD, por omisión $5), preguntas
