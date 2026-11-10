@@ -36,11 +36,13 @@
 
 	<!-- Background Ambient Glow Canvas & Blobs -->
 	<div class="fixed inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
-		<div class="ambient-blob w-[500px] h-[500px] bg-brand-blue top-[-100px] left-[-100px]"></div>
-		<div class="ambient-blob w-[600px] h-[600px] bg-indigo-900 bottom-[-200px] right-[-100px]"></div>
+		<div class="ambient-blob w-[500px] h-[500px] bg-brand-blue top-[-100px] left-[-100px]" data-parallax="-25"></div>
+		<div class="ambient-blob w-[600px] h-[600px] bg-indigo-900 bottom-[-200px] right-[-100px]" data-parallax="20"></div>
 		<div class="ambient-blob w-[400px] h-[400px] bg-brand-periwinkle top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
 		<canvas id="ambientCanvas" class="absolute inset-0 w-full h-full opacity-30"></canvas>
 	</div>
+
+	<div class="ams-progress" aria-hidden="true"></div>
 
 	<a class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-brand-blue focus:text-white" href="#main"><?php esc_html_e( 'Saltar al contenido', 'ams-studio' ); ?></a>
 

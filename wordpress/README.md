@@ -8,6 +8,24 @@ Réplica del sitio oficial de AMS Studio (Crystal Glassmorphism, luz azul real y
 - El botón luna/sol del menú permite elegir otro modo; esa elección se recuerda en el navegador del visitante y tiene prioridad.
 - Las secciones aparecen con una animación al hacer scroll. Si el visitante tiene activado "reducir movimiento", o si el JavaScript tarda en cargar, se muestran sin animación (nunca quedan ocultas).
 
+## Animaciones (GSAP)
+
+Inspiradas en guillaumezhu.com, pero solo las ligeras, para no frenar la navegación. Usan GSAP 3.15 con ScrollTrigger y SplitText, incluidos en el tema (`assets/js/vendor/`, unos 48 KB comprimidos) y cargados solo en la portada. El código está en `assets/js/animations.js`.
+
+| Dónde | Efecto |
+|---|---|
+| Todo el sitio | Barra de progreso de lectura arriba; el menú se esconde al bajar y vuelve al subir |
+| Hero | Insignia, titular palabra por palabra, texto y botones en secuencia al cargar |
+| Fondo | Las luces azules se desplazan un poco más lento que la página (parallax) |
+| Action. Mindset. Strategy. | Las letras entran en ola siguiendo el scroll (el efecto distintivo del sitio de referencia, usado una sola vez) |
+| Títulos de Capacidades, Ecosistema y Contacto | Suben palabra por palabra al aparecer |
+| Tarjetas (propósito, pilares, capacidades, ecosistema, contacto) | Suben en cascada al entrar en pantalla; al filtrar capacidades se reacomodan con una cascada corta |
+| Cotizador | El panel se abre desde el centro mientras haces scroll |
+
+Lo que se dejó fuera a propósito del sitio de referencia: pantalla de carga, objetos 3D, scroll suavizado y secciones fijas, porque hacen la navegación más lenta o pesada.
+
+Si el visitante tiene activado "reducir movimiento" no se anima nada (el menú y la barra de progreso sí funcionan). Si GSAP no carga, el sitio usa la animación CSS sencilla de antes.
+
 ## Instalar o actualizar
 
 1. Descarga `wordpress/ams-studio.zip`.

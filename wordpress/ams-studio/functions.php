@@ -9,7 +9,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'AMS_STUDIO_VERSION', '1.2.0' );
+define( 'AMS_STUDIO_VERSION', '1.3.0' );
 define( 'AMS_STUDIO_DIR', get_template_directory() );
 define( 'AMS_STUDIO_URI', get_template_directory_uri() );
 
@@ -86,6 +86,25 @@ function ams_studio_assets() {
 			),
 		)
 	);
+
+	// Scroll animations (GSAP + ScrollTrigger + SplitText, bundled in the theme) only run on the one-page home.
+	if ( is_front_page() ) {
+		$vendor = array(
+			'gsap'                => 'gsap.min.js',
+			'gsap-scrolltrigger'  => 'ScrollTrigger.min.js',
+			'gsap-splittext'      => 'SplitText.min.js',
+		);
+		foreach ( $vendor as $handle => $file ) {
+			wp_enqueue_script( $handle, AMS_STUDIO_URI . '/assets/js/vendor/' . $file, 'gsap' === $handle ? array() : array( 'gsap' ), '3.15.1', true );
+		}
+		wp_enqueue_script(
+			'ams-studio-animations',
+			AMS_STUDIO_URI . '/assets/js/animations.js',
+			array( 'ams-studio-main', 'gsap', 'gsap-scrolltrigger', 'gsap-splittext' ),
+			filemtime( AMS_STUDIO_DIR . '/assets/js/animations.js' ),
+			true
+		);
+	}
 }
 add_action( 'wp_enqueue_scripts', 'ams_studio_assets' );
 
@@ -186,7 +205,7 @@ function ams_studio_logo_svg( $class = 'w-10 h-10', $accent = true ) {
 function ams_studio_litespeed_ucss_whitelist( $list ) {
 	return array_merge(
 		(array) $list,
-		array( '.hidden', '.flex', '.py-2', '.py-4', '.scale-95', '.scale-100', '.opacity-0', '.pointer-events-none', '.fa-spin', '.fa-circle-notch', '.fa-sun', '.text-amber-400', '.ams-tab', '.ams-tab-panel', '.ams-reveal', '.is-visible', '.light-mode', '.active' )
+		array( '.hidden', '.flex', '.py-2', '.py-4', '.scale-95', '.scale-100', '.opacity-0', '.pointer-events-none', '.fa-spin', '.fa-circle-notch', '.fa-sun', '.text-amber-400', '.ams-tab', '.ams-tab-panel', '.ams-reveal', '.is-visible', '.light-mode', '.active', '.is-hidden', '.ams-word', '.ams-word-mask', '.ams-char' )
 	);
 }
 add_filter( 'litespeed_ucss_whitelist', 'ams_studio_litespeed_ucss_whitelist' );

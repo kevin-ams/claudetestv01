@@ -237,6 +237,48 @@ body.light-mode .ambient-blob {
 
 body.light-mode ::-webkit-scrollbar-track { background: #F4F6FF; }
 
+/* ------------------------------------------------------------------
+ * GSAP scroll animations (assets/js/animations.js)
+ * ------------------------------------------------------------------ */
+.ams-progress {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 2px;
+	z-index: 60;
+	transform: scaleX(0);
+	transform-origin: 0 50%;
+	background: linear-gradient(90deg, #2563FF, #8DA5FF);
+	box-shadow: 0 0 10px rgba(37, 99, 255, 0.7);
+	pointer-events: none;
+}
+
+.admin-bar .ams-progress { top: 32px; }
+
+#navbar.is-hidden { transform: translateY(-130%); }
+
+/* Split headings: words sit behind a mask; leave room for descenders (p, g, y). */
+.ams-word,
+.ams-word-mask,
+.ams-char {
+	display: inline-block;
+}
+
+.ams-word-mask {
+	padding-bottom: 0.14em;
+	margin-bottom: -0.14em;
+}
+
+/* Gradient words keep their gradient once each word is its own moving box. */
+.text-gradient .ams-word,
+.text-gradient .ams-word-mask {
+	background: inherit;
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
 /* Anchored sections clear the fixed navbar. */
 section[id] { scroll-margin-top: 6rem; }
 
@@ -244,6 +286,7 @@ section[id] { scroll-margin-top: 6rem; }
 .admin-bar #navbar { top: 32px; }
 @media screen and (max-width: 782px) {
 	.admin-bar #navbar { top: 46px; }
+	.admin-bar .ams-progress { top: 46px; }
 }
 
 /* ------------------------------------------------------------------
