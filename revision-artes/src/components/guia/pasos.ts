@@ -17,6 +17,16 @@ export function pasosInicio(nombre: string, facultad: string): PasoGuia[] {
         "Los artes están agrupados por campaña. Entra a una para ver sus artes; así no se mezclan todos a la vez.\n\nLas campañas con artes por revisar aparecen primero.",
     },
     {
+      objetivo: "filtro-carrera",
+      titulo: "Filtra por carrera",
+      texto: "Cada campaña es de una carrera (o de toda la facultad). Usa estos botones para ver solo las campañas de una carrera.",
+    },
+    {
+      objetivo: "grupo-aprobados",
+      titulo: "Lo aprobado queda abajo",
+      texto: "Las campañas ya aprobadas se agrupan aquí, cerradas, para que no estorben. Ábrelo cuando quieras consultarlas.",
+    },
+    {
       objetivo: "pendientes-campana",
       titulo: "Lo que espera tu revisión",
       texto: "El número amarillo indica cuántos artes de la campaña están pendientes de tu revisión.",
@@ -52,7 +62,7 @@ export const pasosCampana: PasoGuia[] = [
     objetivo: "filtros",
     titulo: "Filtra los artes",
     texto:
-      "Filtra por estado (por ejemplo, solo los pendientes) o por carrera. Los números te dicen cuántos hay en cada estado.",
+      "Filtra por estado (por ejemplo, solo los pendientes). Los números te dicen cuántos hay en cada estado. Los artes ya aprobados quedan abajo, en “Artes aprobados”.",
   },
   {
     objetivo: "arte",
@@ -73,7 +83,7 @@ export const pasosArte: PasoGuia[] = [
     objetivo: "lienzo",
     titulo: "Marca puntos sobre la imagen",
     texto:
-      "Si algo debe cambiar, haz clic justo en ese lugar de la imagen: aparecerá un punto numerado y un cuadro para escribir qué cambiar (por ejemplo, “el logo debe ir en blanco”). Pulsa “Listo” y repite por cada cambio.",
+      "Si algo debe cambiar, haz clic justo en ese lugar de la imagen: aparecerá un punto numerado y un cuadro para escribir qué cambiar (por ejemplo, “el logo debe ir en blanco”). Pulsa “Listo”: el punto se guarda y verás “Punto guardado”. Repite por cada cambio; si sales de la página, tus puntos guardados siguen aquí.",
   },
   {
     objetivo: "detalles",

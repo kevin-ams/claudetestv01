@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
 import { getCampana } from "@/lib/domain/campanas";
-import { listCarreras } from "@/lib/domain/carreras";
 import { listArtes, listRevisoresFacultad } from "@/lib/domain/artes";
 import { emailConfigured } from "@/lib/email";
 import { parseDriveUrl } from "@/lib/drive";
@@ -16,8 +15,7 @@ export default async function LotePage({ params }: PageProps<"/admin/facultades/
   const campana = facultad ? await getCampana(Number(cid), facultad.id) : null;
   if (!facultad || !campana) notFound();
 
-  const [carreras, artes, revisores] = await Promise.all([
-    listCarreras(facultad.id),
+  const [artes, revisores] = await Promise.all([
     listArtes(facultad.id),
     listRevisoresFacultad(facultad.id),
   ]);
@@ -40,14 +38,15 @@ export default async function LotePage({ params }: PageProps<"/admin/facultades/
         </p>
         <h1 className="mt-1 text-2xl font-bold">Subir artes en lote</h1>
         <p className="text-sm text-muted">
-          Pega varios enlaces de Drive, completa los datos en la tabla y crea todos los artes de una vez.
+          Pega enlaces de Drive (uno por línea, opcional “Título, enlace”) o una carpeta de Drive, completa los datos en
+          la tabla y crea todos los artes de una vez.
         </p>
       </div>
       <LoteForm
         facultadId={facultad.id}
         campanaId={campana.id}
         campanaNombre={campana.nombre}
-        carreras={carreras.map((c) => ({ id: c.id, nombre: c.nombre }))}
+        carreraNombre={campana.carrera_nombre ?? "Toda la facultad"}
         existentes={existentes}
         correosSugeridos={revisores.map((r) => r.email)}
         correoConfigurado={emailConfigured()}

@@ -11,7 +11,7 @@ export function ArteCard({ arte, href, ...rest }: { arte: Arte; href: string; "d
   const thumb = ref ? driveThumbnailUrl(ref) : null;
   return (
     <Link href={href} {...rest} className="group block rounded-3xl focus-visible:outline-2 focus-visible:outline-accent">
-      <Card className="h-full overflow-hidden p-0 transition-shadow group-hover:shadow-lg">
+      <Card className="h-full overflow-hidden p-0 lift">
         <div className="flex aspect-[4/3] w-full items-center justify-center overflow-hidden bg-surface-secondary text-xs text-muted">
           {thumb ? (
             // Miniatura servida por Google Drive: no pasa por el optimizador de imágenes.
@@ -27,7 +27,7 @@ export function ArteCard({ arte, href, ...rest }: { arte: Arte; href: string; "d
             <span className="shrink-0 text-xs text-muted">v{arte.version}</span>
           </div>
           <Card.Description className="text-xs">
-            {arte.carrera_nombre ?? "Toda la facultad"}
+            {arte.formato || arte.carrera_nombre || "Toda la facultad"}
           </Card.Description>
         </Card.Header>
         <Card.Footer className="mt-auto flex items-center justify-between gap-2 px-4 pb-4">

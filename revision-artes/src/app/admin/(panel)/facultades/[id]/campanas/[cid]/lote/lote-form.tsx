@@ -5,35 +5,40 @@ import { useRouter } from "next/navigation";
 import { Alert, Button, Checkbox, Input, Label, TextArea, TextField } from "@heroui/react";
 import { Xmark } from "@gravity-ui/icons";
 import { driveThumbnailUrl, parseDriveUrl } from "@/lib/drive";
-import { crearLoteAction, type FilaLote } from "../../../../../actions";
+import { crearLoteAction, expandirCarpetaAction, type FilaLote } from "../../../../../actions";
 
 type Fila = FilaLote & { key: string };
-type Carrera = { id: number; nombre: string };
 
 const MAX = 50;
 let contador = 0;
 const nuevaKey = () => `f${++contador}`;
 
-/** "Título | enlace" o solo el enlace, una línea por arte. */
-function leerLineas(texto: string, desde: number): Fila[] {
+/**
+ * Una línea por arte (Enter). Opcional: "Título, enlace" (con coma). Se acepta
+ * también "Título | enlace". Devuelve el enlace y el título de cada línea.
+ */
+function leerLineas(texto: string): { titulo: string; url: string }[] {
   return texto
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean)
-    .map((linea, i) => {
-      const partes = linea.split("|").map((p) => p.trim());
-      const url = partes.find((p) => /^https?:\/\//i.test(p)) ?? partes[partes.length - 1];
-      const titulo = partes.length > 1 ? partes.filter((p) => p !== url).join(" ") : "";
-      return {
-        key: nuevaKey(),
-        titulo: titulo || `Arte ${desde + i + 1}`,
-        driveUrl: url,
-        carreraId: "general",
-        formato: "",
-        fechaPublicacion: "",
-        descripcion: "",
-      };
+    .map((linea) => {
+      const m = linea.match(/https?:\/\/\S+/i);
+      const url = (m?.[0] ?? linea).replace(/[,|;]+$/, "");
+      const titulo = (m ? linea.replace(m[0], "") : "").replace(/^[\s,|;]+|[\s,|;]+$/g, "").trim();
+      return { titulo, url };
     });
+}
+
+function fila(titulo: string, url: string, n: number): Fila {
+  return {
+    key: nuevaKey(),
+    titulo: titulo || `Arte ${n}`,
+    driveUrl: url,
+    formato: "",
+    fechaPublicacion: "",
+    descripcion: "",
+  };
 }
 
 function problema(f: Fila, ids: Map<string, number>, existentes: Set<string>): string | null {
@@ -49,7 +54,7 @@ export function LoteForm({
   facultadId,
   campanaId,
   campanaNombre,
-  carreras,
+  carreraNombre,
   existentes,
   correosSugeridos,
   correoConfigurado,
@@ -57,15 +62,17 @@ export function LoteForm({
   facultadId: number;
   campanaId: number;
   campanaNombre: string;
-  carreras: Carrera[];
+  carreraNombre: string;
   existentes: string[];
   correosSugeridos: string[];
   correoConfigurado: boolean;
 }) {
   const router = useRouter();
   const [texto, setTexto] = useState("");
+  const [leyendo, setLeyendo] = useState(false);
+  const [avisoCarpetas, setAvisoCarpetas] = useState<string | null>(null);
   const [filas, setFilas] = useState<Fila[]>([]);
-  const [todos, setTodos] = useState({ carreraId: "", formato: "", fechaPublicacion: "" });
+  const [todos, setTodos] = useState({ formato: "", fechaPublicacion: "" });
   const [avisar, setAvisar] = useState(false);
   const [correos, setCorreos] = useState(correosSugeridos.join(", "));
   const [errorServidor, setErrorServidor] = useState<string | null>(null);
@@ -84,12 +91,32 @@ export function LoteForm({
   const problemas = filas.map((f) => erroresFila[f.key] ?? problema(f, conteo, setExistentes));
   const validas = problemas.filter((p) => !p).length;
 
-  function agregar() {
-    const nuevas = leerLineas(texto, filas.length);
-    if (nuevas.length === 0) return;
-    setFilas((fs) => [...fs, ...nuevas].slice(0, MAX));
-    setTexto("");
+  async function agregar() {
+    const lineas = leerLineas(texto);
+    if (lineas.length === 0) return;
     setErrorServidor(null);
+    setLeyendo(true);
+    const nuevas: Fila[] = [];
+    const avisos: string[] = [];
+    for (const l of lineas) {
+      const ref = parseDriveUrl(l.url);
+      if (ref?.type === "folder") {
+        // Carpeta de Drive: cada archivo que contiene es un arte.
+        const res = await expandirCarpetaAction(l.url);
+        if (res.ok) {
+          res.archivos.forEach((a) => nuevas.push(fila(a.titulo, a.url, filas.length + nuevas.length + 1)));
+          avisos.push(`Carpeta${l.titulo ? ` “${l.titulo}”` : ""}: ${res.archivos.length} ${res.archivos.length === 1 ? "archivo" : "archivos"}`);
+        } else {
+          avisos.push(`Carpeta${l.titulo ? ` “${l.titulo}”` : ""}: ${res.error}`);
+        }
+      } else {
+        nuevas.push(fila(l.titulo, l.url, filas.length + nuevas.length + 1));
+      }
+    }
+    setLeyendo(false);
+    setFilas((fs) => [...fs, ...nuevas].slice(0, MAX));
+    setAvisoCarpetas(avisos.length ? avisos.join(" · ") : null);
+    if (nuevas.length > 0) setTexto("");
   }
 
   function cambiar(key: string, campo: keyof FilaLote, valor: string) {
@@ -105,7 +132,6 @@ export function LoteForm({
     setFilas((fs) =>
       fs.map((f) => ({
         ...f,
-        ...(todos.carreraId ? { carreraId: todos.carreraId } : {}),
         ...(todos.formato ? { formato: todos.formato } : {}),
         ...(todos.fechaPublicacion ? { fechaPublicacion: todos.fechaPublicacion } : {}),
       }))
@@ -148,18 +174,25 @@ export function LoteForm({
             rows={5}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
-            placeholder={"Un arte por línea. Opcional: Título | enlace\nPost lanzamiento | https://drive.google.com/file/d/…/view\nhttps://drive.google.com/file/d/…/view"}
+            placeholder={"Un arte por línea (Enter). Opcional: Título, enlace\nPost lanzamiento, https://drive.google.com/file/d/…/view\nhttps://drive.google.com/file/d/…/view\nCarpeta de historias, https://drive.google.com/drive/folders/…"}
             className="font-mono text-xs"
           />
         </TextField>
         <div className="flex flex-wrap items-center gap-3">
-          <Button onPress={agregar} isDisabled={!texto.trim() || filas.length >= MAX}>
-            Agregar a la tabla
+          <Button onPress={agregar} isPending={leyendo} isDisabled={!texto.trim() || filas.length >= MAX}>
+            {leyendo ? "Leyendo…" : "Agregar a la tabla"}
           </Button>
           <span className="text-xs text-muted">
-            Máximo {MAX} por lote. Los archivos deben estar compartidos como “Cualquier persona con el enlace”.
+            Separa el título y el enlace con una coma. Si pegas una <strong>carpeta</strong> de Drive, cada archivo que
+            contiene será un arte. Máximo {MAX} por lote; todo debe estar compartido como “Cualquier persona con el
+            enlace”. Carrera de la campaña: <strong>{carreraNombre}</strong>.
           </span>
         </div>
+        {avisoCarpetas && (
+          <p className="rounded-xl bg-surface-secondary px-3 py-2 text-xs" data-testid="aviso-carpetas">
+            {avisoCarpetas}
+          </p>
+        )}
       </section>
 
       {filas.length > 0 && (
@@ -173,22 +206,6 @@ export function LoteForm({
 
           <div className="flex flex-wrap items-end gap-3 rounded-2xl bg-surface-secondary p-3">
             <span className="w-full text-xs font-semibold uppercase tracking-wide text-muted">Aplicar a todas</span>
-            <label className="flex flex-col gap-1 text-sm">
-              <span>Carrera</span>
-              <select
-                value={todos.carreraId}
-                onChange={(e) => setTodos((t) => ({ ...t, carreraId: e.target.value }))}
-                className="rounded-xl border border-border bg-white px-3 py-2 text-sm"
-              >
-                <option value="">— Sin cambio —</option>
-                <option value="general">Toda la facultad</option>
-                {carreras.map((c) => (
-                  <option key={c.id} value={String(c.id)}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-            </label>
             <TextField className="w-48">
               <Label>Formato / canal</Label>
               <Input
@@ -241,20 +258,7 @@ export function LoteForm({
                         className="font-mono text-xs"
                       />
                     </TextField>
-                    <select
-                      aria-label={`Carrera del arte ${i + 1}`}
-                      value={f.carreraId}
-                      onChange={(e) => cambiar(f.key, "carreraId", e.target.value)}
-                      className="rounded-xl border border-border bg-white px-3 py-2 text-sm"
-                    >
-                      <option value="general">Toda la facultad</option>
-                      {carreras.map((c) => (
-                        <option key={c.id} value={String(c.id)}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:col-span-2">
                       <TextField aria-label={`Formato del arte ${i + 1}`}>
                         <Input value={f.formato} onChange={(e) => cambiar(f.key, "formato", e.target.value)} placeholder="Formato" />
                       </TextField>

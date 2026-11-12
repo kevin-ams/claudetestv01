@@ -1,7 +1,8 @@
 import { FileText, Layers } from "@gravity-ui/icons";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Alert, Card } from "@heroui/react";
+import { Alert, Card, Chip } from "@heroui/react";
+import { GrupoAprobados } from "@/components/grupo-aprobados";
 import { buttonVariants } from "@heroui/styles";
 import { requireAdmin } from "@/lib/auth/session";
 import { getFacultad } from "@/lib/domain/facultades";
@@ -20,7 +21,7 @@ export default async function AdminCampanaPage({
 }: PageProps<"/admin/facultades/[id]/campanas/[cid]">) {
   await requireAdmin();
   const { id, cid } = await params;
-  const { carrera, estado, lote } = await searchParams;
+  const { estado, lote } = await searchParams;
   const facultad = Number.isInteger(Number(id)) ? await getFacultad(Number(id)) : null;
   if (!facultad) notFound();
 
@@ -30,11 +31,12 @@ export default async function AdminCampanaPage({
 
   const [carreras, todos] = await Promise.all([listCarreras(facultad.id), listArtes(facultad.id)]);
   const artes = todos.filter((a) => a.campana_id === (campana?.id ?? null));
-  const filtros = {
-    carrera: typeof carrera === "string" ? carrera : undefined,
-    estado: typeof estado === "string" ? estado : undefined,
-  };
+  // La carrera es de la campaña: dentro de ella solo se filtra por estado.
+  const filtros = { estado: typeof estado === "string" ? estado : undefined };
   const visibles = filtrarArtes(artes, filtros);
+  // Sin filtro, lo aprobado se agrupa abajo en un acordeón.
+  const principales = filtros.estado ? visibles : visibles.filter((a) => a.estado !== "aprobado");
+  const aprobados = filtros.estado ? [] : visibles.filter((a) => a.estado === "aprobado");
   const base = `/admin/facultades/${facultad.id}/campanas/${cid}`;
 
   return (
@@ -43,7 +45,14 @@ export default async function AdminCampanaPage({
         <Link href={`/admin/facultades/${facultad.id}`} className="text-sm text-muted hover:underline">
           ← {facultad.nombre}
         </Link>
-        <h1 className="mt-1 text-2xl font-bold">{campana?.nombre ?? "Otros artes"}</h1>
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold">{campana?.nombre ?? "Otros artes"}</h1>
+          {campana && (
+            <Chip size="sm" variant="soft" color="accent">
+              {campana.carrera_nombre ?? "Toda la facultad"}
+            </Chip>
+          )}
+        </div>
         {campana?.descripcion && <p className="text-sm text-muted">{campana.descripcion}</p>}
         {campana && (
           <p className="mt-1 text-xs text-muted">
@@ -90,17 +99,28 @@ export default async function AdminCampanaPage({
               </Link>
             </div>
           </div>
-          <FiltrosArtes base={base} filtros={filtros} carreras={carreras} artes={artes} />
+          <FiltrosArtes base={base} filtros={filtros} carreras={[]} artes={artes} />
           {visibles.length === 0 ? (
             <Card className="p-6 text-center text-sm text-muted">
               {artes.length === 0 ? "Esta campaña aún no tiene artes." : "No hay artes con estos filtros."}
             </Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {visibles.map((a) => (
-                <ArteCard key={a.id} arte={a} href={`/admin/artes/${a.id}`} />
-              ))}
-            </div>
+            <>
+              {principales.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {principales.map((a) => (
+                    <ArteCard key={a.id} arte={a} href={`/admin/artes/${a.id}`} />
+                  ))}
+                </div>
+              )}
+              <GrupoAprobados titulo="Artes aprobados" cantidad={aprobados.length}>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {aprobados.map((a) => (
+                    <ArteCard key={a.id} arte={a} href={`/admin/artes/${a.id}`} />
+                  ))}
+                </div>
+              </GrupoAprobados>
+            </>
           )}
         </section>
 
@@ -113,6 +133,7 @@ export default async function AdminCampanaPage({
               <Card.Content>
                 <CampanaForm
                   action={updateCampanaAction.bind(null, campana.id)}
+                  carreras={carreras}
                   valores={campana}
                   submitLabel="Guardar"
                 />

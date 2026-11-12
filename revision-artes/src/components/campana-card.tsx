@@ -23,7 +23,7 @@ export function CampanaCard({
       : "";
   return (
     <Link href={href} {...rest} className="group block h-full rounded-3xl focus-visible:outline-2 focus-visible:outline-accent">
-      <Card className={`h-full transition-shadow group-hover:shadow-lg ${fondo}`}>
+      <Card className={`h-full lift ${fondo}`}>
         <Card.Header>
           <div className="flex items-start justify-between gap-2">
             <Card.Title className="text-base">{campana.nombre}</Card.Title>
@@ -39,6 +39,9 @@ export function CampanaCard({
               </span>
             )}
           </div>
+          {campana.id !== null && (
+            <span className="text-xs font-medium text-accent">{campana.carrera_nombre ?? "Toda la facultad"}</span>
+          )}
           {campana.descripcion && <Card.Description className="line-clamp-2">{campana.descripcion}</Card.Description>}
         </Card.Header>
         <Card.Content className="text-sm text-muted">

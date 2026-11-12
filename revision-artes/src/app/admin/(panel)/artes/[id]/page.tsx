@@ -5,7 +5,6 @@ import { requireAdmin } from "@/lib/auth/session";
 import { getArte, listAnotaciones, listRevisiones, listRevisores, listVersiones } from "@/lib/domain/artes";
 import { emailConfigured } from "@/lib/email";
 import { getFacultad } from "@/lib/domain/facultades";
-import { listCarreras } from "@/lib/domain/carreras";
 import { listCampanas } from "@/lib/domain/campanas";
 import { ConfirmButton } from "@/components/confirm-button";
 import { EstadoBadge } from "@/components/estado-badge";
@@ -15,6 +14,7 @@ import { VisorConPuntos } from "@/components/visor-con-puntos";
 import { deleteArteAction, updateArteAction } from "../../actions";
 import { ArteForm } from "../../arte-form";
 import { ComentarioForm } from "./comentario-form";
+import { AprobarManual } from "./aprobar-manual";
 import { NuevaVersionForm } from "./nueva-version-form";
 import { NotificarForm } from "./notificar";
 
@@ -26,9 +26,8 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
   const arte = Number.isInteger(arteId) ? await getArte(arteId) : null;
   if (!arte) notFound();
 
-  const [facultad, carreras, campanas, revisiones, versiones, anotaciones, revisores] = await Promise.all([
+  const [facultad, campanas, revisiones, versiones, anotaciones, revisores] = await Promise.all([
     getFacultad(arte.facultad_id),
-    listCarreras(arte.facultad_id),
     listCampanas(arte.facultad_id),
     listRevisiones(arte.id),
     listVersiones(arte.id),
@@ -103,7 +102,6 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
             <Card.Content>
               <ArteForm
                 action={updateArteAction.bind(null, arte.id)}
-                carreras={carreras}
                 campanas={campanas}
                 valores={arte}
                 conEnlace={false}
@@ -125,6 +123,20 @@ export default async function AdminArtePage({ params, searchParams }: PageProps<
         </div>
 
         <aside className="flex flex-col gap-6">
+          {arte.estado !== "aprobado" && (
+            <Card>
+              <Card.Header>
+                <Card.Title>Aprobación manual</Card.Title>
+                <Card.Description>
+                  Si la facultad aprobó por otro medio (correo, reunión), apruébalo aquí. Queda en el historial con tu
+                  nombre.
+                </Card.Description>
+              </Card.Header>
+              <Card.Content>
+                <AprobarManual arteId={arte.id} />
+              </Card.Content>
+            </Card>
+          )}
           <Card id="nueva-version">
             <Card.Header>
               <Card.Title>Subir nueva versión</Card.Title>

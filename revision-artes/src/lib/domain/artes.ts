@@ -56,7 +56,6 @@ export type Anotacion = {
 export type PuntoNuevo = { x: number; y: number; comentario: string };
 
 export type ArteDatos = {
-  carreraId: number | null;
   campanaId: number | null;
   titulo: string;
   formato: string;
@@ -72,13 +71,13 @@ export type Autor = {
 
 export async function listArtes(facultadId: number): Promise<Arte[]> {
   const rows = await db().sql`
-    SELECT a.id, a.facultad_id, a.carrera_id, a.campana_id, a.titulo, a.formato,
+    SELECT a.id, a.facultad_id, k.carrera_id, a.campana_id, a.titulo, a.formato,
       a.descripcion, a.drive_url, a.estado, a.version, a.created_at, a.updated_at,
       TO_CHAR(a.fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
       c.nombre AS carrera_nombre, k.nombre AS campana_nombre
     FROM artes a
-    LEFT JOIN carreras c ON c.id = a.carrera_id
     LEFT JOIN campanas k ON k.id = a.campana_id
+    LEFT JOIN carreras c ON c.id = k.carrera_id
     WHERE a.facultad_id = ${facultadId}
     ORDER BY
       CASE a.estado WHEN 'pendiente' THEN 0 WHEN 'cambios' THEN 1 ELSE 2 END,
@@ -94,13 +93,13 @@ export async function listArtes(facultadId: number): Promise<Arte[]> {
  */
 export async function getArte(id: number, facultadId?: number): Promise<Arte | null> {
   const rows = await db().sql`
-    SELECT a.id, a.facultad_id, a.carrera_id, a.campana_id, a.titulo, a.formato,
+    SELECT a.id, a.facultad_id, k.carrera_id, a.campana_id, a.titulo, a.formato,
       a.descripcion, a.drive_url, a.estado, a.version, a.created_at, a.updated_at,
       TO_CHAR(a.fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion,
       c.nombre AS carrera_nombre, k.nombre AS campana_nombre
     FROM artes a
-    LEFT JOIN carreras c ON c.id = a.carrera_id
     LEFT JOIN campanas k ON k.id = a.campana_id
+    LEFT JOIN carreras c ON c.id = k.carrera_id
     WHERE a.id = ${id}
   `;
   const arte = (rows[0] as Arte) ?? null;
@@ -116,8 +115,8 @@ export async function createArte(
 ): Promise<number> {
   const rows = await db().sql`
     WITH a AS (
-      INSERT INTO artes (facultad_id, carrera_id, campana_id, titulo, formato, descripcion, drive_url, fecha_publicacion)
-      VALUES (${facultadId}, ${datos.carreraId}, ${datos.campanaId}, ${datos.titulo}, ${datos.formato},
+      INSERT INTO artes (facultad_id, campana_id, titulo, formato, descripcion, drive_url, fecha_publicacion)
+      VALUES (${facultadId}, ${datos.campanaId}, ${datos.titulo}, ${datos.formato},
         ${datos.descripcion}, ${driveUrl}, ${datos.fechaPublicacion})
       RETURNING id, drive_url
     ), v AS (
@@ -133,7 +132,6 @@ export async function createArte(
 export async function updateArte(arteId: number, datos: ArteDatos) {
   await db().sql`
     UPDATE artes SET
-      carrera_id = ${datos.carreraId},
       titulo = ${datos.titulo},
       campana_id = ${datos.campanaId},
       formato = ${datos.formato},

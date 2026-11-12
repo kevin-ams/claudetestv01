@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Checkbox, Input, Label, TextArea, TextField } from "@heroui/react";
+import { Button, Checkbox, Input, Label, ListBox, Select, TextArea, TextField } from "@heroui/react";
 import { FormMessage } from "@/components/form-message";
 import { useFormAction } from "@/components/use-form-action";
 import type { FormState } from "../../../auth-actions";
@@ -53,12 +53,14 @@ export function CrearCarreraForm({ facultadId }: { facultadId: number }) {
 
 export function CampanaForm({
   action,
+  carreras,
   valores,
   submitLabel,
   resetOnSuccess = false,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
-  valores?: { nombre: string; descripcion: string };
+  carreras: { id: number; nombre: string }[];
+  valores?: { nombre: string; descripcion: string; carrera_id: number | null };
   submitLabel: string;
   resetOnSuccess?: boolean;
 }) {
@@ -69,6 +71,27 @@ export function CampanaForm({
         <Label>Nombre de la campaña</Label>
         <Input placeholder="Ej. Admisiones 2027" />
       </TextField>
+      <Select name="carreraId" defaultValue={valores?.carrera_id ? String(valores.carrera_id) : "general"}>
+        <Label>Carrera</Label>
+        <Select.Trigger>
+          <Select.Value />
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            <ListBox.Item id="general" textValue="Toda la facultad">
+              Toda la facultad
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+            {carreras.map((c) => (
+              <ListBox.Item key={c.id} id={String(c.id)} textValue={c.nombre}>
+                {c.nombre}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
       <TextField name="descripcion" defaultValue={valores?.descripcion}>
         <Label>Descripción (opcional)</Label>
         <TextArea rows={2} placeholder="Objetivo, fechas o notas para la facultad" />

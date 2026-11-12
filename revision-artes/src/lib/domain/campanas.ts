@@ -6,6 +6,9 @@ export type Campana = {
   facultad_id: number;
   nombre: string;
   descripcion: string;
+  /** Carrera de la campaña; null = toda la facultad. */
+  carrera_id: number | null;
+  carrera_nombre: string | null;
   creado_por_nombre: string | null;
   creado_por_email: string | null;
   created_at: string;
@@ -16,6 +19,8 @@ export type CampanaResumen = {
   id: number | null;
   nombre: string;
   descripcion: string;
+  carrera_id: number | null;
+  carrera_nombre: string | null;
   total: number;
   pendientes: number;
   cambios: number;
@@ -27,7 +32,9 @@ export type CampanaResumen = {
 
 export async function listCampanas(facultadId: number): Promise<Campana[]> {
   const rows = await db().sql`
-    SELECT * FROM campanas WHERE facultad_id = ${facultadId} ORDER BY nombre ASC
+    SELECT k.*, c.nombre AS carrera_nombre
+    FROM campanas k LEFT JOIN carreras c ON c.id = k.carrera_id
+    WHERE k.facultad_id = ${facultadId} ORDER BY k.nombre ASC
   `;
   return rows as Campana[];
 }
@@ -43,7 +50,7 @@ export async function listCampanasResumen(facultadId: number): Promise<CampanaRe
 /** Igual que `listCampanasResumen`, pero con quién creó cada campaña (solo admin). */
 export async function listCampanasResumenAdmin(facultadId: number): Promise<CampanaResumen[]> {
   const rows = (await db().sql`
-    SELECT c.id, c.nombre, c.descripcion,
+    SELECT c.id, c.nombre, c.descripcion, c.carrera_id, ca.nombre AS carrera_nombre,
       COUNT(a.id)::int AS total,
       COUNT(a.id) FILTER (WHERE a.estado = 'pendiente')::int AS pendientes,
       COUNT(a.id) FILTER (WHERE a.estado = 'cambios')::int AS cambios,
@@ -51,11 +58,12 @@ export async function listCampanasResumenAdmin(facultadId: number): Promise<Camp
       TO_CHAR(MIN(a.fecha_publicacion) FILTER (WHERE a.estado <> 'aprobado'), 'YYYY-MM-DD') AS proxima_fecha,
       c.creado_por_nombre
     FROM campanas c
+    LEFT JOIN carreras ca ON ca.id = c.carrera_id
     LEFT JOIN artes a ON a.campana_id = c.id
     WHERE c.facultad_id = ${facultadId}
-    GROUP BY c.id
+    GROUP BY c.id, ca.nombre
     UNION ALL
-    SELECT NULL, 'Otros artes', 'Artes que no pertenecen a una campaña.',
+    SELECT NULL, 'Otros artes', 'Artes que no pertenecen a una campaña.', NULL, NULL,
       COUNT(*)::int,
       COUNT(*) FILTER (WHERE estado = 'pendiente')::int,
       COUNT(*) FILTER (WHERE estado = 'cambios')::int,
@@ -75,7 +83,10 @@ export async function listCampanasResumenAdmin(facultadId: number): Promise<Camp
   });
 }
 
-export type CampanaPortal = Pick<Campana, "id" | "facultad_id" | "nombre" | "descripcion">;
+export type CampanaPortal = Pick<
+  Campana,
+  "id" | "facultad_id" | "nombre" | "descripcion" | "carrera_id" | "carrera_nombre"
+>;
 
 /**
  * Campaña para el portal de facultades: solo los datos que la facultad puede
@@ -83,15 +94,20 @@ export type CampanaPortal = Pick<Campana, "id" | "facultad_id" | "nombre" | "des
  */
 export async function getCampanaPortal(id: number, facultadId: number): Promise<CampanaPortal | null> {
   const rows = await db().sql`
-    SELECT id, facultad_id, nombre, descripcion FROM campanas
-    WHERE id = ${id} AND facultad_id = ${facultadId}
+    SELECT k.id, k.facultad_id, k.nombre, k.descripcion, k.carrera_id, c.nombre AS carrera_nombre
+    FROM campanas k LEFT JOIN carreras c ON c.id = k.carrera_id
+    WHERE k.id = ${id} AND k.facultad_id = ${facultadId}
   `;
   return (rows[0] as CampanaPortal) ?? null;
 }
 
 /** Devuelve la campaña solo si pertenece a la facultad indicada (uso del admin). */
 export async function getCampana(id: number, facultadId?: number): Promise<Campana | null> {
-  const rows = await db().sql`SELECT * FROM campanas WHERE id = ${id}`;
+  const rows = await db().sql`
+    SELECT k.*, c.nombre AS carrera_nombre
+    FROM campanas k LEFT JOIN carreras c ON c.id = k.carrera_id
+    WHERE k.id = ${id}
+  `;
   const campana = (rows[0] as Campana) ?? null;
   if (!campana) return null;
   if (facultadId !== undefined && campana.facultad_id !== facultadId) return null;
@@ -102,18 +118,22 @@ export async function createCampana(
   facultadId: number,
   nombre: string,
   descripcion: string,
+  carreraId: number | null,
   creador: { nombre: string; email: string }
 ): Promise<number> {
   const rows = await db().sql`
-    INSERT INTO campanas (facultad_id, nombre, descripcion, creado_por_nombre, creado_por_email)
-    VALUES (${facultadId}, ${nombre}, ${descripcion}, ${creador.nombre}, ${creador.email})
+    INSERT INTO campanas (facultad_id, nombre, descripcion, carrera_id, creado_por_nombre, creado_por_email)
+    VALUES (${facultadId}, ${nombre}, ${descripcion}, ${carreraId}, ${creador.nombre}, ${creador.email})
     RETURNING id
   `;
   return (rows[0] as { id: number }).id;
 }
 
-export async function updateCampana(id: number, nombre: string, descripcion: string) {
-  await db().sql`UPDATE campanas SET nombre = ${nombre}, descripcion = ${descripcion} WHERE id = ${id}`;
+export async function updateCampana(id: number, nombre: string, descripcion: string, carreraId: number | null) {
+  await db().sql`
+    UPDATE campanas SET nombre = ${nombre}, descripcion = ${descripcion}, carrera_id = ${carreraId}
+    WHERE id = ${id}
+  `;
 }
 
 export async function deleteCampana(id: number) {
@@ -133,7 +153,8 @@ export async function estadoCampana(campanaId: number): Promise<EstadoCampana> {
   const artes = (await db().sql`
     SELECT a.id, a.titulo, a.estado, a.version, c.nombre AS carrera
     FROM artes a
-    LEFT JOIN carreras c ON c.id = a.carrera_id
+    LEFT JOIN campanas k ON k.id = a.campana_id
+    LEFT JOIN carreras c ON c.id = k.carrera_id
     WHERE a.campana_id = ${campanaId}
     ORDER BY a.estado DESC, a.titulo ASC
   `) as EstadoCampana["artes"];

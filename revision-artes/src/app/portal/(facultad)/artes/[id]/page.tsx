@@ -4,6 +4,7 @@ import { Alert, Card } from "@heroui/react";
 import { requirePortal } from "@/lib/auth/session";
 import { getArte, listAnotaciones, listRevisiones, listVersiones, type Arte } from "@/lib/domain/artes";
 import { formatFecha } from "@/lib/format";
+import { listBorradores } from "@/lib/domain/borradores";
 import { EstadoBadge } from "@/components/estado-badge";
 import { Historial } from "@/components/historial";
 import { VersionSelector } from "@/components/version-selector";
@@ -55,10 +56,11 @@ export default async function PortalArtePage({ params, searchParams }: PageProps
   // getArte con facultadId: un arte de otra facultad responde 404.
   const arte = Number.isInteger(arteId) ? await getArte(arteId, facultad.id) : null;
   if (!arte) notFound();
-  const [revisiones, versiones, anotaciones] = await Promise.all([
+  const [revisiones, versiones, anotaciones, borradores] = await Promise.all([
     listRevisiones(arte.id),
     listVersiones(arte.id),
     listAnotaciones(arte.id),
+    listBorradores(arte.id, arte.version, session.email),
   ]);
 
   const anterior = versiones.find((x) => String(x.version) === v && x.version !== arte.version);
@@ -141,6 +143,7 @@ export default async function PortalArtePage({ params, searchParams }: PageProps
             driveUrl={arte.drive_url}
             titulo={arte.titulo}
             guardadas={anotaciones.filter((a) => a.version === arte.version)}
+            borradoresIniciales={borradores}
             detalles={<Detalles arte={arte} />}
             historial={historial}
           />

@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth/session";
 import { getCampana } from "@/lib/domain/campanas";
 import { reporteCampana, tokenReporte } from "@/lib/domain/reporte";
 import { emailConfigured } from "@/lib/email";
+import { listDisenadores } from "@/lib/domain/disenadores";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyButton } from "@/components/copy-button";
 import { BotonImprimir } from "@/components/reporte/imprimir";
@@ -32,7 +33,11 @@ export default async function ReporteAdminPage({
   const campana = await getCampana(Number(cid), Number(id));
   if (!campana) notFound();
   const soloCambios = todos !== "1";
-  const [reporte, token] = await Promise.all([reporteCampana(campana.id, soloCambios), tokenReporte(campana.id)]);
+  const [reporte, token, disenadores] = await Promise.all([
+    reporteCampana(campana.id, soloCambios),
+    tokenReporte(campana.id),
+    listDisenadores(),
+  ]);
   if (!reporte) notFound();
   const enlace = token ? `${await baseUrl()}/reporte/${token}` : null;
   const base = `/admin/facultades/${id}/campanas/${cid}/reporte`;
@@ -106,7 +111,7 @@ export default async function ReporteAdminPage({
               <Card.Description>Envía el enlace con un resumen de los artes con cambios.</Card.Description>
             </Card.Header>
             <Card.Content>
-              <EnviarReporteForm campanaId={campana.id} correoDisponible={emailConfigured()} />
+              <EnviarReporteForm campanaId={campana.id} correoDisponible={emailConfigured()} disenadores={disenadores} />
             </Card.Content>
           </Card>
         </div>

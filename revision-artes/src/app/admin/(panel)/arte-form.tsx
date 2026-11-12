@@ -11,7 +11,6 @@ type Valores = {
   formato: string;
   descripcion: string;
   fecha_publicacion: string | null;
-  carrera_id: number | null;
 };
 
 /**
@@ -20,7 +19,6 @@ type Valores = {
  */
 export function ArteForm({
   action,
-  carreras,
   campanas,
   campanaInicial,
   valores,
@@ -28,7 +26,6 @@ export function ArteForm({
   submitLabel,
 }: {
   action: (prev: FormState, formData: FormData) => Promise<FormState>;
-  carreras: { id: number; nombre: string }[];
   campanas: { id: number; nombre: string }[];
   /** Campaña preseleccionada al crear desde la página de una campaña. */
   campanaInicial?: number | null;
@@ -44,27 +41,6 @@ export function ArteForm({
         <Input placeholder="Ej. Post de lanzamiento – Admisiones 2027" />
       </TextField>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Select name="carreraId" defaultValue={valores?.carrera_id ? String(valores.carrera_id) : "general"}>
-          <Label>Carrera</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              <ListBox.Item id="general" textValue="Toda la facultad">
-                Toda la facultad
-                <ListBox.ItemIndicator />
-              </ListBox.Item>
-              {carreras.map((c) => (
-                <ListBox.Item key={c.id} id={String(c.id)} textValue={c.nombre}>
-                  {c.nombre}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
         <Select
           name="campanaId"
           defaultValue={String(valores?.campana_id ?? campanaInicial ?? "ninguna")}

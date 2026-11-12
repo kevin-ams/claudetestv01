@@ -51,7 +51,8 @@ export async function reporteCampana(campanaId: number, soloCambios: boolean): P
     SELECT a.id, a.titulo, a.estado, a.version, a.drive_url, a.formato, a.descripcion,
       TO_CHAR(a.fecha_publicacion, 'YYYY-MM-DD') AS fecha_publicacion, c.nombre AS carrera
     FROM artes a
-    LEFT JOIN carreras c ON c.id = a.carrera_id
+    LEFT JOIN campanas k ON k.id = a.campana_id
+    LEFT JOIN carreras c ON c.id = k.carrera_id
     WHERE a.campana_id = ${campanaId}
     ORDER BY CASE a.estado WHEN 'cambios' THEN 0 WHEN 'pendiente' THEN 1 ELSE 2 END,
       a.fecha_publicacion ASC NULLS LAST, a.titulo ASC

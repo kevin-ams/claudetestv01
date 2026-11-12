@@ -8,6 +8,8 @@ import { getFacultad } from "@/lib/domain/facultades";
 import { listCarreras } from "@/lib/domain/carreras";
 import { listCampanasResumenAdmin } from "@/lib/domain/campanas";
 import { CampanaCard } from "@/components/campana-card";
+import { FiltroCarrera, filtrarCampanas } from "@/components/filtro-carrera";
+import { GrupoAprobados, campanaAprobada } from "@/components/grupo-aprobados";
 import { ConfirmButton } from "@/components/confirm-button";
 import { CopyButton } from "@/components/copy-button";
 import {
@@ -26,7 +28,7 @@ async function baseUrl() {
   return `${proto}://${host}`;
 }
 
-export default async function FacultadPage({ params }: PageProps<"/admin/facultades/[id]">) {
+export default async function FacultadPage({ params, searchParams }: PageProps<"/admin/facultades/[id]">) {
   await requireAdmin();
   const { id } = await params;
   const facultadId = Number(id);
@@ -34,6 +36,11 @@ export default async function FacultadPage({ params }: PageProps<"/admin/faculta
   if (!facultad) notFound();
 
   const [carreras, campanas] = await Promise.all([listCarreras(facultad.id), listCampanasResumenAdmin(facultad.id)]);
+  const { carrera } = await searchParams;
+  const filtro = typeof carrera === "string" ? carrera : undefined;
+  const visibles = filtrarCampanas(campanas, filtro);
+  const activas = visibles.filter((c) => !campanaAprobada(c));
+  const aprobadas = visibles.filter((c) => campanaAprobada(c));
   const enlace = `${await baseUrl()}/portal/ingresar?codigo=${facultad.codigo_acceso}`;
 
   return (
@@ -52,27 +59,54 @@ export default async function FacultadPage({ params }: PageProps<"/admin/faculta
             <h2 className="text-lg font-semibold">Campañas ({campanas.filter((c) => c.id !== null).length})</h2>
             <p className="text-sm text-muted">Entra a una campaña para ver y agregar sus artes.</p>
           </div>
+          <FiltroCarrera
+            base={`/admin/facultades/${facultad.id}`}
+            actual={filtro}
+            carreras={carreras}
+            campanas={campanas}
+          />
           {campanas.length === 0 ? (
             <Card className="p-6 text-center text-sm text-muted">
               Esta facultad aún no tiene campañas. Crea la primera para empezar a cargar artes.
             </Card>
+          ) : visibles.length === 0 ? (
+            <Card className="p-6 text-center text-sm text-muted">No hay campañas de esta carrera.</Card>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {campanas.map((c) => (
-                <CampanaCard
-                  key={c.id ?? "otros"}
-                  campana={c}
-                  href={`/admin/facultades/${facultad.id}/campanas/${c.id ?? "otros"}`}
-                />
-              ))}
-            </div>
+            <>
+              {activas.length > 0 && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {activas.map((c) => (
+                    <CampanaCard
+                      key={c.id ?? "otros"}
+                      campana={c}
+                      href={`/admin/facultades/${facultad.id}/campanas/${c.id ?? "otros"}`}
+                    />
+                  ))}
+                </div>
+              )}
+              <GrupoAprobados titulo="Campañas aprobadas" cantidad={aprobadas.length}>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {aprobadas.map((c) => (
+                    <CampanaCard
+                      key={c.id ?? "otros"}
+                      campana={c}
+                      href={`/admin/facultades/${facultad.id}/campanas/${c.id ?? "otros"}`}
+                    />
+                  ))}
+                </div>
+              </GrupoAprobados>
+            </>
           )}
           <Card>
             <Card.Header>
               <Card.Title>Nueva campaña</Card.Title>
             </Card.Header>
             <Card.Content>
-              <CampanaForm action={createCampanaAction.bind(null, facultad.id)} submitLabel="Crear campaña" />
+              <CampanaForm
+                action={createCampanaAction.bind(null, facultad.id)}
+                carreras={carreras}
+                submitLabel="Crear campaña"
+              />
             </Card.Content>
           </Card>
         </section>

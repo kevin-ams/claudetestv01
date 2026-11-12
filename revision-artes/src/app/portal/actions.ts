@@ -8,8 +8,16 @@ import { endPortalSession, requirePortal, startPortalSession } from "@/lib/auth/
 import { getFacultadByCodigo } from "@/lib/domain/facultades";
 import { getArte, revisarArte } from "@/lib/domain/artes";
 import { avisarCampanaRevisada } from "@/lib/notificaciones";
+import { estadoCampana } from "@/lib/domain/campanas";
+import {
+  borrarBorrador,
+  borrarBorradoresDe,
+  guardarBorrador,
+  leerBorrador,
+  type PuntoBorrador,
+} from "@/lib/domain/borradores";
 
-export type FormState = { error: string | null; ok?: boolean };
+export type FormState = { error: string | null; ok?: boolean; celebrar?: boolean };
 
 const ingresoSchema = z.object({
   name: z.string().trim().min(2, "Escribe tu nombre completo").max(120),
@@ -101,6 +109,8 @@ export async function revisarArteAction(
     nombre: session.name,
     email: session.email,
   });
+  // Los puntos guardados como borrador ya forman parte de la revisión.
+  await borrarBorradoresDe(arte.id, arte.version, session.email);
 
   // Si con esta decisión ya no quedan artes pendientes en la campaña, avisar a
   // quien la creó. Solo cuando este arte estaba pendiente (así no se repite
@@ -113,7 +123,62 @@ export async function revisarArteAction(
       )
     );
   }
+  // ¿Con esta aprobación quedó toda la campaña aprobada? → confeti en pantalla.
+  let celebrar = false;
+  if (campanaId && parsed.data.accion === "aprobado") {
+    const e = await estadoCampana(campanaId);
+    celebrar = e.total > 0 && e.aprobados === e.total;
+  }
   revalidatePath(`/portal/artes/${arteId}`);
-  revalidatePath("/portal");
-  return { error: null, ok: true };
+  revalidatePath("/portal", "layout");
+  return { error: null, ok: true, celebrar };
+}
+
+// ---------- Puntos guardados al pulsar "Listo" ----------
+
+const borradorSchema = z.object({
+  id: z.number().int().positive().optional(),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  comentario: z.string().trim().min(1, "Escribe qué hay que cambiar en este punto").max(1000),
+});
+
+export type ResultadoPunto = { ok: boolean; error?: string; punto?: PuntoBorrador };
+
+/**
+ * Guarda un punto marcado (sin enviar todavía la revisión) y lo vuelve a leer
+ * de la base para confirmar que quedó guardado tal cual.
+ */
+export async function guardarPuntoAction(
+  arteId: number,
+  version: number,
+  input: { id?: number; x: number; y: number; comentario: string }
+): Promise<ResultadoPunto> {
+  const { session, facultad } = await requirePortal();
+  const parsed = borradorSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
+  const arte = await getArte(arteId, facultad.id);
+  if (!arte) return { ok: false, error: "El arte no existe" };
+  if (arte.version !== version) {
+    return { ok: false, error: "Se subió una nueva versión de este arte. Recarga la página." };
+  }
+  const guardado = await guardarBorrador({ ...parsed.data, arteId, version, email: session.email });
+  if (!guardado) return { ok: false, error: "No se encontró el punto para actualizarlo. Recarga la página." };
+  // Verificación: se lee de nuevo y se compara con lo enviado.
+  const leido = await leerBorrador(guardado.id, session.email);
+  const igual =
+    leido !== null &&
+    leido.comentario === parsed.data.comentario &&
+    Math.abs(leido.x - parsed.data.x) < 0.01 &&
+    Math.abs(leido.y - parsed.data.y) < 0.01;
+  if (!igual) return { ok: false, error: "No se pudo confirmar el guardado. Intenta de nuevo." };
+  return { ok: true, punto: leido };
+}
+
+export async function quitarPuntoAction(arteId: number, id: number): Promise<{ ok: boolean }> {
+  const { session, facultad } = await requirePortal();
+  const arte = await getArte(arteId, facultad.id);
+  if (!arte) return { ok: false };
+  await borrarBorrador(id, arteId, session.email);
+  return { ok: true };
 }

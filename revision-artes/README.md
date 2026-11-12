@@ -47,15 +47,19 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
 ## Flujo
 
 1. **Admin → Facultades**: crea la facultad. Se genera un código como `K7M2P-QX9RT`.
-2. En la facultad agrega sus **carreras** y crea sus **campañas**. Dentro de cada campaña usa
-   **+ Nuevo arte** (título, carrera o “toda la facultad”, formato, fecha de publicación, enlace de
-   Drive y copy). Navegación: **Facultad → Campaña → Artes** (en el admin y en el portal). Los
+2. En la facultad agrega sus **carreras** y crea sus **campañas**; cada campaña se vincula a una
+   carrera o a “Toda la facultad” y sus artes heredan esa carrera. El filtro por carrera está en la
+   primera vista (lista de campañas, en el admin y en el portal). Dentro de cada campaña usa
+   **+ Nuevo arte** (título, formato, fecha de publicación, enlace de Drive y copy). Navegación: **Facultad → Campaña → Artes** (en el admin y en el portal). Los
    artes sin campaña aparecen como “Otros artes”.
 3. Comparte con la facultad el **enlace directo** (ya trae el código) o el código.
 4. La facultad entra con nombre y correo, ve sus **campañas** (las que tienen pendientes primero),
    entra a una y, por cada arte, puede **hacer clic sobre la imagen para
    marcar puntos numerados** y escribir qué cambiar en cada uno. Luego **Aprueba**, **Solicita
-   cambios** (con puntos o comentario) o **Solo comenta**.
+   cambios** (con puntos o comentario) o **Solo comenta**. Cada punto se guarda en el servidor al
+   pulsar **Listo** (aviso “Punto N guardado” y estado ✓ Guardado); si recarga la página, sus
+   puntos siguen ahí hasta que envía la revisión.
+   Las campañas y artes ya aprobados se agrupan en un acordeón verde al final de la lista.
 5. En el panel, el admin ve los cambios solicitados y usa **Subir nueva versión**: pega el enlace de
    Drive del archivo corregido, describe qué cambió y marca qué puntos quedaron atendidos. El arte
    pasa a la siguiente versión y vuelve a *Pendiente*. Las versiones anteriores, con sus puntos,
@@ -68,14 +72,21 @@ La primera vez entra a `http://localhost:3000/admin`: te pedirá crear la cuenta
    (todos quedan aprobados o con cambios solicitados), se envía un correo a **quien creó la
    campaña** con el estado de cada arte. Si todos están aprobados, el asunto es
    “✅ Campaña aprobada”. Las campañas sin creador registrado avisan a todos los administradores.
-8. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
+8. **Aprobación manual:** en el detalle de un arte, el admin puede aprobarlo sin esperar a la
+   facultad (con una nota opcional que queda en el historial como de Marketing Digital).
+9. **Confeti:** cuando una campaña queda totalmente aprobada (por la facultad o por aprobación
+   manual) se muestra la animación de celebración (`public/animaciones/confeti.json`, lottie-web).
+10. **Regenerar código** cierra de inmediato el acceso de quien entró con el código anterior.
    Desmarcar *Acceso al portal activo* bloquea a la facultad sin borrar nada.
 
 ## Subida en lote
 
 En cada campaña, **Subir en lote** permite crear varios artes de una vez (hasta 50; lo habitual
-son ~10): se pegan los enlaces de Drive, uno por línea (opcional `Título | enlace`), se completan
-en una tabla con miniaturas (con "Aplicar a todas" para carrera, formato y fecha) y se crean
+son ~10): se pegan los enlaces de Drive, uno por línea (Enter), con el título opcional separado
+por coma: `Título, enlace`. Si el enlace es una **carpeta de Drive** (compartida como “cualquiera
+con el enlace”), cada archivo de la carpeta se agrega como un arte con el nombre del archivo como
+título (se ignoran subcarpetas). Se completan en una tabla con miniaturas (con "Aplicar a todas"
+para formato y fecha; la carrera es la de la campaña) y se crean
 todos juntos. Se marcan antes de crear los enlaces inválidos, repetidos o que ya están en la
 campaña; si alguna fila falla no se crea ninguna. Opcionalmente se avisa a la facultad con un
 solo correo (vienen sugeridos los correos de quienes ya revisaron artes de esa facultad).
@@ -89,7 +100,8 @@ y el enlace al archivo en Drive. Se puede ver solo lo que tiene cambios o todos 
 
 - **Enlace para Diseño** (`/reporte/<token>`): se abre sin cuenta y siempre muestra el estado
   actual. Se crea y se revoca desde el reporte (migración 006).
-- **Enviar por correo**: manda el enlace con un resumen a uno o varios correos de Diseño (Resend).
+- **Enviar por correo**: manda el enlace con un resumen a los diseñadores elegidos de la lista
+  (**Admin → Diseñadores**: nombre y correo) y/o a otros correos (Resend).
 - **Checklist de Diseño**: en el enlace, Diseño marca cada cambio al terminarlo (se guarda en el
   servidor, con su nombre opcional). Cada arte muestra su avance. Cuando un arte queda completo, se
   crea un aviso en el panel (y dice si con eso se completó toda la campaña). En el admin el
@@ -108,6 +120,20 @@ parte de la pantalla y explica para qué sirve (inicio/campañas, campaña y art
 **omitir**, marcar **“No mostrar guías automáticamente”**, y volver a verla o reactivarla desde
 el botón **? Ayuda** del encabezado. Las preferencias se guardan en el navegador, por correo.
 El contenido está en `src/components/guia/pasos.ts`.
+
+## Pruebas de punta a punta
+
+`tests/e2e.mjs` (Playwright) recorre admin, portal y reporte. `tests/simulador.mjs` simula Resend
+y el listado de carpetas de Drive. Con la base local vacía y migrada:
+
+```bash
+node tests/simulador.mjs /tmp/correos.jsonl &          # puerto 3999
+npm run build && RESEND_API_KEY=re_test RESEND_API_URL=http://localhost:3999 \
+  DRIVE_CARPETA_URL=http://localhost:3999/embeddedfolderview npx next start -p 3100 &
+node tests/e2e.mjs /tmp/correos.jsonl [carpeta-capturas]
+```
+
+`DRIVE_CARPETA_URL` solo se usa en pruebas; en producción no se define.
 
 ## Producción (Netlify)
 

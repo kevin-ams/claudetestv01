@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/auth/session";
 import { parseDriveUrl } from "@/lib/drive";
+import { listarCarpeta, tituloDeArchivo } from "@/lib/drive-carpeta";
 import {
   createFacultad,
   deleteFacultad,
@@ -12,8 +13,8 @@ import {
   regenerarCodigo,
   updateFacultad,
 } from "@/lib/domain/facultades";
-import { createCarrera, deleteCarrera, getCarrera, listCarreras, renameCarrera } from "@/lib/domain/carreras";
-import { createCampana, deleteCampana, getCampana, updateCampana } from "@/lib/domain/campanas";
+import { createCarrera, deleteCarrera, getCarrera, renameCarrera } from "@/lib/domain/carreras";
+import { createCampana, deleteCampana, estadoCampana, getCampana, updateCampana } from "@/lib/domain/campanas";
 import {
   createArte,
   crearNuevaVersion,
@@ -28,6 +29,7 @@ import {
 import { countAdmins, createAdmin, deleteAdmin, getAdminByEmail } from "@/lib/domain/admins";
 import { avisarArtesNuevos, notificarNuevaVersion } from "@/lib/notificaciones";
 import { marcarLeido, marcarTodosLeidos } from "@/lib/domain/avisos";
+import { createDisenador, deleteDisenador, getDisenadorPorEmail } from "@/lib/domain/disenadores";
 import { appUrl, emailLayout, escapeHtml, sendEmail } from "@/lib/email";
 import { asegurarTokenReporte, reporteCampana, revocarTokenReporte } from "@/lib/domain/reporte";
 import type { FormState } from "../auth-actions";
@@ -115,13 +117,30 @@ export async function deleteCarreraAction(carreraId: number) {
 const campanaSchema = z.object({
   nombre: z.string().trim().min(2, "El nombre de la campaña es muy corto").max(200),
   descripcion: z.string().trim().max(2000),
+  carreraId: z.string(),
 });
 
-function leerCampana(formData: FormData) {
-  return campanaSchema.safeParse({
+/** Valida la campaña y que su carrera ("general" = toda la facultad) sea de la facultad. */
+async function leerCampana(
+  facultadId: number,
+  formData: FormData
+): Promise<{ error: string } | { data: { nombre: string; descripcion: string; carreraId: number | null } }> {
+  const parsed = campanaSchema.safeParse({
     nombre: formData.get("nombre") ?? "",
     descripcion: formData.get("descripcion") ?? "",
+    carreraId: formData.get("carreraId") ?? "general",
   });
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  let carreraId: number | null = null;
+  const raw = parsed.data.carreraId;
+  if (raw && raw !== "general") {
+    const carrera = await getCarrera(Number(raw));
+    if (!carrera || carrera.facultad_id !== facultadId) {
+      return { error: "La carrera no pertenece a esta facultad" };
+    }
+    carreraId = carrera.id;
+  }
+  return { data: { nombre: parsed.data.nombre, descripcion: parsed.data.descripcion, carreraId } };
 }
 
 export async function createCampanaAction(
@@ -131,9 +150,9 @@ export async function createCampanaAction(
 ): Promise<FormState> {
   const admin = await requireAdmin();
   if (!(await getFacultad(facultadId))) return { error: "La facultad no existe" };
-  const parsed = leerCampana(formData);
-  if (!parsed.success) return { error: firstError(parsed.error) };
-  const id = await createCampana(facultadId, parsed.data.nombre, parsed.data.descripcion, {
+  const parsed = await leerCampana(facultadId, formData);
+  if ("error" in parsed) return { error: parsed.error };
+  const id = await createCampana(facultadId, parsed.data.nombre, parsed.data.descripcion, parsed.data.carreraId, {
     nombre: admin.name,
     email: admin.email,
   });
@@ -149,9 +168,9 @@ export async function updateCampanaAction(
   await requireAdmin();
   const campana = await getCampana(campanaId);
   if (!campana) return { error: "La campaña no existe" };
-  const parsed = leerCampana(formData);
-  if (!parsed.success) return { error: firstError(parsed.error) };
-  await updateCampana(campana.id, parsed.data.nombre, parsed.data.descripcion);
+  const parsed = await leerCampana(campana.facultad_id, formData);
+  if ("error" in parsed) return { error: parsed.error };
+  await updateCampana(campana.id, parsed.data.nombre, parsed.data.descripcion, parsed.data.carreraId);
   revalidatePath(`/admin/facultades/${campana.facultad_id}`, "layout");
   return { error: null, ok: true, message: "Campaña guardada" };
 }
@@ -181,10 +200,9 @@ const datosSchema = z.object({
     .string()
     .trim()
     .regex(/^(\d{4}-\d{2}-\d{2})?$/, "Fecha inválida"),
-  carreraId: z.string(),
 });
 
-/** Valida los datos del arte y que la carrera elegida pertenezca a la facultad. */
+/** Valida los datos del arte y que su campaña pertenezca a la facultad. */
 async function parseDatos(
   facultadId: number,
   formData: FormData
@@ -195,19 +213,8 @@ async function parseDatos(
     formato: formData.get("formato") ?? "",
     descripcion: formData.get("descripcion") ?? "",
     fechaPublicacion: formData.get("fechaPublicacion") ?? "",
-    carreraId: formData.get("carreraId") ?? "",
   });
   if (!parsed.success) return { error: firstError(parsed.error) };
-
-  let carreraId: number | null = null;
-  const rawCarrera = parsed.data.carreraId;
-  if (rawCarrera && rawCarrera !== "general") {
-    const carrera = await getCarrera(Number(rawCarrera));
-    if (!carrera || carrera.facultad_id !== facultadId) {
-      return { error: "La carrera no pertenece a esta facultad" };
-    }
-    carreraId = carrera.id;
-  }
 
   let campanaId: number | null = null;
   const rawCampana = parsed.data.campanaId;
@@ -219,7 +226,6 @@ async function parseDatos(
 
   return {
     data: {
-      carreraId,
       titulo: parsed.data.titulo,
       campanaId,
       formato: parsed.data.formato,
@@ -433,15 +439,18 @@ export async function enviarReporteAction(
   const admin = await requireAdmin();
   const campana = await getCampana(campanaId);
   if (!campana) return { error: "La campaña no existe" };
+  // Diseñadores marcados de la lista + correos escritos a mano.
   const correos = [
     ...new Set(
-      String(formData.get("correos") ?? "")
-        .split(/[\s,;]+/)
+      [
+        ...formData.getAll("disenadores").map(String),
+        ...String(formData.get("correos") ?? "").split(/[\s,;]+/),
+      ]
         .map((c) => c.trim().toLowerCase())
         .filter(Boolean)
     ),
   ];
-  if (correos.length === 0) return { error: "Escribe al menos un correo de Diseño" };
+  if (correos.length === 0) return { error: "Elige al menos un diseñador o escribe un correo" };
   const invalido = correos.find((c) => !EMAIL_RE.test(c));
   if (invalido) return { error: `Correo inválido: ${invalido}` };
   if (correos.length > 20) return { error: "Máximo 20 destinatarios" };
@@ -498,10 +507,21 @@ export async function marcarTodosAvisosAction() {
 
 // ---------- Subida de artes en lote ----------
 
+/** Expande una carpeta pública de Drive en sus archivos (cada archivo será un arte). */
+export async function expandirCarpetaAction(
+  url: string
+): Promise<{ ok: true; archivos: { titulo: string; url: string }[] } | { ok: false; error: string }> {
+  await requireAdmin();
+  const ref = parseDriveUrl(url);
+  if (!ref || ref.type !== "folder") return { ok: false, error: "No es un enlace de carpeta de Drive." };
+  const res = await listarCarpeta(ref.id);
+  if (!res.ok) return res;
+  return { ok: true, archivos: res.archivos.slice(0, 50).map((a) => ({ titulo: tituloDeArchivo(a.nombre), url: a.url })) };
+}
+
 const filaLote = z.object({
   titulo: z.string().trim().min(2, "El título es muy corto").max(200),
   driveUrl,
-  carreraId: z.string(),
   formato: z.string().trim().max(100),
   fechaPublicacion: z
     .string()
@@ -537,7 +557,6 @@ export async function crearLoteAction(
   if (filas.length === 0) return { ok: false, error: "No hay artes para crear" };
   if (filas.length > 50) return { ok: false, error: "Máximo 50 artes por lote" };
 
-  const carreras = new Set((await listCarreras(facultadId)).map((c) => String(c.id)));
   const existentes = new Set(
     (await listArtes(facultadId)).filter((a) => a.campana_id === campana.id).map((a) => parseDriveUrl(a.drive_url)?.id)
   );
@@ -555,14 +574,10 @@ export async function crearLoteAction(
     const id = parseDriveUrl(v.driveUrl)?.id ?? "";
     if (vistos.has(id)) errores[i] = "Este enlace está repetido en el lote";
     else if (existentes.has(id)) errores[i] = "Este archivo ya está en la campaña";
-    else if (v.carreraId && v.carreraId !== "general" && !carreras.has(v.carreraId)) {
-      errores[i] = "La carrera no pertenece a esta facultad";
-    }
     vistos.add(id);
     datos.push({
       url: v.driveUrl,
       datos: {
-        carreraId: v.carreraId && v.carreraId !== "general" ? Number(v.carreraId) : null,
         campanaId: campana.id,
         titulo: v.titulo,
         formato: v.formato,
@@ -605,4 +620,59 @@ export async function crearLoteAction(
     mensaje += aviso.ok ? ` ${aviso.message}` : ` El aviso no se envió: ${aviso.message}`;
   }
   return { ok: true, creados: datos.length, mensaje };
+}
+
+// ---------- Aprobación manual ----------
+
+/**
+ * Marketing Digital aprueba un arte por su cuenta (por ejemplo, si la facultad
+ * lo aprobó por correo o en una reunión). Queda en el historial con su nombre.
+ */
+export async function aprobarManualAction(
+  arteId: number,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const admin = await requireAdmin();
+  const arte = await getArte(arteId);
+  if (!arte) return { error: "El arte no existe" };
+  if (arte.estado === "aprobado") return { error: "Este arte ya está aprobado" };
+  const nota = String(formData.get("comentario") ?? "").trim().slice(0, 2000);
+  await revisarArte(arte, "aprobado", nota || "Aprobado manualmente por Marketing Digital.", [], {
+    tipo: "admin",
+    nombre: admin.name,
+    email: admin.email,
+  });
+  let celebrar = false;
+  if (arte.campana_id) {
+    const e = await estadoCampana(arte.campana_id);
+    celebrar = e.total > 0 && e.aprobados === e.total;
+  }
+  revalidatePath(`/admin/artes/${arte.id}`);
+  revalidatePath(`/admin/facultades/${arte.facultad_id}`, "layout");
+  revalidatePath("/portal", "layout");
+  return { error: null, ok: true, message: "Arte aprobado manualmente.", celebrar };
+}
+
+// ---------- Diseñadores ----------
+
+const disenadorSchema = z.object({
+  nombre: z.string().trim().min(2, "El nombre es muy corto").max(120),
+  email: z.string().trim().toLowerCase().email("Correo inválido"),
+});
+
+export async function createDisenadorAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  await requireAdmin();
+  const parsed = disenadorSchema.safeParse({ nombre: formData.get("nombre") ?? "", email: formData.get("email") ?? "" });
+  if (!parsed.success) return { error: firstError(parsed.error) };
+  if (await getDisenadorPorEmail(parsed.data.email)) return { error: "Ese correo ya está en la lista" };
+  await createDisenador(parsed.data.nombre, parsed.data.email);
+  revalidatePath("/admin/disenadores");
+  return { error: null, ok: true, message: `${parsed.data.nombre} agregado a Diseñadores` };
+}
+
+export async function deleteDisenadorAction(id: number) {
+  await requireAdmin();
+  await deleteDisenador(id);
+  revalidatePath("/admin/disenadores");
 }
