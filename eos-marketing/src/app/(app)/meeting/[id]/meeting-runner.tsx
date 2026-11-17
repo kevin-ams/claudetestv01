@@ -98,7 +98,7 @@ export function MeetingRunner({
   const [toast, setToast] = useState<string | null>(null);
   const memberName = (id: number | null) => members.find((m) => m.id === id)?.name ?? "Sin dueño";
 
-  useMeetingPulse(meeting.id, drives);
+  useMeetingPulse(meeting.id, drives, meeting.status !== "completed");
 
   const totalMinutes = useMemo(
     () => L10_AGENDA.reduce((a, s) => a + s.minutes, 0),

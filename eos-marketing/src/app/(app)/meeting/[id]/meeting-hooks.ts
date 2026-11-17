@@ -25,18 +25,26 @@ export function formatClock(totalSeconds: number) {
   return `${sign}${m}:${String(sec).padStart(2, "0")}`;
 }
 
+/** Sin mover el mouse ni usar el teclado por este tiempo, la sincronización se pausa hasta volver. */
+const IDLE_MS = 10 * 60 * 1000;
+
 /**
  * Sincronización liviana de la L10: cada pocos segundos se pide solo una "huella" de la reunión (una consulta)
- * y la página se recarga completa únicamente si algo cambió. Con la pestaña oculta no se consulta.
- * Quien dirige consulta menos seguido (sus propios cambios ya recargan su vista).
+ * y la página se recarga completa únicamente si algo cambió. Para no gastar funciones ni mantener despierta la base:
+ * - no consulta con la pestaña oculta ni con la reunión terminada;
+ * - se pausa tras 10 minutos sin actividad (una pantalla olvidada abierta) y retoma al volver;
+ * - quien sigue la reunión consulta cada 8 s; quien dirige, cada 20 s (sus propios cambios ya recargan su vista).
  */
-export function useMeetingPulse(meetingId: number, drives: boolean) {
+export function useMeetingPulse(meetingId: number, drives: boolean, active = true) {
   const router = useRouter();
   useEffect(() => {
+    if (!active) return;
     let last: string | null = null;
     let busy = false;
+    let lastActivity = Date.now();
+    const idle = () => Date.now() - lastActivity > IDLE_MS;
     const tick = async () => {
-      if (busy || document.hidden) return;
+      if (busy || document.hidden || idle()) return;
       busy = true;
       try {
         const sig = await meetingPulseAction(meetingId);
@@ -48,8 +56,23 @@ export function useMeetingPulse(meetingId: number, drives: boolean) {
         busy = false;
       }
     };
+    const wake = () => {
+      const wasIdle = idle();
+      lastActivity = Date.now();
+      if (wasIdle) tick(); // al volver, se pone al día de inmediato
+    };
+    const onVisible = () => {
+      if (!document.hidden) wake();
+    };
+    const events = ["pointermove", "pointerdown", "keydown", "wheel", "touchstart"] as const;
+    for (const e of events) window.addEventListener(e, wake, { passive: true });
+    document.addEventListener("visibilitychange", onVisible);
     tick();
-    const t = setInterval(tick, drives ? 10000 : 4000);
-    return () => clearInterval(t);
-  }, [router, drives, meetingId]);
+    const t = setInterval(tick, drives ? 20000 : 8000);
+    return () => {
+      clearInterval(t);
+      for (const e of events) window.removeEventListener(e, wake);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [router, drives, meetingId, active]);
 }
