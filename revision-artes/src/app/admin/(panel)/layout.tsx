@@ -4,14 +4,14 @@ import { BotonVolver } from "@/components/boton-volver";
 import { Logo } from "@/components/logo";
 import { Button } from "@heroui/react";
 import { requireAdmin } from "@/lib/auth/session";
-import { contarNoLeidos, listAvisos } from "@/lib/domain/avisos";
+import { avisosConConteo } from "@/lib/domain/avisos";
 import { Campanita } from "@/components/avisos/campanita";
 import { NavAdmin } from "@/components/nav-admin";
 import { logoutAction } from "../auth-actions";
 
 export default async function PanelLayout({ children }: LayoutProps<"/admin">) {
   const admin = await requireAdmin();
-  const [avisos, noLeidos] = await Promise.all([listAvisos(admin.adminId), contarNoLeidos(admin.adminId)]);
+  const { avisos, noLeidos } = await avisosConConteo(admin.adminId);
   return (
     <div className="ambient-bg flex flex-1 flex-col">
       <header className="sticky top-2 z-30 mx-2 mt-2 print:hidden md:top-3 md:mx-auto md:mt-3 md:w-[calc(100%-2rem)] md:max-w-6xl">

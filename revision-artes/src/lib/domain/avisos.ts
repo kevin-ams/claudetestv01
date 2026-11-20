@@ -19,23 +19,20 @@ export async function crearAviso(input: { clave?: string; titulo: string; mensaj
   `;
 }
 
-export async function listAvisos(adminId: number, limit = 20): Promise<Aviso[]> {
-  const rows = await db().sql`
-    SELECT a.id, a.titulo, a.mensaje, a.url, a.created_at, (l.aviso_id IS NOT NULL) AS leido
+/** Últimos avisos y total de no leídos en una sola consulta (para la campanita). */
+export async function avisosConConteo(adminId: number, limit = 20): Promise<{ avisos: Aviso[]; noLeidos: number }> {
+  const rows = (await db().sql`
+    SELECT a.id, a.titulo, a.mensaje, a.url, a.created_at, (l.aviso_id IS NOT NULL) AS leido,
+      (COUNT(*) FILTER (WHERE l.aviso_id IS NULL) OVER ())::int AS no_leidos
     FROM avisos a
     LEFT JOIN avisos_leidos l ON l.aviso_id = a.id AND l.admin_id = ${adminId}
     ORDER BY a.created_at DESC, a.id DESC
     LIMIT ${limit}
-  `;
-  return rows as Aviso[];
-}
-
-export async function contarNoLeidos(adminId: number): Promise<number> {
-  const rows = await db().sql`
-    SELECT COUNT(*)::int AS n FROM avisos a
-    WHERE NOT EXISTS (SELECT 1 FROM avisos_leidos l WHERE l.aviso_id = a.id AND l.admin_id = ${adminId})
-  `;
-  return (rows[0] as { n: number }).n;
+  `) as (Aviso & { no_leidos: number })[];
+  return {
+    avisos: rows.map(({ no_leidos: _, ...a }) => a),
+    noLeidos: rows[0]?.no_leidos ?? 0,
+  };
 }
 
 export async function marcarLeido(adminId: number, avisoId: number) {

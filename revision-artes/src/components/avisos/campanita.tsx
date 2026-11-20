@@ -1,7 +1,7 @@
 "use client";
 
 import { Bell } from "@gravity-ui/icons";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Popover } from "@heroui/react";
 import { marcarAvisoLeidoAction, marcarTodosAvisosAction } from "@/app/admin/(panel)/actions";
@@ -10,12 +10,23 @@ type Aviso = { id: number; titulo: string; mensaje: string; url: string; created
 
 const fecha = new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" });
 
-/** Campanita de avisos del encabezado del admin. Se actualiza cada minuto. */
+/** Cada cuánto se consultan avisos mientras la persona está usando el panel. */
+const INTERVALO = 5 * 60_000;
+/** Sin mover el mouse ni teclear durante este tiempo, se deja de consultar. */
+const INACTIVIDAD = 15 * 60_000;
+
+/**
+ * Campanita de avisos del encabezado del admin. Para no gastar cómputo solo consulta
+ * mientras la pestaña está visible y en uso: cada 5 minutos, al volver a la pestaña
+ * (si pasó ese tiempo) y al abrir la campanita. En segundo plano o inactiva, no consulta.
+ */
 export function Campanita({ inicial }: { inicial: { avisos: Aviso[]; noLeidos: number } }) {
   const [datos, setDatos] = useState(inicial);
   const router = useRouter();
+  const ultimaCarga = useRef(0);
 
   const cargar = useCallback(async () => {
+    ultimaCarga.current = Date.now();
     try {
       const res = await fetch("/admin/api/avisos", { cache: "no-store" });
       if (res.ok) setDatos(await res.json());
@@ -25,12 +36,43 @@ export function Campanita({ inicial }: { inicial: { avisos: Aviso[]; noLeidos: n
   }, []);
 
   useEffect(() => {
-    const t = setInterval(cargar, 60_000);
-    const alVolver = () => document.visibilityState === "visible" && cargar();
-    document.addEventListener("visibilitychange", alVolver);
+    ultimaCarga.current = Date.now(); // el servidor ya trajo los avisos al cargar la página
+    let ultimaActividad = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const enUso = () => document.visibilityState === "visible" && Date.now() - ultimaActividad < INACTIVIDAD;
+    const programar = () => {
+      clearTimeout(timer);
+      timer = undefined;
+      if (!enUso()) return; // pausa: se reanuda con actividad o al volver a la pestaña
+      const espera = Math.max(0, ultimaCarga.current + INTERVALO - Date.now());
+      timer = setTimeout(async () => {
+        if (enUso()) await cargar();
+        programar();
+      }, espera);
+    };
+    const reanudar = () => {
+      ultimaActividad = Date.now();
+      if (!timer) programar();
+    };
+    const alCambiarVisibilidad = () => {
+      if (document.visibilityState === "visible") {
+        ultimaActividad = Date.now();
+        programar(); // si ya pasó el intervalo, consulta de inmediato
+      } else {
+        clearTimeout(timer);
+        timer = undefined;
+      }
+    };
+
+    const eventos = ["pointerdown", "keydown", "pointermove", "scroll"] as const;
+    eventos.forEach((e) => window.addEventListener(e, reanudar, { passive: true }));
+    document.addEventListener("visibilitychange", alCambiarVisibilidad);
+    programar();
     return () => {
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", alVolver);
+      clearTimeout(timer);
+      eventos.forEach((e) => window.removeEventListener(e, reanudar));
+      document.removeEventListener("visibilitychange", alCambiarVisibilidad);
     };
   }, [cargar]);
 

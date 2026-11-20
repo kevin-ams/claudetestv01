@@ -23,5 +23,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/portal/:path*"],
+  // /admin/api/* queda fuera: valida la sesión por su cuenta y así cada consulta de
+  // la campanita no ejecuta además la función de borde.
+  matcher: ["/admin", "/admin/((?!api/).*)", "/portal/:path*"],
 };
