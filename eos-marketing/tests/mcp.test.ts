@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { createApiToken, RATE_LIMIT_PER_MINUTE, revokeApiToken, verifyApiToken } from "@/lib/domain/api-tokens";
 import { createNote, getVault } from "@/lib/domain/vault";
-import { handleMcp } from "@/lib/mcp/handler";
+import { handleMcp, onlyNotifications } from "@/lib/mcp/handler";
 import { ADMIN_ROLE, demoOrg, person, realTeam } from "./helpers";
 
 async function rpc(token: string, method: string, params: Record<string, unknown> = {}) {
@@ -80,5 +80,28 @@ describe("servidor MCP", () => {
     expect(issues.map((i) => i.team_id)).toEqual([teamB]);
     const log = (await db().sql`SELECT action FROM activity_log WHERE team_id = ${teamB} ORDER BY id DESC LIMIT 1`) as { action: string }[];
     expect(log[0]?.action).toContain("vía Claude");
+  });
+});
+
+describe("avisos y rechazos", () => {
+  it("contesta los avisos sin revisar el token (no despierta la base) y no cuenta para el límite", async () => {
+    const res = await handleMcp(
+      new Request("http://localhost/api/mcp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
+      }),
+      "eos_cualquiera",
+    );
+    expect(res.status).toBe(202);
+    expect(onlyNotifications([{ jsonrpc: "2.0", method: "a" }, { jsonrpc: "2.0", id: 2, method: "b" }])).toBe(false);
+    expect(onlyNotifications({ jsonrpc: "2.0", id: 1, result: {} })).toBe(false);
+  });
+
+  it("un cuerpo que no es JSON se rechaza con 400 y una petición sigue exigiendo token válido", async () => {
+    const bad = await handleMcp(new Request("http://localhost/api/mcp", { method: "POST", body: "{no" }), "eos_x");
+    expect(bad.status).toBe(400);
+    const r = await rpc("eos_nope", "tools/list");
+    expect(r.status).toBe(401);
   });
 });
